@@ -1,5 +1,6 @@
 package org.npt.beans.implementation;
 
+import javafx.scene.control.ContextMenu;
 import org.npt.exception.GatewayNotFoundException;
 import org.npt.exception.ProcessFailureException;
 import org.npt.models.Device;
@@ -58,7 +59,7 @@ public class GatewayFinder {
         while ((line = reader.readLine()) != null) {
             Matcher matcher = pattern.matcher(line.trim());
             if (matcher.find()) {
-                gateway = new Device("Gateway", matcher.group(1) != null ? matcher.group(1) : matcher.group(2),0,0, Type.GATEWAY);
+                gateway = new Device("Gateway", matcher.group(1) != null ? matcher.group(1) : matcher.group(2),0,0, Type.GATEWAY, new ContextMenu());
                 break;
             }
         }

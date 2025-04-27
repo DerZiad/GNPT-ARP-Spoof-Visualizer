@@ -5,17 +5,17 @@ import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.text.Font;
 import javafx.util.Duration;
+import org.npt.beans.ResourceLoader;
 import org.npt.beans.implementation.GatewayFinder;
+import org.npt.beans.implementation.ResourceLoaderImpl;
 import org.npt.configuration.Configuration;
 import org.npt.exception.GatewayNotFoundException;
 import org.npt.exception.ProcessFailureException;
@@ -25,19 +25,26 @@ import org.npt.models.Type;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 
 import static org.npt.configuration.Configuration.*;
 
 public class MainController {
 
+    public TextField ipAddress;
+    public TextField deviceInterface;
+    public Button addDevice;
+    public TextField deviceName;
     private double animationProgress = 0.0;
 
     private Device draggedDevice = null;
     private double dragOffsetX;
     private double dragOffsetY;
     private boolean draggingRouter = false;
+    private Font textSize = Font.font(14);
 
     @FXML
     private Canvas canvas;
@@ -49,12 +56,6 @@ public class MainController {
     private AnchorPane rootAnchorPane;
 
     @FXML
-    private Button scanButton;
-
-    @FXML
-    private Button plusButton;
-
-    @FXML
     private MenuButton menuButton;
 
     private Image computerImage;
@@ -64,25 +65,10 @@ public class MainController {
     @FXML
     public void initialize() {
         // Load images
-        computerImage = new Image(getClass().getResourceAsStream("/org/npt/images/computer.png"));
-        routerImage = new Image(getClass().getResourceAsStream("/org/npt/images/router.png"));
-        hackerComputerImage = new Image(getClass().getResourceAsStream("/org/npt/images/hacker.png"));
-        Image sniperImage = new Image(getClass().getResourceAsStream("/org/npt/images/sniper.png"));
-        Image plusImage = new Image(getClass().getResourceAsStream("/org/npt/images/plus.png"));
-
-        ImageView sniperImageView = new ImageView(sniperImage);
-        scanButton.getStyleClass().add("hoverImage");
-        sniperImageView.setFitWidth(86);
-        sniperImageView.setFitHeight(76);
-        scanButton.setGraphic(sniperImageView);
-        scanButton.setStyle("-fx-background-radius: 50; -fx-background-color: transparent;");
-
-        ImageView plusImageView = new ImageView(plusImage);
-        plusButton.getStyleClass().add("hoverImage");
-        plusImageView.setFitWidth(86);
-        plusImageView.setFitHeight(76);
-        plusButton.setGraphic(sniperImageView);
-        plusButton.setStyle("-fx-background-radius: 50; -fx-background-color: transparent;");
+        ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
+        computerImage = new Image(resourceLoader.getResource("computer.png"));
+        routerImage = new Image(resourceLoader.getResource("router.png"));
+        hackerComputerImage = new Image(resourceLoader.getResource("hacker.png"));
 
         // Bind Canvas size to AnchorPane size
         canvas.widthProperty().bind(rootAnchorPane.widthProperty());
@@ -94,8 +80,31 @@ public class MainController {
 
         settingButton.getStyleClass().add("anchor-pane-border");
 
-        // Initialize the network configuration
+        Device myDevice = new Device("Device3", "192.168.178.33", 0, 0, Type.SELF, new ContextMenu());
+        Configuration.devices.add(myDevice);
+
+        initializeCanvas();
+
+        addDevice.setOnAction(_ -> {
+            String ipAddress = this.ipAddress.getText();
+            String deviceInterface = this.deviceInterface.getText();
+            String deviceName = this.deviceInterface.getText();
+            Device device = Device.builder()
+                    .deviceName(deviceName)
+                    .ipAddress(ipAddress)
+                    .x(0)
+                    .y(0)
+                    .contextMenu(new ContextMenu())
+                    .type(Type.TARGET)
+                    .build();
+            Configuration.devices.add(device);
+            initializeCanvas();
+        });
         initializeInterfaces();
+    }
+
+    public void initializeCanvas() {
+        // Initialize the network configuration
         scan();
 
         // Center router and initialize device layout
@@ -106,7 +115,7 @@ public class MainController {
         drawNetwork();
     }
 
-    private void initializeInterfaces(){
+    private void initializeInterfaces() {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface networkInterface : Collections.list(interfaces)) {
@@ -115,11 +124,11 @@ public class MainController {
                     scanInterface = menuItem.getText();
                     menuButton.setText(menuItem.getText());
                 });
-              menuButton.getItems().add(menuItem);
+                menuButton.getItems().add(menuItem);
             }
-            if(menuButton.getItems().size() == 0){
+            if (menuButton.getItems().isEmpty()) {
                 menuButton.setText("No network");
-            }else {
+            } else {
                 String interfaceFound = menuButton.getItems().getFirst().getText();
                 menuButton.setText(interfaceFound);
                 scanInterface = interfaceFound;
@@ -225,18 +234,18 @@ public class MainController {
 
         for (Device device : devices) {
             Image selectedComputerImage = computerImage;
-            if(device.getType().equals(Type.SELF)){
+            if (device.getType().equals(Type.SELF)) {
                 selectedComputerImage = hackerComputerImage;
             }
             gc.drawImage(selectedComputerImage, device.getX() - imageSize / 2, device.getY() - imageSize / 2, imageSize, imageSize);
 
             gc.setFill(Color.BLACK);
-            gc.setFont(gc.getFont().font(12));
-            gc.fillText(device.getName(), device.getX() - 20, device.getY() + imageSize / 2 + 15);
+            gc.setFont(Font.font(12));
+            gc.fillText(device.getDeviceName(), device.getX() - 20, device.getY() + imageSize / 2 + 15);
             gc.fillText(device.getIpAddress(), device.getX() - 20, device.getY() + imageSize / 2 + 30);
         }
 
-        for (Connection connection:connections){
+        for (Connection connection : connections) {
             Device first = connection.getFirstDevice();
             Device second = connection.getSecondDevice();
             drawMovingDot(gc, first.getX(), first.getY(), second.getX(), second.getY());
@@ -248,8 +257,8 @@ public class MainController {
         double routerSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
         gc.drawImage(routerImage, gateway.getX() - routerSize / 2, gateway.getY() - routerSize / 2, routerSize, routerSize);
         gc.setFill(Color.BLACK);
-        gc.setFont(gc.getFont().font(14));
-        gc.fillText(gateway.getName(), gateway.getX() - 25, gateway.getY() + routerSize / 2 + 20);
+        gc.setFont(Font.font(14));
+        gc.fillText(gateway.getDeviceName(), gateway.getX() - 25, gateway.getY() + routerSize / 2 + 20);
         gc.fillText(gateway.getIpAddress(), gateway.getX() - 30, gateway.getY() + routerSize / 2 + 35);
     }
 
@@ -272,8 +281,8 @@ public class MainController {
         gc.fillOval(dotX - 3, dotY - 3, 6, 6); // Dot size of 6x6 pixels
     }
 
-    private void drawConnections(GraphicsContext gc){
-        connections.stream().forEach((Connection connection)->{
+    private void drawConnections(GraphicsContext gc) {
+        connections.forEach((Connection connection) -> {
             gc.strokeLine(connection.getFirstDevice().getX(), connection.getFirstDevice().getY(), connection.getSecondDevice().getX(), connection.getSecondDevice().getY());
         });
     }
@@ -282,14 +291,7 @@ public class MainController {
         try {
             GatewayFinder gatewayFinder = GatewayFinder.getInstance();
             Configuration.gateway = gatewayFinder.getGateway();
-            Device device1 = new Device("Device1", "192.168.178.30", 0, 0, Type.TARGET);
-            Configuration.devices.add(device1);
-            Device device2 = new Device("Device2", "192.168.178.32", 0, 0, Type.TARGET);
-            Configuration.devices.add(device2);
-            Device device3 = new Device("Device3", "192.168.178.33", 0, 0, Type.SELF);
-            Configuration.devices.add(device3);
-            devices.stream().forEach((Device device) -> connections.add(new Connection(gateway,device)));
-
+            devices.forEach(device -> connections.add(new Connection(gateway, device)));
         } catch (ProcessFailureException | GatewayNotFoundException e) {
             e.printStackTrace();
         }

@@ -2,52 +2,25 @@ package org.npt.models;
 
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.npt.beans.implementation.ArpSpoofStarter;
 import static org.npt.configuration.Configuration.*;
 
+@AllArgsConstructor
 @Data
+@Builder
+@NoArgsConstructor
 public class Device {
 
-    private final String name;
-    private final String ipAddress;
-    private final ContextMenu contextMenu;
-
-    private Type type = Type.GATEWAY;
+    private String deviceName;
+    private String ipAddress;
     private double x;
     private double y;
-    private MenuItem startStopSniffing;
-
-    public Device(String name, String ipAddress, double x, double y) {
-        this.name = name;
-        this.ipAddress = ipAddress;
-        this.x = x;
-        this.y = y;
-
-        // Initialize the context menu with options for each device
-        this.contextMenu = new ContextMenu();
-
-        startStopSniffing = new MenuItem("Start Sniffing");
-        startStopSniffing.setOnAction(e -> spoof());
-
-        MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(e -> showDeviceDetails());
-
-        MenuItem editIpItem = new MenuItem("Edit IP Address");
-        editIpItem.setOnAction(e -> editIpAddress());
-
-        MenuItem removeItem = new MenuItem("Remove Device");
-        removeItem.setOnAction(e -> removeDevice());
-
-        contextMenu.getItems().addAll(startStopSniffing, detailsItem, editIpItem, removeItem);
-    }
-
-    public Device(String name, String ipAddress, double x, double y,Type type){
-        this(name,ipAddress,x,y);
-        this.type = type;
-    }
-
-
+    private Type type;
+    private ContextMenu contextMenu;
 
     private void spoof(){
         ArpSpoofStarter arpSpoofStarter = new ArpSpoofStarter();
@@ -73,16 +46,32 @@ public class Device {
         }
     }
 
+    private void initMenu(){
+        MenuItem detailsItem = new MenuItem("View Details");
+        detailsItem.setOnAction(e -> showDeviceDetails());
+
+        MenuItem editIpItem = new MenuItem("Edit IP Address");
+        editIpItem.setOnAction(e -> editIpAddress());
+
+        MenuItem removeItem = new MenuItem("Remove Device");
+        removeItem.setOnAction(e -> removeDevice());
+
+        MenuItem startStopSniffing = new MenuItem("Start Sniffing");
+        startStopSniffing.setOnAction(e -> spoof());
+
+        contextMenu.getItems().addAll(startStopSniffing, detailsItem, editIpItem, removeItem);
+    }
+
     private void showDeviceDetails() {
-        System.out.println("Showing details for " + name + " (" + ipAddress + ")");
+        System.out.println("Showing details for " + deviceName + " (" + ipAddress + ")");
     }
 
     private void editIpAddress() {
-        System.out.println("Editing IP address of " + name);
+        System.out.println("Editing IP address of " + deviceName);
     }
 
     private void removeDevice() {
-        System.out.println("Removing device " + name);
+        System.out.println("Removing device " + deviceName);
     }
 
 }
