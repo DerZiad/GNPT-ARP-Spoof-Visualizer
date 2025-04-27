@@ -2,7 +2,6 @@ package org.npt.controllers;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
-import javafx.event.EventType;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -16,7 +15,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.layout.AnchorPane;
 import javafx.util.Duration;
-import org.npt.beans.GatewayFinder;
+import org.npt.beans.implementation.GatewayFinder;
 import org.npt.configuration.Configuration;
 import org.npt.exception.GatewayNotFoundException;
 import org.npt.exception.ProcessFailureException;

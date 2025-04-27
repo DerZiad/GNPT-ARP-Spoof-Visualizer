@@ -3,7 +3,7 @@ package org.npt.models;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import lombok.Data;
-import org.npt.beans.ArpSpoofStarter;
+import org.npt.beans.implementation.ArpSpoofStarter;
 import static org.npt.configuration.Configuration.*;
 
 @Data

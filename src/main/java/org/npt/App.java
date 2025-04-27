@@ -1,18 +1,5 @@
 package org.npt;
 
-import org.npt.beans.ArpSpoofStarter;
-import org.npt.beans.GatewayFinder;
-import org.npt.beans.LogStorageCreator;
-import org.npt.beans.PacketSniffer;
-import org.npt.configuration.Configuration;
-import org.npt.exception.GatewayNotFoundException;
-import org.npt.exception.ProcessFailureException;
-import org.npt.models.Device;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-
 /**
  * Hello world!
  */

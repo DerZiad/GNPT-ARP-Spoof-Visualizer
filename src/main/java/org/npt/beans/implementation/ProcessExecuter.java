@@ -1,4 +1,4 @@
-package org.npt.beans;
+package org.npt.beans.implementation;
 
 import org.npt.exception.FileException;
 import org.npt.exception.ProcessFailureException;
