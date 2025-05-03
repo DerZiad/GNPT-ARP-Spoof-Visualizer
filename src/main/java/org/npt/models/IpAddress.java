@@ -4,11 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Data
-public class Connection {
+public class IpAddress {
 
-    private Device firstDevice;
-    private Device secondDevice;
+    private String ip;
+    private String networkInterface;
 }

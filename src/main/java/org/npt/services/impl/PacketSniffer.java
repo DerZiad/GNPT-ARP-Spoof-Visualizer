@@ -1,4 +1,4 @@
-package org.npt.beans.implementation;
+package org.npt.services.impl;
 
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;

@@ -1,19 +1,18 @@
 package org.npt.configuration;
 
-import org.npt.beans.implementation.LogStorageCreator;
-import org.npt.models.Connection;
-import org.npt.models.Device;
+import org.npt.models.Gateway;
+import org.npt.models.SelfDevice;
+import org.npt.models.Target;
+import org.npt.services.impl.LogStorageCreator;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class Configuration {
 
-    public static Device gateway = null;
-    public static List<Device> devices = new ArrayList<>();
-    public static Device myDevice = null;
-    public static String scanInterface = null;
+    public static List<Target> targets = new ArrayList<>();
+    public static SelfDevice selfDevice = null;
+    public static List<Gateway> gateways = new ArrayList<>();
     public static String logStorageFolder = LogStorageCreator.createLogStorageFolder();
-    public static List<Connection> connections = new ArrayList<>();
 
 }
