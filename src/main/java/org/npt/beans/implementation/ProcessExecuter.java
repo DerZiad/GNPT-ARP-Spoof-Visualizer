@@ -6,29 +6,30 @@ import lombok.Getter;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Getter
 public class ProcessExecuter implements Runnable {
 
-    private String processName;
+    private final String processName;
 
-    private String command;
+    private final String command;
 
-    private String logStorageFolder;
+    private final String logStorageFolder;
 
-    @Getter
-    private Instant instant = Instant.now();
+    private final Instant instant = Instant.now();
 
-    private Boolean selfReadOfProcessContent;
+    private final Boolean selfReadOfProcessContent;
 
-    @Getter
-    private Process process = null;
+    private final Process process = null;
 
-    private List<Exception> exceptions = new ArrayList<>();
+    private final List<Exception> exceptions = new ArrayList<>();
 
     private ProcessExecuter(String logStorageFolder, String command, String processName, Boolean readAndStore) {
         this.logStorageFolder = logStorageFolder;
@@ -38,8 +39,7 @@ public class ProcessExecuter implements Runnable {
     }
 
     public static ProcessExecuter execute(String processName, String logStorageFolder, String[] command, Boolean selfReadOfProcessContent) {
-        String commandString = Arrays.stream(command)
-                .collect(Collectors.joining(" "));
+        String commandString = String.join(" ", command);
         ProcessExecuter asynchronousProcessExecuter = new ProcessExecuter(logStorageFolder, commandString, processName, selfReadOfProcessContent);
         Thread thread = new Thread(asynchronousProcessExecuter);
         thread.start();
@@ -70,9 +70,6 @@ public class ProcessExecuter implements Runnable {
             File logFile;
             try {
                 logFile = createLogFile();
-            } catch (FileNotFoundException e) {
-                exceptions.add(new FileException("Failed to create log file"));
-                return;
             } catch (IOException e) {
                 exceptions.add(new FileException("Failed to create log file"));
                 return;
@@ -119,6 +116,24 @@ public class ProcessExecuter implements Runnable {
 
         } catch (FileNotFoundException e) {
             exceptions.add(new FileException("Log file not found or could not be created"));
+        }
+    }
+
+    static class ProcessUtils {
+        public static String generateProcessNameFrom(String input){
+            try {
+                MessageDigest md = MessageDigest.getInstance("MD5");
+                byte[] hashBytes = md.digest(input.getBytes());
+                StringBuilder hexString = new StringBuilder();
+                for (byte b : hashBytes) {
+                    String hex = Integer.toHexString(0xff & b);
+                    if (hex.length() == 1) hexString.append('0');
+                    hexString.append(hex);
+                }
+                return hexString.toString();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("MD5 algorithm not found", e);
+            }
         }
     }
 

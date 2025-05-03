@@ -12,6 +12,7 @@ module org.npt {
     requires static lombok;
     requires org.pcap4j.core;
     requires org.dnsjava;
+    requires annotations;
 
     opens org.npt to javafx.fxml;
     exports org.npt;
@@ -19,4 +20,8 @@ module org.npt {
     exports org.npt.controllers;
     exports org.npt.models;
     opens org.npt.models;
+    exports org.npt.services;
+    opens org.npt.services;
+    exports org.npt.services.impl;
+    opens org.npt.services.impl;
 }

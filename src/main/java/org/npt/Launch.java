@@ -4,8 +4,14 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.npt.beans.implementation.DeviceService;
+import org.npt.configuration.Configuration;
+import org.npt.models.Gateway;
 
 import java.io.IOException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.List;
 import java.util.Objects;
 
 public class Launch extends Application {
@@ -20,7 +26,10 @@ public class Launch extends Application {
         stage.show();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SocketException, UnknownHostException {
+        DeviceService deviceService = new DeviceService();
+        Configuration.gateways = deviceService.scanCurrentGateways();
+        Configuration.selfDevice = deviceService.scanActualDevice(Configuration.gateways);
         launch();
     }
 }

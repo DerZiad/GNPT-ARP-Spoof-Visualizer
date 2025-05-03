@@ -1,4 +1,5 @@
-package org.npt.controllers;
+package org.npt.services;
 
 public class CanvasEventService {
+
 }

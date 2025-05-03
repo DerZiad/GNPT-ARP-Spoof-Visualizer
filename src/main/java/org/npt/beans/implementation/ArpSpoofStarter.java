@@ -3,72 +3,41 @@ package org.npt.beans.implementation;
 import lombok.extern.slf4j.Slf4j;
 import org.npt.models.Device;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import static org.npt.configuration.Configuration.*;
 
 @Slf4j
 public class ArpSpoofStarter {
 
-
     private static final String COMMAND = "sudo arpspoof -i %s -t %s %s";
+    private static final String PROCESS_NAME = "Spoofing the following Target : %s , Gateway : %s";
+    private static final List<ProcessExecuter> processExecuters = new ArrayList<>();
 
-    public void addDevices(List<Device> devices){
-        devices.addAll(devices);
-    }
-
-    public void addDevice(Device device){
-        devices.add(device);
-    }
-
-
-    public void removeDevice(Device device){
-        devices.remove(device);
-    }
-
-    public void removeDevices(List<Device> devices){
-        devices.removeAll(devices);
-    }
-
-    public void startSpoofing(Device device){
-        String commandFirst = String.format(COMMAND,scanInterface,device.getIpAddress(),gateway.getIpAddress());
-        String commandSecond = String.format(COMMAND,scanInterface,gateway.getIpAddress(),device.getIpAddress());
-        String processName = String.format("Target : %s , Gateway : %s",gateway.getIpAddress(),device.getIpAddress());
-        ProcessExecuter.execute(processName,logStorageFolder, new String[]{commandFirst},false);
-        ProcessExecuter.execute(processName + "Reverse",logStorageFolder, new String[]{commandSecond},false);
-    }
-
-    public void stopSpoofing(List<Device> devices){
-        devices.forEach((Device device) -> {
-            String commandFirst = String.format(COMMAND,scanInterface,device.getIpAddress(),gateway.getIpAddress());
-            String commandSecond = String.format(COMMAND,scanInterface,gateway.getIpAddress(),device.getIpAddress());
-            String processName = String.format("Target : %s , Gateway : %s",gateway.getIpAddress(),device.getIpAddress());
-            ProcessExecuter.execute(processName,logStorageFolder, new String[]{commandFirst},false);
-            ProcessExecuter.execute(processName + "Reverse",logStorageFolder, new String[]{commandSecond},false);
-            PacketSniffer packetSniffer = new PacketSniffer(device.getIpAddress());
-            packetSniffer.startSniffing();
+    public void stopSpoofing(String targetIp, String gatewayIp) {
+        final String processName = ProcessExecuter.ProcessUtils.generateProcessNameFrom(String.format(PROCESS_NAME, targetIp, gatewayIp));
+        final List<ProcessExecuter> filteredProcessExecuter = processExecuters.stream().filter(processExecuter -> processExecuter.getProcessName().equals(processName))
+                .collect(Collectors.toCollection(ArrayList::new));
+        filteredProcessExecuter.forEach(processExecuter -> {
+            processExecuter.stop();
+            processExecuters.remove(processExecuter);
         });
     }
 
-    public void stopSpoofing(Device device){
-            String commandFirst = String.format(COMMAND,scanInterface,device.getIpAddress(),gateway.getIpAddress());
-            String commandSecond = String.format(COMMAND,scanInterface,gateway.getIpAddress(),device.getIpAddress());
-            String processName = String.format("Target : %s , Gateway : %s",gateway.getIpAddress(),device.getIpAddress());
-            ProcessExecuter.execute(processName,logStorageFolder, new String[]{commandFirst},false);
-            ProcessExecuter.execute(processName + "Reverse",logStorageFolder, new String[]{commandSecond},false);
-            PacketSniffer packetSniffer = new PacketSniffer(device.getIpAddress());
-            packetSniffer.startSniffing();
-    }
-
-    public void startSpoofing(List<Device> devices){
-        devices.forEach((Device device) -> {
-            String commandFirst = String.format(COMMAND,scanInterface,device.getIpAddress(),gateway.getIpAddress());
-            String commandSecond = String.format(COMMAND,scanInterface,gateway.getIpAddress(),device.getIpAddress());
-            String processName = String.format("Target : %s , Gateway : %s",gateway.getIpAddress(),device.getIpAddress());
-            ProcessExecuter.execute(processName,logStorageFolder, new String[]{commandFirst},false);
-            ProcessExecuter.execute(processName + "Reverse",logStorageFolder, new String[]{commandSecond},false);
-            PacketSniffer packetSniffer = new PacketSniffer(device.getIpAddress());
-            packetSniffer.startSniffing();
-        });
+    public void startSpoofing(String scanInterface, String targetIp, String gatewayIp) {
+        final String commandFirst = String.format(COMMAND, scanInterface, targetIp, gatewayIp);
+        final String commandSecond = String.format(COMMAND, scanInterface, gatewayIp, targetIp);
+        String processName = String.format(PROCESS_NAME, targetIp, gatewayIp);
+        processName = ProcessExecuter.ProcessUtils.generateProcessNameFrom(processName);
+        final ProcessExecuter normal = ProcessExecuter.execute(processName, logStorageFolder, new String[]{commandFirst}, false);
+        final ProcessExecuter reverse = ProcessExecuter.execute(processName, logStorageFolder, new String[]{commandSecond}, false);
+        processExecuters.add(normal);
+        processExecuters.add(reverse);
+        PacketSniffer packetSniffer = new PacketSniffer(targetIp);
+        packetSniffer.startSniffing();
     }
 
 
