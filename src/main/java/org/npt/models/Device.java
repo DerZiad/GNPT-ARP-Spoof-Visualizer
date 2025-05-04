@@ -2,7 +2,6 @@ package org.npt.models;
 
 import javafx.scene.control.ContextMenu;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 

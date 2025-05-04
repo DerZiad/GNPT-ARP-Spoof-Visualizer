@@ -1,7 +1,5 @@
 package org.npt.controllers;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -9,17 +7,14 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.paint.Color;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.npt.beans.ResourceLoader;
 import org.npt.beans.implementation.ResourceLoaderImpl;
-import org.npt.configuration.Configuration;
 import org.npt.models.*;
 import org.npt.services.impl.PicassoService;
-import org.w3c.dom.events.Event;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -28,18 +23,14 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static org.npt.configuration.Configuration.*;
-import static org.npt.configuration.Configuration.selfDevice;
 
 @Slf4j
 public class MainController {
 
     private final List<Device> devices = new ArrayList<>();
     public TextField ipAddress;
-    public TextField deviceInterface;
     public Button addDevice;
     public TextField deviceName;
     private Device draggedDevice = null;
@@ -83,8 +74,8 @@ public class MainController {
         canvas.heightProperty().bind(rootAnchorPane.heightProperty());
 
         // Set up listeners for drawing
-        canvas.widthProperty().addListener((obs, oldVal, newVal) -> initializeCanvas());
-        canvas.heightProperty().addListener((obs, oldVal, newVal) -> initializeCanvas());
+        canvas.widthProperty().addListener((_, _, _) -> initializeCanvas());
+        canvas.heightProperty().addListener((_, _, _) -> initializeCanvas());
 
         settingButton.getStyleClass().add("anchor-pane-border");
         addDevice.setOnAction(_ -> {
@@ -113,7 +104,7 @@ public class MainController {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface networkInterface : Collections.list(interfaces)) {
                 MenuItem menuItem = new MenuItem(networkInterface.getName());
-                menuItem.setOnAction(event -> {
+                menuItem.setOnAction(_ -> {
                     menuButton.setText(menuItem.getText());
                 });
                 menuButton.getItems().add(menuItem);

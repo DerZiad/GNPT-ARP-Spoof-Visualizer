@@ -1,14 +1,17 @@
 package org.npt.services;
 
 import org.junit.jupiter.api.Test;
-import org.npt.models.IpAddress;
 import org.npt.beans.implementation.DeviceService;
+import org.npt.models.IpAddress;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.List;
 
-import java.net.*;
-import java.util.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DeviceServiceTest {
 

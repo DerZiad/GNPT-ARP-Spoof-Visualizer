@@ -1,14 +1,12 @@
 package org.npt.beans.implementation;
 
 import lombok.extern.slf4j.Slf4j;
-import org.npt.models.Device;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.npt.configuration.Configuration.*;
+import static org.npt.configuration.Configuration.logStorageFolder;
 
 @Slf4j
 public class ArpSpoofStarter {

@@ -7,7 +7,6 @@ import javafx.scene.control.ContextMenu;
 import javafx.stage.Stage;
 import org.npt.beans.implementation.DeviceService;
 import org.npt.configuration.Configuration;
-import org.npt.models.Gateway;
 import org.npt.models.IpAddress;
 import org.npt.models.Target;
 

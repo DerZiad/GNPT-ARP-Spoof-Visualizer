@@ -1,7 +1,6 @@
 package org.npt.configuration;
 
 import org.npt.beans.implementation.LogStorageCreator;
-import org.npt.models.Device;
 import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;

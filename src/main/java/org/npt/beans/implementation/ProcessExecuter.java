@@ -1,8 +1,8 @@
 package org.npt.beans.implementation;
 
+import lombok.Getter;
 import org.npt.exception.FileException;
 import org.npt.exception.ProcessFailureException;
-import lombok.Getter;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -10,9 +10,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 public class ProcessExecuter implements Runnable {
