@@ -1,5 +1,5 @@
 package org.npt.services;
 
-public class CanvasEventService {
+public interface CanvasEventService {
 
 }

@@ -11,9 +11,9 @@ public class Gateway extends Device {
 
     @Getter
     @Setter
-    private List<Device> devices;
+    private List<Target> devices;
 
-    public Gateway(String deviceName, List<IpAddress> ipAddresses, double x, double y, ContextMenu contextMenu, List<Device> devices) {
+    public Gateway(String deviceName, List<IpAddress> ipAddresses, double x, double y, ContextMenu contextMenu, List<Target> devices) {
         super(deviceName, ipAddresses, x, y, contextMenu);
         this.devices = devices;
     }

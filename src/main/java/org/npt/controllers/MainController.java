@@ -13,16 +13,13 @@ import javafx.scene.paint.Color;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
+import lombok.extern.slf4j.Slf4j;
 import org.npt.beans.ResourceLoader;
 import org.npt.beans.implementation.ResourceLoaderImpl;
 import org.npt.configuration.Configuration;
-import org.npt.exception.GatewayNotFoundException;
-import org.npt.exception.ProcessFailureException;
-import org.npt.models.Device;
-import org.npt.models.Gateway;
-import org.npt.models.SelfDevice;
-import org.npt.models.Target;
+import org.npt.models.*;
 import org.npt.services.impl.PicassoService;
+import org.w3c.dom.events.Event;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -30,24 +27,26 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.npt.configuration.Configuration.*;
+import static org.npt.configuration.Configuration.selfDevice;
 
+@Slf4j
 public class MainController {
 
+    private final List<Device> devices = new ArrayList<>();
     public TextField ipAddress;
     public TextField deviceInterface;
     public Button addDevice;
     public TextField deviceName;
-    private double animationProgress = 0.0;
-
     private Device draggedDevice = null;
     private double dragOffsetX;
     private double dragOffsetY;
     private boolean draggingRouter = false;
-    private Font textSize = Font.font(14);
     private final PicassoService picassoService = new PicassoService();
-
 
     @FXML
     private Canvas canvas;
@@ -67,6 +66,12 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        // Devices
+        devices.add(selfDevice);
+        devices.addAll(targets);
+        devices.addAll(gateways);
+        devices.forEach(picassoService::initMenu);
+
         // Load images
         ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
         computerImage = new Image(resourceLoader.getResource("computer.png"));
@@ -78,32 +83,29 @@ public class MainController {
         canvas.heightProperty().bind(rootAnchorPane.heightProperty());
 
         // Set up listeners for drawing
-        //canvas.widthProperty().addListener((obs, oldVal, newVal) -> drawNetwork());
-        //canvas.heightProperty().addListener((obs, oldVal, newVal) -> drawNetwork());
+        canvas.widthProperty().addListener((obs, oldVal, newVal) -> initializeCanvas());
+        canvas.heightProperty().addListener((obs, oldVal, newVal) -> initializeCanvas());
 
         settingButton.getStyleClass().add("anchor-pane-border");
-
-        initializeCanvas();
-
         addDevice.setOnAction(_ -> {
             String ipAddress = this.ipAddress.getText();
-            String deviceInterface = this.deviceInterface.getText();
-            String deviceName = this.deviceInterface.getText();
-            /*Device device = Device.builder()
-                    .deviceName(deviceName)
-                    .ipAddress(ipAddress)
-                    .deviceInterface(deviceInterface)
-                    .x(0)
-                    .y(0)
-                    .contextMenu(new ContextMenu())
-                    .next(gateway)
-                    .type(Type.TARGET)
-                    .build();
-            picassoService.initMenu(device.getContextMenu(),device);
-            Configuration.devices.add(device);*/
+            String deviceInterface = this.menuButton.getText();
+            String deviceName = this.deviceName.getText();
+            List<IpAddress> ipAddresses = List.of(new IpAddress(ipAddress,deviceInterface));
+            Target target = new Target(deviceName, ipAddresses, 0,0,new ContextMenu());
+            devices.add(target);
+            targets.add(target);
+            List<Gateway> gatewaysMatchDeviceInterface = gateways.stream().filter(gateway -> gateway.getIpAddresses().getFirst().getNetworkInterface().equals(deviceInterface))
+                    .toList();
+            if(!gatewaysMatchDeviceInterface.isEmpty()){
+                gateways.getFirst().getDevices().add(target);
+            }
+            //picassoService.initMenu(target);
             initializeCanvas();
         });
         initializeInterfaces();
+        centerSelfDevice();
+        initializeCanvas();
     }
 
     private void initializeInterfaces() {
@@ -129,66 +131,157 @@ public class MainController {
 
     public void initializeCanvas() {
         GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
-        centerMyComputer();
-        initializeGateways();
-        drawConnectionsBetweenNetworkAndComputer(graphicsContext);
-        for (Gateway gateway:gateways){
-            drawRouter(graphicsContext,gateway);
+        graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawComputer(graphicsContext, selfDevice);
+        calculateGatewaysPosition();
+        drawRouters(graphicsContext);
+        setupMouseEvents();
+        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        graphicsContext.setStroke(Color.GRAY);
+        graphicsContext.setLineWidth(1.5);
+
+        for (Target target : targets) {
+            Image selectedComputerImage = computerImage;
+            graphicsContext.drawImage(selectedComputerImage, target.getX() - imageSize / 2, target.getY() - imageSize / 2, imageSize, imageSize);
+            graphicsContext.setFill(Color.BLACK);
+            graphicsContext.setFont(Font.font(12));
+            graphicsContext.fillText(target.getDeviceName(), target.getX() - 20, target.getY() + imageSize / 2 + 15);
+            graphicsContext.fillText(target.getIpAddresses().getFirst().getIp(), target.getX() - 20, target.getY() + imageSize / 2 + 30);
         }
-        //setupMouseEvents();
-        //startConnectionAnimation();
-        //drawNetwork();
-    }
 
-    private void drawConnectionsBetweenNetworkAndComputer(GraphicsContext gc){
-        for (Gateway gateway:gateways){
-            drawConnection(gc,gateway,selfDevice);
+        for (Gateway gateway : gateways) {
+            drawConnection(graphicsContext, selfDevice, gateway);
+            for (Target target : gateway.getDevices()) {
+                drawConnection(graphicsContext, gateway, target);
+            }
         }
+
     }
 
-    private void centerMyComputer() {
-        selfDevice.setX(canvas.getWidth() / 2);
-        selfDevice.setY(canvas.getHeight() / 2);
+    public void calculateGatewaysPosition() {
+        int gatewaysSize = gateways.size();
+        if (gatewaysSize == 0) return;  // Prevent division by zero
 
-        canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
-            selfDevice.setX(canvas.getWidth() / 2);
-            //drawNetwork();
-        });
-        canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
-            selfDevice.setY(newVal.doubleValue() / 2);
-            //drawNetwork();
-        });
-    }
+        double xCenter = selfDevice.getX();
+        double yCenter = selfDevice.getY();
+        double R = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
+        ;
 
-    private void initializeGateways() {
-        int numberOfDevices = gateways.size();
-        double radius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3; // Distance from router
-        double centerX = selfDevice.getX();
-        double centerY = selfDevice.getY();
+        double step = 2 * Math.PI / gatewaysSize;
 
-        for (int i = 0; i < numberOfDevices; i++) {
-            double angle = 2 * Math.PI * i / numberOfDevices;
-            double x = centerX + radius * Math.cos(angle);
-            double y = centerY + radius * Math.sin(angle);
+        for (int i = 0; i < gatewaysSize; i++) {
+            double angle = step * i;
+            double x = xCenter + R * Math.cos(angle);
+            double y = yCenter + R * Math.sin(angle);
+
             Gateway gateway = gateways.get(i);
             gateway.setX(x);
             gateway.setY(y);
         }
     }
 
+    private void drawRouters(GraphicsContext gc) {
+        double routerSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        for (Gateway gateway : gateways) {
+            gc.drawImage(routerImage, gateway.getX() - routerSize / 2, gateway.getY() - routerSize / 2, routerSize, routerSize);
+            gc.setFill(Color.BLACK);
+            gc.setFont(Font.font(14));
+            gc.fillText(gateway.getDeviceName(), gateway.getX() - 25, gateway.getY() + routerSize / 2 + 20);
+            gc.fillText(gateway.getIpAddresses().getFirst().getNetworkInterface(), gateway.getX() - 30, gateway.getY() + routerSize / 2 + 35);
+        }
+    }
 
+    private void centerSelfDevice() {
+        selfDevice.setX(canvas.getWidth() / 2);
+        selfDevice.setY(canvas.getHeight() / 2);
+
+        canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
+            selfDevice.setX(canvas.getWidth() / 2);
+            initializeCanvas();
+        });
+        canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
+            selfDevice.setY(newVal.doubleValue() / 2);
+            initializeCanvas();
+        });
+    }
+
+    private void setupMouseEvents() {
+        canvas.setOnMousePressed(this::onMousePressed);
+        canvas.setOnMouseDragged(this::onMouseDragged);
+        canvas.setOnMouseReleased(event -> onMouseReleased());
+    }
+
+    private void onMousePressed(MouseEvent event) {
+        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        if (event.getButton() == MouseButton.SECONDARY) {
+            BiPredicate<Device, MouseEvent> verifyClickInsideImage = new BiPredicate<>() {
+                @Override
+                public boolean test(Device device, MouseEvent event) {
+                    double xLeftBorder = device.getX() - imageSize / 2;
+                    double xRightBorder = device.getX() + imageSize / 2;
+                    double yTopBorder = device.getY() - imageSize / 2;
+                    double yBottomBorder = device.getY() + imageSize / 2;
+                    double x = event.getX();
+                    double y = event.getY();
+                    return x <= xRightBorder && x >= xLeftBorder && y <= yBottomBorder && y >= yTopBorder;
+                }
+            };
+
+            for (Device device : devices) {
+                if (verifyClickInsideImage.test(device,event)) {
+                    device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                    return;
+                }
+            }
+        } else {
+            if (event.getX() >= selfDevice.getX() - imageSize / 2 && event.getX() <= selfDevice.getX() + imageSize / 2 &&
+                    event.getY() >= selfDevice.getY() - imageSize / 2 && event.getY() <= selfDevice.getY() + imageSize / 2) {
+                draggingRouter = true;
+                dragOffsetX = event.getX() - selfDevice.getX();
+                dragOffsetY = event.getY() - selfDevice.getY();
+                return;
+            }
+
+            for (Device device : devices) {
+                if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
+                        event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
+                    draggedDevice = device;
+                    dragOffsetX = event.getX() - device.getX();
+                    dragOffsetY = event.getY() - device.getY();
+                    break;
+                }
+            }
+        }
+    }
+
+    private void onMouseDragged(MouseEvent event) {
+        if (draggingRouter) {
+            selfDevice.setX(event.getX() - dragOffsetX);
+            selfDevice.setY(event.getY() - dragOffsetY);
+            initializeCanvas();
+        } else if (draggedDevice != null) {
+            draggedDevice.setX(event.getX() - dragOffsetX);
+            draggedDevice.setY(event.getY() - dragOffsetY);
+            initializeCanvas();
+        }
+    }
+
+    private void onMouseReleased() {
+        draggedDevice = null;
+        draggingRouter = false;
+    }
 
     private void drawConnection(GraphicsContext gc, Device startLine, Device endLine) {
         gc.strokeLine(startLine.getX(), startLine.getY(), endLine.getX(), endLine.getY());
     }
 
-    private void drawRouter(GraphicsContext gc, Gateway gateway) {
+    private void drawComputer(GraphicsContext gc, SelfDevice selfDevice) {
         double routerSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        gc.drawImage(routerImage, gateway.getX() - routerSize / 2, gateway.getY() - routerSize / 2, routerSize, routerSize);
+        gc.drawImage(hackerComputerImage, selfDevice.getX() - routerSize / 2, selfDevice.getY() - routerSize / 2, routerSize, routerSize);
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
-        gc.fillText(gateway.getDeviceName(), gateway.getX() - 25, gateway.getY() + routerSize / 2 + 20);
-        gc.fillText(gateway.getIpAddresses().getFirst().getIp(), gateway.getX() - 30, gateway.getY() + routerSize / 2 + 35);
+        gc.fillText(selfDevice.getDeviceName(), selfDevice.getX() - 25, selfDevice.getY() + routerSize / 2 + 20);
+        //gc.fillText(selfDevice.getIpAddresses().getFirst().getIp(), selfDevice.getX() - 30, selfDevice.getY() + routerSize / 2 + 35);
     }
 
 }

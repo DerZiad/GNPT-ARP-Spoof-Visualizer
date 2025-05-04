@@ -11,8 +11,21 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version.source>23</java.version.source>
+        <java.version.target>23</java.version.target>
+        <mainClass>org.npt.Launch</mainClass>
+
+        <!-- Utils -->
+        <lombok.version>1.18.38</lombok.version>
+        <!-- Maven -->
+        <maven.assembly.plugin>3.7.1</maven.assembly.plugin>
+        <maven.compiler.plugin>3.14.0</maven.compiler.plugin>
+        <maven.exec.plugin>3.1.0</maven.exec.plugin>
+        <maven.failsafe.plugin>3.1.2</maven.failsafe.plugin>
+        <maven.surefire.plugin>3.1.2</maven.surefire.plugin>
+        <!-- Test -->
         <junit.version>5.10.0</junit.version>
-        <lombok.version>1.18.30</lombok.version>
+        <mockito.version>5.11.0</mockito.version>
     </properties>
 
     <dependencies>
@@ -133,7 +146,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.11.0</version>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- Lombok Dependency -->
@@ -166,8 +179,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>22</source>
-                    <target>22</target>
+                    <source>${java.version.source}</source>
+                    <target>${java.version.target}</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -183,10 +196,9 @@
                 <version>0.0.8</version>
                 <executions>
                     <execution>
-                        <!-- Default configuration for running with: mvn clean javafx:run -->
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>org.npt.Launch</mainClass>
+                            <mainClass>${mainClass}</mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
                             <jlinkImageName>app</jlinkImageName>
@@ -197,8 +209,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Assembly Plugin for Executable JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -223,12 +233,64 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Surefire Plugin for Running Tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven.failsafe.plugin}</version>
+                <configuration>
+                    <includes>
+                        <include>*IT*</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${maven.exec.plugin}</version>
+                <executions><execution>
+                    <goals><goal>java</goal></goals>
+                </execution></executions>
+                <configuration>
+                    <mainClass>${mainClass}</mainClass>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
+                <version>${maven.surefire.plugin}</version>
+                <configuration>
+                    <includes>
+                        <include>*Test*</include>
+                    </includes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven.failsafe.plugin}</version>
+                <configuration>
+                    <includes>
+                        <include>*IT*</include>
+                    </includes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
