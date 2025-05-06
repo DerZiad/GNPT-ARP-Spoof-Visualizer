@@ -12,8 +12,17 @@ public class SelfDevice extends Device {
     @Setter
     private List<Gateway> nextGateways;
 
+    @Getter
+    @Setter
+    private String networkInterface;
+
+    @Getter
+    @Setter
+    private List<IpAddress> ipAddresses;
+
     public SelfDevice(String deviceName, List<IpAddress> ipAddresses, double x, double y, ContextMenu contextMenu, List<Gateway> nextGateways) {
-        super(deviceName, ipAddresses, x, y, contextMenu);
+        super(deviceName, x, y, contextMenu);
         this.nextGateways = nextGateways;
+        this.ipAddresses = ipAddresses;
     }
 }

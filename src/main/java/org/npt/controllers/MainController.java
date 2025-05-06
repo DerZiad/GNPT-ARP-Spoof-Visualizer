@@ -18,10 +18,7 @@ import org.npt.services.impl.PicassoService;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiPredicate;
 
 import static org.npt.configuration.Configuration.*;
@@ -82,16 +79,13 @@ public class MainController {
             String ipAddress = this.ipAddress.getText();
             String deviceInterface = this.menuButton.getText();
             String deviceName = this.deviceName.getText();
-            List<IpAddress> ipAddresses = List.of(new IpAddress(ipAddress,deviceInterface));
-            Target target = new Target(deviceName, ipAddresses, 0,0,new ContextMenu());
+            Target target = new Target(deviceName, deviceInterface, List.of(ipAddress), 0, 0, new ContextMenu());
             devices.add(target);
             targets.add(target);
-            List<Gateway> gatewaysMatchDeviceInterface = gateways.stream().filter(gateway -> gateway.getIpAddresses().getFirst().getNetworkInterface().equals(deviceInterface))
-                    .toList();
-            if(!gatewaysMatchDeviceInterface.isEmpty()){
-                gateways.getFirst().getDevices().add(target);
-            }
-            //picassoService.initMenu(target);
+            Optional<Gateway> gatewayOptional = gateways.stream().filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
+                    .findAny();
+            gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
+            picassoService.initMenu(target);
             initializeCanvas();
         });
         initializeInterfaces();
@@ -137,7 +131,7 @@ public class MainController {
             graphicsContext.setFill(Color.BLACK);
             graphicsContext.setFont(Font.font(12));
             graphicsContext.fillText(target.getDeviceName(), target.getX() - 20, target.getY() + imageSize / 2 + 15);
-            graphicsContext.fillText(target.getIpAddresses().getFirst().getIp(), target.getX() - 20, target.getY() + imageSize / 2 + 30);
+            graphicsContext.fillText(target.getIpAddresses().getFirst(), target.getX() - 20, target.getY() + imageSize / 2 + 30);
         }
 
         for (Gateway gateway : gateways) {
@@ -178,7 +172,7 @@ public class MainController {
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(14));
             gc.fillText(gateway.getDeviceName(), gateway.getX() - 25, gateway.getY() + routerSize / 2 + 20);
-            gc.fillText(gateway.getIpAddresses().getFirst().getNetworkInterface(), gateway.getX() - 30, gateway.getY() + routerSize / 2 + 35);
+            gc.fillText(gateway.getNetworkInterface(), gateway.getX() - 30, gateway.getY() + routerSize / 2 + 35);
         }
     }
 
@@ -219,7 +213,7 @@ public class MainController {
             };
 
             for (Device device : devices) {
-                if (verifyClickInsideImage.test(device,event)) {
+                if (verifyClickInsideImage.test(device, event)) {
                     device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                     return;
                 }

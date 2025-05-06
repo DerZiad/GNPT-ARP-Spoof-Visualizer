@@ -12,7 +12,6 @@ import java.util.List;
 public abstract class Device implements Comparable<Device> {
 
     private String deviceName;
-    private List<IpAddress> ipAddresses;
     private double x;
     private double y;
     private ContextMenu contextMenu;

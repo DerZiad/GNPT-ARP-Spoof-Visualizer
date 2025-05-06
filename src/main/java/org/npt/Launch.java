@@ -34,8 +34,8 @@ public class Launch extends Application {
         Configuration.gateways = deviceService.scanCurrentGateways();
         Configuration.selfDevice = deviceService.scanActualDevice(Configuration.gateways);
         Configuration.targets = new ArrayList<>();
-        Configuration.targets.add(new Target("TEST",List.of(new IpAddress("dsfds","qs")),0,0,new ContextMenu()));
-        Configuration.targets.add(new Target("TEST",List.of(new IpAddress("dsfds","qs")),0,0,new ContextMenu()));
+        Configuration.targets.add(new Target("TEST","lo",List.of("192.168.178.4"),0,0,new ContextMenu()));
+        Configuration.targets.add(new Target("TEST","lo",List.of("192.168.178.3"),0,0,new ContextMenu()));
         Configuration.gateways.getFirst().getDevices().addAll(Configuration.targets);
         launch();
     }
