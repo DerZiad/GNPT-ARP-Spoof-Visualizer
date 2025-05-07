@@ -1,6 +1,6 @@
-package org.npt.beans.implementation;
+package org.npt.services.impl;
 
-import org.npt.beans.ResourceLoader;
+import org.npt.services.ResourceLoader;
 
 import java.io.InputStream;
 

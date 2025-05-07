@@ -1,4 +1,4 @@
-package org.npt.beans;
+package org.npt.services;
 
 import java.io.InputStream;
 
