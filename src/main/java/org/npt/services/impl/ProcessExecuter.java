@@ -1,4 +1,4 @@
-package org.npt.beans.implementation;
+package org.npt.services.impl;
 
 import lombok.Getter;
 import org.npt.exception.FileException;

@@ -3,18 +3,14 @@ package org.npt;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.ContextMenu;
 import javafx.stage.Stage;
-import org.npt.beans.implementation.DeviceService;
 import org.npt.configuration.Configuration;
-import org.npt.models.IpAddress;
-import org.npt.models.Target;
+import org.npt.services.DeviceService;
+import org.npt.services.impl.DeviceServiceImpl;
 
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 public class Launch extends Application {
@@ -30,13 +26,9 @@ public class Launch extends Application {
     }
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
-        DeviceService deviceService = new DeviceService();
+        DeviceService deviceService = new DeviceServiceImpl();
         Configuration.gateways = deviceService.scanCurrentGateways();
         Configuration.selfDevice = deviceService.scanActualDevice(Configuration.gateways);
-        Configuration.targets = new ArrayList<>();
-        Configuration.targets.add(new Target("TEST","lo",List.of("192.168.178.4"),0,0,new ContextMenu()));
-        Configuration.targets.add(new Target("TEST","lo",List.of("192.168.178.3"),0,0,new ContextMenu()));
-        Configuration.gateways.getFirst().getDevices().addAll(Configuration.targets);
         launch();
     }
 }

@@ -1,4 +1,4 @@
-package org.npt.beans.implementation;
+package org.npt.services.impl;
 
 import java.io.File;
 import java.util.Date;

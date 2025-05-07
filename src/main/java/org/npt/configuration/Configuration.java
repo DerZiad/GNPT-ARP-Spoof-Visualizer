@@ -1,9 +1,9 @@
 package org.npt.configuration;
 
-import org.npt.beans.implementation.LogStorageCreator;
 import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;
+import org.npt.services.impl.LogStorageCreator;
 
 import java.util.ArrayList;
 import java.util.List;

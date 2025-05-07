@@ -11,10 +11,15 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import lombok.extern.slf4j.Slf4j;
-import org.npt.beans.ResourceLoader;
-import org.npt.beans.implementation.ResourceLoaderImpl;
-import org.npt.models.*;
-import org.npt.services.impl.PicassoService;
+import org.npt.models.Device;
+import org.npt.models.Gateway;
+import org.npt.models.SelfDevice;
+import org.npt.models.Target;
+import org.npt.services.ResourceLoader;
+import org.npt.services.TargetService;
+import org.npt.services.impl.MainControllerServiceImpl;
+import org.npt.services.impl.ResourceLoaderImpl;
+import org.npt.services.impl.TargetServiceImpl;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -34,7 +39,7 @@ public class MainController {
     private double dragOffsetX;
     private double dragOffsetY;
     private boolean draggingRouter = false;
-    private final PicassoService picassoService = new PicassoService();
+    private final MainControllerServiceImpl mainControllerServiceImpl = new MainControllerServiceImpl();
 
     @FXML
     private Canvas canvas;
@@ -52,13 +57,15 @@ public class MainController {
     private Image routerImage;
     private Image hackerComputerImage;
 
+    private TargetService targetService = new TargetServiceImpl();
+
     @FXML
     public void initialize() {
         // Devices
         devices.add(selfDevice);
         devices.addAll(targets);
         devices.addAll(gateways);
-        devices.forEach(picassoService::initMenu);
+        devices.forEach(mainControllerServiceImpl::initMenu);
 
         // Load images
         ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
@@ -85,7 +92,7 @@ public class MainController {
             Optional<Gateway> gatewayOptional = gateways.stream().filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
                     .findAny();
             gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
-            picassoService.initMenu(target);
+            mainControllerServiceImpl.initMenu(target);
             initializeCanvas();
         });
         initializeInterfaces();

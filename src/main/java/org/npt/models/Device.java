@@ -5,8 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
-
 @AllArgsConstructor
 @Data
 public abstract class Device implements Comparable<Device> {

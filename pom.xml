@@ -25,7 +25,7 @@
         <maven.surefire.plugin>3.1.2</maven.surefire.plugin>
         <!-- Test -->
         <junit.version>5.10.0</junit.version>
-        <mockito.version>5.11.0</mockito.version>
+        <mockito.version>5.12.0</mockito.version>
     </properties>
 
     <dependencies>
@@ -142,13 +142,6 @@
             <version>3.3.1</version>
         </dependency>
 
-        <!-- Mockito -->
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
-            <scope>test</scope>
-        </dependency>
         <!-- Lombok Dependency -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -157,7 +150,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- JUnit Dependency for Testing -->
+        <!-- JUnit and Mockito Dependencies for Testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -168,6 +161,18 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -226,7 +231,7 @@
                             </descriptorRefs>
                             <archive>
                                 <manifest>
-                                    <mainClass>org.npt.Launch</mainClass> <!-- Replace with your main class -->
+                                    <mainClass>${mainClass}</mainClass>
                                 </manifest>
                             </archive>
                         </configuration>

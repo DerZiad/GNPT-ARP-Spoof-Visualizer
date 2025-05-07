@@ -1,6 +1,7 @@
-package org.npt.beans.implementation;
+package org.npt.services.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import org.npt.services.ArpSpoofStarter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,17 +10,24 @@ import java.util.stream.Collectors;
 import static org.npt.configuration.Configuration.logStorageFolder;
 
 @Slf4j
-public class ArpSpoofStarter {
+public class ArpSpoofStarterImpl implements ArpSpoofStarter {
 
     private static final String COMMAND = "sudo arpspoof -i %s -t %s %s";
     private static final String PROCESS_NAME = "Spoofing the following Target : %s , Gateway : %s";
     private static final List<ProcessExecuter> processExecuters = new ArrayList<>();
+    private static ArpSpoofStarterImpl instance = null;
+
+    private ArpSpoofStarterImpl(){
+        ProcessExecuter.execute("Enable IP Forwarding", logStorageFolder, new String[]{"sudo sysctl -w net.ipv4.ip_forward=1"}, false);
+    }
 
     public void stopSpoofing(String targetIp, String gatewayIp) {
         final String processName = ProcessExecuter.ProcessUtils.generateProcessNameFrom(String.format(PROCESS_NAME, targetIp, gatewayIp));
-        final List<ProcessExecuter> filteredProcessExecuter = processExecuters.stream().filter(processExecuter -> processExecuter.getProcessName().equals(processName))
+        final List<ProcessExecuter> filteredProcessExecuted = processExecuters
+                .stream()
+                .filter(processExecuter -> processExecuter.getProcessName().equals(processName))
                 .collect(Collectors.toCollection(ArrayList::new));
-        filteredProcessExecuter.forEach(processExecuter -> {
+        filteredProcessExecuted.forEach(processExecuter -> {
             processExecuter.stop();
             processExecuters.remove(processExecuter);
         });
@@ -38,5 +46,10 @@ public class ArpSpoofStarter {
         packetSniffer.startSniffing();
     }
 
+    public static ArpSpoofStarterImpl getInstance(){
+        if(instance == null)
+            instance = new ArpSpoofStarterImpl();
+        return instance;
+    }
 
 }

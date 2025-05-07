@@ -1,22 +1,22 @@
-package org.npt.beans.implementation;
+package org.npt.services.impl;
 
 import javafx.scene.control.ContextMenu;
 import org.npt.models.Gateway;
 import org.npt.models.IpAddress;
 import org.npt.models.SelfDevice;
+import org.npt.services.DeviceService;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
-import static java.util.Arrays.asList;
-
-public class DeviceService {
+public class DeviceServiceImpl implements DeviceService {
 
     public List<Gateway> scanCurrentGateways() throws SocketException, UnknownHostException {
         List<IpAddress> ipAddresses = scanInterfaces();

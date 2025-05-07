@@ -3,9 +3,9 @@ package org.npt.exception;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
-public class GatewayNotFoundException extends Exception{
+public class NotFoundException extends Exception {
 
-    public GatewayNotFoundException(String error){
+    public NotFoundException(String error) {
         super(error);
     }
 }
