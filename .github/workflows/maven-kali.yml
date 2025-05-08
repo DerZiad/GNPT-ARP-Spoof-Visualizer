@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies with sudo
         run: |
           sudo apt-get update
-          sudo apt-get install -y git maven unzip wget curl default-jdk arpspoof
+          sudo apt-get install -y git maven unzip wget curl default-jdk dsniff
 
       - name: (Optional) Install Java 23 manually
         run: |
