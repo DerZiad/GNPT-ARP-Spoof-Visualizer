@@ -24,6 +24,7 @@ jobs:
         run: |
           curl -s "https://get.sdkman.io" | bash
           sdk install java 23.0.2-amzn
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
 
       - name: Verify Java and Maven versions
         run: |
