@@ -2,9 +2,9 @@ name: Build and Test on Ubuntu with sudo
 
 on:
   push:
-    branches: [ main ]
+    branches: [ gnpt-fix-maven-dependencies-and-workflow ]
   pull_request:
-    branches: [ main ]
+    branches: [ gnpt-fix-maven-dependencies-and-workflow ]
 
 jobs:
   build:
