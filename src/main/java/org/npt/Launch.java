@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.npt.configuration.Configuration;
+import org.npt.controllers.View;
 import org.npt.services.DeviceService;
 import org.npt.services.impl.DeviceServiceImpl;
 
@@ -13,14 +14,17 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Objects;
 
+import static org.npt.controllers.View.MAIN_INTERFACE.*;
+import static org.npt.controllers.View.*;
+
 public class Launch extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(Launch.class.getResource("Interface.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1314, 699);
-        scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/org/npt/style/mainInterface.css")).toExternalForm());
-        stage.setTitle("NetworkPacketTracer");
+        FXMLLoader fxmlLoader = new FXMLLoader(getFxmlResourceAsExternalForm(FXML_FILE));
+        Scene scene = new Scene(fxmlLoader.load(), WIDTH, HEIGHT);
+        scene.getStylesheets().add(getCssResourceExternalForm(CSS_FILE));
+        stage.setTitle(View.MAIN_INTERFACE.INTERFACE_TITLE);
         stage.setScene(scene);
         stage.show();
     }

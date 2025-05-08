@@ -14,7 +14,10 @@
         <java.version.source>23</java.version.source>
         <java.version.target>23</java.version.target>
         <mainClass>org.npt.Launch</mainClass>
-
+        <!-- JavaFX -->
+        <javafx.version>22-ea+11</javafx.version>
+        <javafx.controlsfx.version>11.1.2</javafx.controlsfx.version>
+        <javafx.formsfx.version>11.6.0</javafx.formsfx.version>
         <!-- Utils -->
         <lombok.version>1.18.38</lombok.version>
         <!-- Maven -->
@@ -32,37 +35,37 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>22-ea+11</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
-            <version>22-ea+11</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
-            <version>22-ea+11</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
-            <version>22-ea+11</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-media</artifactId>
-            <version>22-ea+11</version>
+            <version>${javafx.version}</version>
         </dependency>
         <dependency>
             <groupId>org.controlsfx</groupId>
             <artifactId>controlsfx</artifactId>
-            <version>11.1.2</version>
+            <version>${javafx.controlsfx.version}</version>
         </dependency>
         <dependency>
             <groupId>com.dlsc.formsfx</groupId>
             <artifactId>formsfx-core</artifactId>
-            <version>11.6.0</version>
+            <version>${javafx.formsfx.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.openjfx</groupId>

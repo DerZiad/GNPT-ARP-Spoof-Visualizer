@@ -62,7 +62,7 @@ public class MainControllerServiceImpl {
                 try {
                     spoof((Target) device);
                 } catch (GatewayException | TargetException ex) {
-                    PopupShowDetails.showError("",ex.getMessage(),true);
+                    PopupShowDetails.showError("Error while spoofing : ",ex.getMessage(),true);
                 }
             });
             contextMenu.getItems().add(startStopSniffing);
