@@ -1,0 +1,44 @@
+name: Build and Test on Ubuntu with sudo
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build & Test on Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies with sudo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git maven unzip wget curl default-jdk arpspoof
+
+      - name: (Optional) Install Java 23 manually
+        run: |
+          echo "Installing Java 23 manually..."
+          wget https://download.java.net/java/early_access/jdk23/6/GPL/openjdk-23-ea+6_linux-x64_bin.tar.gz
+          sudo mkdir -p /usr/lib/jvm
+          sudo tar -xzf openjdk-23-ea+6_linux-x64_bin.tar.gz -C /usr/lib/jvm
+          echo "JAVA_HOME=/usr/lib/jvm/jdk-23" >> $GITHUB_ENV
+          echo "PATH=/usr/lib/jvm/jdk-23/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Verify Java and Maven versions
+        run: |
+          java -version
+          mvn -version
+
+      - name: Build project
+        run: mvn clean compile
+
+      - name: Run unit tests
+        run: mvn test
+
+      - name: Run integration tests
+        run: mvn verify
