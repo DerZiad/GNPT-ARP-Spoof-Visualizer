@@ -42,7 +42,7 @@ public class ProcessExecuter implements Runnable {
     public void run() {
         Process process;
         try {
-            process = Runtime.getRuntime().exec(command);
+            Runtime.getRuntime().exec(command);
         } catch (IOException e) {
             e.printStackTrace();
         }
