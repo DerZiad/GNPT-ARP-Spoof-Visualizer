@@ -4,18 +4,15 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.npt.configuration.Configuration;
 import org.npt.controllers.View;
-import org.npt.services.DeviceService;
-import org.npt.services.impl.DeviceServiceImpl;
+import org.npt.data.DataService;
+import org.npt.data.defaults.DefaultDataService;
 
 import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.Objects;
 
 import static org.npt.controllers.View.MAIN_INTERFACE.*;
-import static org.npt.controllers.View.*;
+import static org.npt.controllers.View.getCssResourceExternalForm;
+import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
 public class Launch extends Application {
 
@@ -29,10 +26,13 @@ public class Launch extends Application {
         stage.show();
     }
 
-    public static void main(String[] args) throws SocketException, UnknownHostException {
-        DeviceService deviceService = new DeviceServiceImpl();
-        Configuration.gateways = deviceService.scanCurrentGateways();
-        Configuration.selfDevice = deviceService.scanActualDevice(Configuration.gateways);
+    public static void main(String[] args) {
+        try {
+            DataService dataService = DefaultDataService.getInstance();
+            dataService.run();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         launch();
     }
 }

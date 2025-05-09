@@ -11,12 +11,12 @@ public class ResourceLoaderImpl implements ResourceLoader {
 
     @Override
     public InputStream getResource(String name) {
-        String resourcePath = String.format(IMAGE_REPOSITORY,name);
+        String resourcePath = String.format(IMAGE_REPOSITORY, name);
         return this.getClass().getResourceAsStream(resourcePath);
     }
 
-    public static ResourceLoader getInstance(){
-        if(instance == null)
+    public static ResourceLoader getInstance() {
+        if (instance == null)
             instance = new ResourceLoaderImpl();
         return instance;
     }

@@ -30,7 +30,7 @@ public class View {
         return Objects.requireNonNull(Launch.class.getResource(View.getCssPath(fileName))).toExternalForm();
     }
 
-    public static URL getFxmlResourceAsExternalForm(String fileName){
+    public static URL getFxmlResourceAsExternalForm(String fileName) {
         return Objects.requireNonNull(Launch.class.getResource(fileName));
     }
 

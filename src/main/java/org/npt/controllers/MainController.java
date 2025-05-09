@@ -3,7 +3,10 @@ package org.npt.controllers;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -11,27 +14,32 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import lombok.extern.slf4j.Slf4j;
+import org.npt.data.DataService;
+import org.npt.data.GatewayService;
+import org.npt.data.TargetService;
+import org.npt.data.defaults.DefaultDataService;
+import org.npt.data.defaults.DefaultGatewayService;
+import org.npt.data.defaults.DefaultTargetService;
+import org.npt.exception.InvalidInputException;
 import org.npt.models.Device;
 import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 import org.npt.services.ResourceLoader;
-import org.npt.services.TargetService;
 import org.npt.services.impl.MainControllerServiceImpl;
 import org.npt.services.impl.ResourceLoaderImpl;
-import org.npt.services.impl.TargetServiceImpl;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.util.*;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.BiPredicate;
-
-import static org.npt.configuration.Configuration.*;
 
 @Slf4j
 public class MainController {
 
-    private final List<Device> devices = new ArrayList<>();
     public TextField ipAddress;
     public Button addDevice;
     public TextField deviceName;
@@ -57,15 +65,14 @@ public class MainController {
     private Image routerImage;
     private Image hackerComputerImage;
 
-    private TargetService targetService = new TargetServiceImpl();
+    private final TargetService targetService = new DefaultTargetService();
+    private final DataService dataService = DefaultDataService.getInstance();
+    private final GatewayService gatewayService = new DefaultGatewayService();
 
     @FXML
     public void initialize() {
         // Devices
-        devices.add(selfDevice);
-        devices.addAll(targets);
-        devices.addAll(gateways);
-        devices.forEach(mainControllerServiceImpl::initMenu);
+        dataService.getDevices().forEach(mainControllerServiceImpl::initMenu);
 
         // Load images
         ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
@@ -86,14 +93,17 @@ public class MainController {
             String ipAddress = this.ipAddress.getText();
             String deviceInterface = this.menuButton.getText();
             String deviceName = this.deviceName.getText();
-            Target target = new Target(deviceName, deviceInterface, List.of(ipAddress), 0, 0, new ContextMenu());
-            devices.add(target);
-            targets.add(target);
-            Optional<Gateway> gatewayOptional = gateways.stream().filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
-                    .findAny();
-            gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
-            mainControllerServiceImpl.initMenu(target);
-            initializeCanvas();
+            try {
+                Target target = targetService.create(deviceName, deviceInterface, new String[]{ipAddress});
+                Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
+                        .findAny();
+                gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
+                mainControllerServiceImpl.initMenu(target);
+                initializeCanvas();
+            } catch (InvalidInputException e) {
+                // TODO Handle exceptions in design
+                throw new RuntimeException(e);
+            }
         });
         initializeInterfaces();
         centerSelfDevice();
@@ -124,7 +134,7 @@ public class MainController {
     public void initializeCanvas() {
         GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawComputer(graphicsContext, selfDevice);
+        drawComputer(graphicsContext, dataService.getSelfDevice());
         calculateGatewaysPosition();
         drawRouters(graphicsContext);
         setupMouseEvents();
@@ -132,7 +142,7 @@ public class MainController {
         graphicsContext.setStroke(Color.GRAY);
         graphicsContext.setLineWidth(1.5);
 
-        for (Target target : targets) {
+        for (Target target : targetService.find()) {
             Image selectedComputerImage = computerImage;
             graphicsContext.drawImage(selectedComputerImage, target.getX() - imageSize / 2, target.getY() - imageSize / 2, imageSize, imageSize);
             graphicsContext.setFill(Color.BLACK);
@@ -141,8 +151,8 @@ public class MainController {
             graphicsContext.fillText(target.getIpAddresses().getFirst(), target.getX() - 20, target.getY() + imageSize / 2 + 30);
         }
 
-        for (Gateway gateway : gateways) {
-            drawConnection(graphicsContext, selfDevice, gateway);
+        for (Gateway gateway : gatewayService.find()) {
+            drawConnection(graphicsContext, dataService.getSelfDevice(), gateway);
             for (Target target : gateway.getDevices()) {
                 drawConnection(graphicsContext, gateway, target);
             }
@@ -151,11 +161,12 @@ public class MainController {
     }
 
     public void calculateGatewaysPosition() {
+        List<Gateway> gateways = gatewayService.find().stream().toList();
         int gatewaysSize = gateways.size();
         if (gatewaysSize == 0) return;  // Prevent division by zero
 
-        double xCenter = selfDevice.getX();
-        double yCenter = selfDevice.getY();
+        double xCenter = dataService.getSelfDevice().getX();
+        double yCenter = dataService.getSelfDevice().getY();
         double R = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
         ;
 
@@ -174,7 +185,7 @@ public class MainController {
 
     private void drawRouters(GraphicsContext gc) {
         double routerSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        for (Gateway gateway : gateways) {
+        for (Gateway gateway : gatewayService.find()) {
             gc.drawImage(routerImage, gateway.getX() - routerSize / 2, gateway.getY() - routerSize / 2, routerSize, routerSize);
             gc.setFill(Color.BLACK);
             gc.setFont(Font.font(14));
@@ -184,6 +195,7 @@ public class MainController {
     }
 
     private void centerSelfDevice() {
+        SelfDevice selfDevice = dataService.getSelfDevice();
         selfDevice.setX(canvas.getWidth() / 2);
         selfDevice.setY(canvas.getHeight() / 2);
 
@@ -219,13 +231,14 @@ public class MainController {
                 }
             };
 
-            for (Device device : devices) {
+            for (Device device : dataService.getDevices()) {
                 if (verifyClickInsideImage.test(device, event)) {
                     device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                     return;
                 }
             }
         } else {
+            SelfDevice selfDevice = dataService.getSelfDevice();
             if (event.getX() >= selfDevice.getX() - imageSize / 2 && event.getX() <= selfDevice.getX() + imageSize / 2 &&
                     event.getY() >= selfDevice.getY() - imageSize / 2 && event.getY() <= selfDevice.getY() + imageSize / 2) {
                 draggingRouter = true;
@@ -234,7 +247,7 @@ public class MainController {
                 return;
             }
 
-            for (Device device : devices) {
+            for (Device device : dataService.getDevices()) {
                 if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
                         event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
                     draggedDevice = device;
@@ -247,6 +260,7 @@ public class MainController {
     }
 
     private void onMouseDragged(MouseEvent event) {
+        SelfDevice selfDevice = dataService.getSelfDevice();
         if (draggingRouter) {
             selfDevice.setX(event.getX() - dragOffsetX);
             selfDevice.setY(event.getY() - dragOffsetY);

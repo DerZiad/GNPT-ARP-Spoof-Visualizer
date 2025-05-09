@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class GatewayException extends Exception {
 
-    public GatewayException(String  error){
+    public GatewayException(String error) {
         super(error);
     }
 }

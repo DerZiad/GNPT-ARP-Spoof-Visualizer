@@ -8,7 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.npt.models.Gateway;
 import org.npt.models.IpAddress;
 import org.npt.models.SelfDevice;
-import org.npt.services.impl.DeviceServiceImpl;
+import org.npt.networkservices.defaults.DeviceServiceImpl;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
