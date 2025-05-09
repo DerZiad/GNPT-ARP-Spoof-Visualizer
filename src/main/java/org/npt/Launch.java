@@ -6,7 +6,9 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import org.npt.configuration.Configuration;
 import org.npt.controllers.View;
+import org.npt.services.DataService;
 import org.npt.services.DeviceService;
+import org.npt.services.impl.DefaultDataService;
 import org.npt.services.impl.DeviceServiceImpl;
 
 import java.io.IOException;
@@ -30,9 +32,7 @@ public class Launch extends Application {
     }
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
-        DeviceService deviceService = new DeviceServiceImpl();
-        Configuration.gateways = deviceService.scanCurrentGateways();
-        Configuration.selfDevice = deviceService.scanActualDevice(Configuration.gateways);
+        DefaultDataService.init();
         launch();
     }
 }

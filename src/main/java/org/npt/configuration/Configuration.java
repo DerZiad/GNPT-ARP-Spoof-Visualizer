@@ -11,9 +11,6 @@ import java.util.List;
 
 public class Configuration {
 
-    public static List<Target> targets = new ArrayList<>();
-    public static SelfDevice selfDevice = null;
-    public static List<Gateway> gateways = new ArrayList<>();
     public static String logStorageFolder = LogStorageCreator.createLogStorageFolder();
 
 }
