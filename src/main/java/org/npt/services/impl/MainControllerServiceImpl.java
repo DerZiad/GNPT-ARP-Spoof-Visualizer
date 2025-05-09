@@ -9,6 +9,9 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.npt.configuration.Configuration;
+import org.npt.data.GatewayService;
+import org.npt.data.defaults.DefaultGatewayService;
+import org.npt.data.defaults.DefaultTargetService;
 import org.npt.exception.GatewayException;
 import org.npt.exception.TargetException;
 import org.npt.exception.children.GatewayIpException;
@@ -18,7 +21,7 @@ import org.npt.models.Device;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
 import org.npt.services.ArpSpoofStarter;
-import org.npt.services.TargetService;
+import org.npt.data.TargetService;
 
 import java.util.Optional;
 
@@ -26,10 +29,12 @@ public class MainControllerServiceImpl {
 
     private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarterImpl.getInstance();
 
-    private final TargetService targetService = new TargetServiceImpl();
+    private final TargetService targetService = new DefaultTargetService();
+
+    private final GatewayService gatewayService = new DefaultGatewayService();
 
     private void spoof(Target target) throws GatewayNotFoundException, TargetIpException, GatewayIpException {
-        Optional<Gateway> gatewayOptional = Configuration.gateways.stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
+        Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
         Gateway gateway = gatewayOptional.orElseThrow(() -> new GatewayNotFoundException("Couldn't spoof a target that it is not connected"));
         String scanInterface = target.getNetworkInterface();
         String targetIpAddress = target.findFirstIPv4().orElseThrow(()-> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
@@ -38,7 +43,7 @@ public class MainControllerServiceImpl {
     }
 
     private void stopSpoofing(Target target) throws TargetException, GatewayException {
-        Optional<Gateway> gatewayOptional = Configuration.gateways.stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
+        Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
         Gateway gateway = gatewayOptional.orElseThrow(() -> new GatewayNotFoundException("Couldn't spoof a target that it is not connected"));
         String targetIpAddress = target.findFirstIPv4().orElseThrow(()-> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
         String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(()-> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));

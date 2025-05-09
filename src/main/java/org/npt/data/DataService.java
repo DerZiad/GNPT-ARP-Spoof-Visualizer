@@ -1,14 +1,15 @@
-package org.npt.services;
+package org.npt.data;
 
+import org.npt.configuration.OnInit;
 import org.npt.models.Device;
 import org.npt.models.SelfDevice;
+import org.npt.models.Target;
 
-import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-public interface DataService {
+public interface DataService extends OnInit {
 
     public List<Device> getDevices();
 

@@ -1,14 +1,15 @@
-package org.npt.services.impl;
+package org.npt.data.defaults;
 
-import org.npt.configuration.Configuration;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.npt.models.Device;
 import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
-import org.npt.services.DataService;
+import org.npt.data.DataService;
+import org.npt.models.Target;
 import org.npt.services.DeviceService;
+import org.npt.services.impl.DeviceServiceImpl;
 
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DefaultDataService implements DataService {
 
     private static final Integer EXPECTED_CAPACITY = 3000;
@@ -24,14 +26,14 @@ public class DefaultDataService implements DataService {
     private static SelfDevice selfDevice;
     private static DataService dataService = null;
 
-    private DefaultDataService() throws SocketException, UnknownHostException {
+    @Override
+    public void run() throws Exception {
         devices = new ArrayList<>(EXPECTED_CAPACITY);
         final DeviceService deviceService = new DeviceServiceImpl();
         List<Gateway> gateways = deviceService.scanCurrentGateways();
         devices.addAll(gateways);
         selfDevice = deviceService.scanActualDevice(gateways);
     }
-
 
     @Override
     public List<Device> getDevices() {
@@ -92,9 +94,10 @@ public class DefaultDataService implements DataService {
         return selfDevice;
     }
 
-    public static DataService init() throws SocketException, UnknownHostException {
+    public static DataService getInstance() {
         if(dataService == null)
             dataService = new DefaultDataService();
         return dataService;
     }
+
 }
