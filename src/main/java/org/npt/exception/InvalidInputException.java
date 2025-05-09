@@ -9,7 +9,7 @@ public class InvalidInputException extends Exception {
 
     private HashMap<String, String> errors;
 
-    public InvalidInputException(String message, HashMap<String,String> errors) {
+    public InvalidInputException(String message, HashMap<String, String> errors) {
         super(message);
         this.errors = errors;
     }

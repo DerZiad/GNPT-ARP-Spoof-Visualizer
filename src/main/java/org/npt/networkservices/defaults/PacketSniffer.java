@@ -1,4 +1,4 @@
-package org.npt.services.impl;
+package org.npt.networkservices.defaults;
 
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
@@ -87,7 +87,7 @@ public class PacketSniffer {
                     String dstIp = ipV4Packet.getHeader().getDstAddr().getHostAddress();
                     System.out.println("Source IP: " + srcIp + ", Destination IP: " + dstIp);
                     performDnsLookup(dstIp);
-               }
+                }
             }
             // Check for IPv6 packets
             else if (etherType == 0x86DD) { // 0x86DD is the EtherType for IPv6

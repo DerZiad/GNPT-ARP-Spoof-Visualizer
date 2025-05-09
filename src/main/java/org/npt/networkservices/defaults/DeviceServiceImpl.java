@@ -1,10 +1,10 @@
-package org.npt.services.impl;
+package org.npt.networkservices.defaults;
 
 import javafx.scene.control.ContextMenu;
 import org.npt.models.Gateway;
 import org.npt.models.IpAddress;
 import org.npt.models.SelfDevice;
-import org.npt.services.DeviceService;
+import org.npt.networkservices.DeviceService;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -40,7 +40,7 @@ public class DeviceServiceImpl implements DeviceService {
             } else {
                 List<String> ipAddressesString = new ArrayList<>();
                 ipAddressesString.add(gatewayAddr.getHostAddress());
-                gateway = new Gateway("Router",interfaceName, ipAddressesString, 0, 0, new ContextMenu(), new ArrayList<>());
+                gateway = new Gateway("Router", interfaceName, ipAddressesString, 0, 0, new ContextMenu(), new ArrayList<>());
                 gateways.add(gateway);
             }
         }

@@ -6,7 +6,7 @@ import org.npt.exception.GatewayException;
 @NoArgsConstructor
 public class GatewayNotFoundException extends GatewayException {
 
-    public GatewayNotFoundException(String error){
+    public GatewayNotFoundException(String error) {
         super(error);
     }
 }

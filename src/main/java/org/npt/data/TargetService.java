@@ -1,10 +1,11 @@
 package org.npt.data;
 
 import org.npt.exception.InvalidInputException;
-import org.npt.exception.NotFoundException;
 import org.npt.models.Target;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Optional;
 
 public interface TargetService {
 

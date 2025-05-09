@@ -1,4 +1,4 @@
-package org.npt.services;
+package org.npt.networkservices;
 
 public interface ArpSpoofStarter {
 

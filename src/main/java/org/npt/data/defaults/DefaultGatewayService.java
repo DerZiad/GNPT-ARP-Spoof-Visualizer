@@ -4,7 +4,6 @@ import javafx.scene.control.ContextMenu;
 import org.npt.data.DataService;
 import org.npt.data.GatewayService;
 import org.npt.exception.InvalidInputException;
-import org.npt.models.Device;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
 

@@ -1,13 +1,12 @@
-package org.npt.services.impl;
+package org.npt.networkservices.defaults;
 
 import lombok.extern.slf4j.Slf4j;
-import org.npt.services.ArpSpoofStarter;
+import org.npt.networkservices.ArpSpoofStarter;
+import org.npt.services.impl.ProcessExecuter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.npt.configuration.Configuration.logStorageFolder;
 
 @Slf4j
 public class ArpSpoofStarterImpl implements ArpSpoofStarter {
@@ -17,8 +16,8 @@ public class ArpSpoofStarterImpl implements ArpSpoofStarter {
     private static final List<ProcessExecuter> processExecuters = new ArrayList<>();
     private static ArpSpoofStarterImpl instance = null;
 
-    private ArpSpoofStarterImpl(){
-        ProcessExecuter.execute("Enable IP Forwarding", logStorageFolder, new String[]{"sudo sysctl -w net.ipv4.ip_forward=1"}, false);
+    private ArpSpoofStarterImpl() {
+        ProcessExecuter.execute("Enable IP Forwarding", new String[]{"sudo sysctl -w net.ipv4.ip_forward=1"}, false);
     }
 
     public void stopSpoofing(String targetIp, String gatewayIp) {
@@ -38,16 +37,16 @@ public class ArpSpoofStarterImpl implements ArpSpoofStarter {
         final String commandSecond = String.format(COMMAND, scanInterface, gatewayIp, targetIp);
         String processName = String.format(PROCESS_NAME, targetIp, gatewayIp);
         processName = ProcessExecuter.ProcessUtils.generateProcessNameFrom(processName);
-        final ProcessExecuter normal = ProcessExecuter.execute(processName, logStorageFolder, new String[]{commandFirst}, false);
-        final ProcessExecuter reverse = ProcessExecuter.execute(processName, logStorageFolder, new String[]{commandSecond}, false);
+        final ProcessExecuter normal = ProcessExecuter.execute(processName, new String[]{commandFirst}, false);
+        final ProcessExecuter reverse = ProcessExecuter.execute(processName, new String[]{commandSecond}, false);
         processExecuters.add(normal);
         processExecuters.add(reverse);
         PacketSniffer packetSniffer = new PacketSniffer(targetIp);
         packetSniffer.startSniffing();
     }
 
-    public static ArpSpoofStarterImpl getInstance(){
-        if(instance == null)
+    public static ArpSpoofStarterImpl getInstance() {
+        if (instance == null)
             instance = new ArpSpoofStarterImpl();
         return instance;
     }

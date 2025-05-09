@@ -32,4 +32,8 @@ module org.npt {
     opens org.npt.data;
     exports org.npt.data.defaults;
     opens org.npt.data.defaults;
+    exports org.npt.networkservices;
+    opens org.npt.networkservices;
+    exports org.npt.networkservices.defaults;
+    opens org.npt.networkservices.defaults;
 }

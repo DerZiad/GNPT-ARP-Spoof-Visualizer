@@ -1,4 +1,4 @@
-package org.npt.services;
+package org.npt.networkservices;
 
 import org.npt.models.Gateway;
 import org.npt.models.IpAddress;

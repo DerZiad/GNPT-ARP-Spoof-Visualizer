@@ -2,13 +2,12 @@ package org.npt.data.defaults;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.npt.data.DataService;
 import org.npt.models.Device;
 import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
-import org.npt.data.DataService;
-import org.npt.models.Target;
-import org.npt.services.DeviceService;
-import org.npt.services.impl.DeviceServiceImpl;
+import org.npt.networkservices.DeviceService;
+import org.npt.networkservices.defaults.DeviceServiceImpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,9 +53,9 @@ public class DefaultDataService implements DataService {
     public void removeByObject(Optional<Device> device) throws NullPointerException {
         Integer index = null;
         final Device notNullDevice = device.orElseThrow(NullPointerException::new);
-        for(int i = 0;i<devices.size();i++){
+        for (int i = 0; i < devices.size(); i++) {
             Device device1 = devices.get(i);
-            if(notNullDevice.equals(device1)){
+            if (notNullDevice.equals(device1)) {
                 index = i;
                 break;
             }
@@ -69,7 +68,7 @@ public class DefaultDataService implements DataService {
         try {
             final Integer notNullIndex = index.orElseThrow(NullPointerException::new);
             return Optional.ofNullable(devices.get(notNullIndex));
-        }catch (Exception e){
+        } catch (Exception e) {
             return Optional.empty();
         }
     }
@@ -95,7 +94,7 @@ public class DefaultDataService implements DataService {
     }
 
     public static DataService getInstance() {
-        if(dataService == null)
+        if (dataService == null)
             dataService = new DefaultDataService();
         return dataService;
     }
