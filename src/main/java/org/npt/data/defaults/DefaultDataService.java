@@ -46,7 +46,7 @@ public class DefaultDataService implements DataService {
 
     @Override
     public void removeByIndex(Optional<Integer> index) {
-        index.ifPresentOrElse(devices::remove, NullPointerException::new);
+        index.ifPresentOrElse(integer -> devices.remove(integer.intValue()), NullPointerException::new);
     }
 
     @Override

@@ -3,7 +3,6 @@
 <?import javafx.scene.layout.AnchorPane?>
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.npt.ShowStatistics"
             prefHeight="699.0" prefWidth="1314.0">
 
 </AnchorPane>
