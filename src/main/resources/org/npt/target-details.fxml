@@ -19,10 +19,10 @@
    <TableView fx:id="ipTable" layoutX="52.0" layoutY="254.0" prefHeight="127.0" prefWidth="628.0"
               styleClass="info-table">
       <columns>
-         <TableColumn prefWidth="300.0" text="IP"/>
-         <TableColumn prefWidth="316.0" text="Type"/>
+         <TableColumn fx:id="ipColumn" prefWidth="300.0" text="IP"/>
+         <TableColumn fx:id="typeColumn" prefWidth="316.0" text="Type"/>
       </columns>
    </TableView>
-   <Button layoutX="52.0" layoutY="477.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="628.0" text="Save"
+   <Button fx:id="saveButton" layoutX="52.0" layoutY="477.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="628.0" text="Save"
            styleClass="btn-success"/>
 </AnchorPane>

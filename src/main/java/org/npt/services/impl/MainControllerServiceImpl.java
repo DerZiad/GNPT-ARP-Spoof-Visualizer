@@ -63,12 +63,12 @@ public class MainControllerServiceImpl {
     }
 
     public void initMenu(Device device, Consumer<Void> refresh) {
-        if(device instanceof SelfDevice)
+        if (device instanceof SelfDevice)
             return;
 
         ContextMenu contextMenu = device.getContextMenu();
         MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(_ -> showDeviceDetails((Target) device));
+        detailsItem.setOnAction(_ -> PopupShowDetails.popupShowDetailsGatewayOrTarget((Target) device, refresh));
 
         MenuItem removeItem = new MenuItem("Remove Device");
         removeItem.setOnAction(_ -> {
@@ -92,19 +92,14 @@ public class MainControllerServiceImpl {
         contextMenu.getItems().addAll(detailsItem, removeItem);
     }
 
-    private void showDeviceDetails(Target target) {
-        PopupShowDetails.popupShowDetailsGatewayOrTarget(target);
-
-    }
-
     public static class PopupShowDetails {
 
-        public static void popupShowDetailsGatewayOrTarget(Target target) {
+        public static void popupShowDetailsGatewayOrTarget(Target target, Consumer<Void> refresh) {
             try {
                 FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
                 Parent root = loader.load();
                 TargetDetailsController controller = loader.getController();
-                controller.setData(target);
+                controller.setData(target, refresh);
                 Stage popupStage = new Stage();
                 popupStage.initModality(Modality.APPLICATION_MODAL);
                 popupStage.setTitle(View.TARGET_DETAILS_VIEW.INTERFACE_TITLE);
