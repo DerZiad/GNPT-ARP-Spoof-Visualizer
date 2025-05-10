@@ -9,6 +9,7 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.Getter;
+import org.npt.controllers.viewdetails.TargetDetailsController;
 import org.npt.controllers.View;
 import org.npt.data.DataService;
 import org.npt.data.GatewayService;
@@ -67,7 +68,7 @@ public class MainControllerServiceImpl {
 
         ContextMenu contextMenu = device.getContextMenu();
         MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(_ -> showDeviceDetails(device));
+        detailsItem.setOnAction(_ -> showDeviceDetails((Target) device));
 
         MenuItem removeItem = new MenuItem("Remove Device");
         removeItem.setOnAction(_ -> {
@@ -91,21 +92,22 @@ public class MainControllerServiceImpl {
         contextMenu.getItems().addAll(detailsItem, removeItem);
     }
 
-    private void showDeviceDetails(Device device) {
-        PopupShowDetails.popupShowDetailsGatewayOrTarget();
+    private void showDeviceDetails(Target target) {
+        PopupShowDetails.popupShowDetailsGatewayOrTarget(target);
 
     }
 
     public static class PopupShowDetails {
 
-        public static void popupShowDetailsGatewayOrTarget() {
+        public static void popupShowDetailsGatewayOrTarget(Target target) {
             try {
                 FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
                 Parent root = loader.load();
+                TargetDetailsController controller = loader.getController();
+                controller.setData(target);
                 Stage popupStage = new Stage();
                 popupStage.initModality(Modality.APPLICATION_MODAL);
                 popupStage.setTitle(View.TARGET_DETAILS_VIEW.INTERFACE_TITLE);
-                popupStage.setTitle(View.TARGET_DETAILS_VIEW.FXML_FILE);
                 popupStage.setWidth(View.TARGET_DETAILS_VIEW.WIDTH);
                 popupStage.setHeight(View.TARGET_DETAILS_VIEW.HEIGHT);
                 popupStage.setResizable(false);
@@ -115,6 +117,7 @@ public class MainControllerServiceImpl {
                 ex.printStackTrace();
             }
         }
+
 
         public static void showError(String title, String message, Boolean showAndWait) {
             Alert alert = new Alert(Alert.AlertType.ERROR);

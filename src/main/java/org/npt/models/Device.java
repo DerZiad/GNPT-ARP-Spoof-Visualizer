@@ -22,7 +22,7 @@ public abstract class Device implements Comparable<Device> {
         return 0;
     }
 
-    protected boolean isValidIPv4(String ip) {
+    public boolean isValidIPv4(String ip) {
         String ipv4Pattern = "^([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})$";
         Pattern pattern = Pattern.compile(ipv4Pattern);
         Matcher matcher = pattern.matcher(ip);

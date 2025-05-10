@@ -55,6 +55,9 @@ public class MainController {
     private Canvas canvas;
 
     @FXML
+    private Canvas canvas1;
+
+    @FXML
     private MenuButton menuButton;
 
     @FXML
@@ -68,7 +71,10 @@ public class MainController {
     @FXML
     public void initialize() {
         // Devices
-        dataService.getDevices().forEach(device -> mainControllerServiceImpl.initMenu(device, _ -> initializeCanvas()));
+        dataService.getDevices().forEach(device -> mainControllerServiceImpl.initMenu(device, _ -> {
+            initializeCanvas(canvas);
+            initializeCanvas(canvas1);
+        }));
 
         // Load images
         ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
@@ -82,12 +88,14 @@ public class MainController {
 
         // Set up listeners for drawing
         canvas.widthProperty().addListener((_, _, _) -> {
-            initializeCanvas();
+            initializeCanvas(canvas);
+            initializeCanvas(canvas1);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
         canvas.heightProperty().addListener((_, _, _) -> {
-            initializeCanvas();
+            initializeCanvas(canvas);
+            initializeCanvas(canvas1);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
@@ -101,8 +109,12 @@ public class MainController {
                 Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
                         .findAny();
                 gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
-                mainControllerServiceImpl.initMenu(target, _ -> initializeCanvas());
-                initializeCanvas();
+                mainControllerServiceImpl.initMenu(target, _ -> {
+                    initializeCanvas(canvas);
+                    initializeCanvas(canvas1);
+                });
+                initializeCanvas(canvas);
+                initializeCanvas(canvas1);
             } catch (InvalidInputException e) {
                 // TODO Handle exceptions in design
                 throw new RuntimeException(e);
@@ -112,7 +124,8 @@ public class MainController {
         centerSelfDevice();
         calculateGatewaysPosition();
         setupMouseEvents();
-        initializeCanvas();
+        initializeCanvas(canvas);
+        initializeCanvas(canvas1);
     }
 
     private void initializeInterfaces() {
@@ -136,7 +149,7 @@ public class MainController {
         }
     }
 
-    public void initializeCanvas() {
+    public void initializeCanvas(Canvas canvas) {
         GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         graphicsContext.setStroke(Color.BLACK);
@@ -167,7 +180,7 @@ public class MainController {
 
         Iterator<Gateway> iterator = gateways.iterator();
         int i = 0;
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             double angle = step * i;
             double x = xCenter + R * Math.cos(angle);
             double y = yCenter + R * Math.sin(angle);
@@ -185,11 +198,13 @@ public class MainController {
 
         canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setX(canvas.getWidth() / 2);
-            initializeCanvas();
+            initializeCanvas(canvas);
+            initializeCanvas(canvas1);
         });
         canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setY(newVal.doubleValue() / 2);
-            initializeCanvas();
+            initializeCanvas(canvas);
+            initializeCanvas(canvas1);
         });
     }
 
@@ -245,22 +260,28 @@ public class MainController {
         if (draggingRouter) {
             double dx = event.getX() - dragOffsetX;
             double dy = event.getY() - dragOffsetY;
-            if(dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
+            if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
                 return;
             selfDevice.setX(dx);
             selfDevice.setY(dy);
             PauseTransition pause = new PauseTransition(Duration.millis(10));
-            pause.setOnFinished(e -> initializeCanvas());
+            pause.setOnFinished(e -> {
+                initializeCanvas(canvas);
+                initializeCanvas(canvas1);
+            });
             pause.play();
         } else if (draggedDevice != null) {
             double dx = event.getX() - dragOffsetX;
             double dy = event.getY() - dragOffsetY;
-            if(dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
+            if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
                 return;
             draggedDevice.setX(dx);
             draggedDevice.setY(dy);
             PauseTransition pause = new PauseTransition(Duration.millis(10));
-            pause.setOnFinished(e -> initializeCanvas());
+            pause.setOnFinished(e -> {
+                initializeCanvas(canvas);
+                initializeCanvas(canvas1);
+            });
             pause.play();
         }
     }
@@ -325,13 +346,13 @@ public class MainController {
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
         gc.fillText(device.getDeviceName(), device.getX() - 25, device.getY() + imageSize / 2 + 20);
-        if(deviceClass.equals(SelfDevice.class)){
+        if (deviceClass.equals(SelfDevice.class)) {
             Optional<IpAddress> ipAddress = ((SelfDevice) device).findFirstIPv4();
             ipAddress.ifPresent(ipString -> {
                 gc.fillText(ipString.getNetworkInterface(), device.getX() - 30, device.getY() + imageSize / 2 + 35);
                 gc.fillText(ipString.getIp(), device.getX() - 40, device.getY() + imageSize / 2 + 50);
             });
-        } else if(deviceClass.equals(Target.class)){
+        } else if (deviceClass.equals(Target.class)) {
             Target target = (Target) device;
             gc.fillText(target.getNetworkInterface(), target.getX() - 30, target.getY() + imageSize / 2 + 35);
             target.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, target.getX() - 50, target.getY() + imageSize / 2 + 60));
