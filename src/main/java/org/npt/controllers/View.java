@@ -55,6 +55,17 @@ public class View {
         public static final Integer HEIGHT = 630;
     }
 
+    public static class STATISTICS_DETAILS_VIEW {
+
+        public static final String INTERFACE_TITLE = "Statistics";
+
+        public static final String FXML_FILE = "show-statistics.fxml";
+
+        public static final Integer WIDTH = 1054;
+
+        public static final Integer HEIGHT = 674;
+    }
+
     public static String getCssPath(String fileName) {
         return CSS_PATH + fileName;
     }

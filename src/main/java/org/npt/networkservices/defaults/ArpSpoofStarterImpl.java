@@ -1,9 +1,13 @@
 package org.npt.networkservices.defaults;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.npt.models.Task;
 import org.npt.networkservices.ArpSpoofStarter;
 import org.npt.services.impl.ProcessService;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 public class ArpSpoofStarterImpl implements ArpSpoofStarter {
@@ -11,6 +15,8 @@ public class ArpSpoofStarterImpl implements ArpSpoofStarter {
     private static final String COMMAND = "sudo arpspoof -i %s -t %s %s";
     private static final String PROCESS_NAME = "Spoofing the following Target : %s , Gateway : %s";
     private static ArpSpoofStarterImpl instance = null;
+    @Getter
+    private final List<DefaultPacketSniffer> packetSniffers = new ArrayList<>();
 
     private ArpSpoofStarterImpl() {
         ProcessService.execute("Enable IP Forwarding", new String[]{"sudo sysctl -w net.ipv4.ip_forward=1"});
@@ -31,6 +37,7 @@ public class ArpSpoofStarterImpl implements ArpSpoofStarter {
         ProcessService.execute(processName, new String[]{commandFirst});
         ProcessService.execute(processName, new String[]{commandSecond});
         DefaultPacketSniffer defaultPacketSniffer = new DefaultPacketSniffer(targetIp, scanInterface);
+        packetSniffers.add(defaultPacketSniffer);
         new Thread(defaultPacketSniffer).start();
     }
 

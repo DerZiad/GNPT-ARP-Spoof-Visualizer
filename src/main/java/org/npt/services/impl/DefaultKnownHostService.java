@@ -14,7 +14,7 @@ public class DefaultKnownHostService implements KnownHostService {
     private static DefaultKnownHostService defaultKnownHostService = null;
 
     @Getter
-    private final List<KnownHost> knownHosts = new ArrayList<>();
+    private final HashMap<String, KnownHost> knownHosts = new HashMap<>();
 
     private DefaultKnownHostService(){
         run();
@@ -35,7 +35,7 @@ public class DefaultKnownHostService implements KnownHostService {
                     String ipKey = appName + ".ips";
                     String ipValue = props.getProperty(ipKey, "");
                     List<String> ipList = Arrays.asList(ipValue.split("\\s*,\\s*"));
-                    knownHosts.add(new KnownHost(appName, iconPath, ipList));
+                    knownHosts.put(appName, new KnownHost(appName, iconPath, ipList));
                 }
             }
 

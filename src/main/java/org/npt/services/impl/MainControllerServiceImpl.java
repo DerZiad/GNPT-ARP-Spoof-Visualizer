@@ -10,6 +10,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
+import org.npt.Launch;
 import org.npt.controllers.View;
 import org.npt.controllers.viewdetails.GatewayDetailsController;
 import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
@@ -76,28 +77,42 @@ public class MainControllerServiceImpl {
         });
 
         if (device instanceof Target) {
-            MenuItem startSpoofingMenuItem = configureMenuItem(device, refresh);
+            MenuItem startSpoofingMenuItem = configureMenuItem(device, refresh, contextMenu);
             contextMenu.getItems().add(startSpoofingMenuItem);
         }
         contextMenu.getItems().addAll(detailsItem, removeItem);
     }
 
     @NotNull
-    private MenuItem configureMenuItem(Device device, Runnable refresh) {
+    private MenuItem configureMenuItem(Device device, Runnable refresh, ContextMenu contextMenu) {
         MenuItem startSpoofingMenuItem = new MenuItem("Start Spoofing");
         startSpoofingMenuItem.setOnAction(e -> {
             try {
                 Target target = (Target) device;
-                if(startSpoofingMenuItem.getText().equals("Start Spoofing")){
+                if (startSpoofingMenuItem.getText().equals("Start Spoofing")) {
                     spoof(target);
                     devices.add(target);
                     refresh.run();
                     startSpoofingMenuItem.setText("Stop Spoofing");
+                    MenuItem menuItem = new MenuItem("Spy");
+                    menuItem.setOnAction(_ -> {
+                        Launch.StageSwitcher.switchTo(View.STATISTICS_DETAILS_VIEW.FXML_FILE, View.STATISTICS_DETAILS_VIEW.WIDTH, View.STATISTICS_DETAILS_VIEW.HEIGHT, View.STATISTICS_DETAILS_VIEW.INTERFACE_TITLE, target);
+                    });
+                    contextMenu.getItems().add(menuItem);
                 } else {
                     stopSpoofing(target);
                     startSpoofingMenuItem.setText("Start Spoofing");
                     devices.remove(target);
                     refresh.run();
+                    int i;
+                    for (i = 0; i < contextMenu.getItems().size(); i++) {
+                        MenuItem menuItem = contextMenu.getItems().get(i);
+                        if (menuItem.getText().equals("Spy")) {
+                            contextMenu.getItems().remove(i);
+                            break;
+                        }
+                    }
+
                 }
             } catch (GatewayException | TargetException ex) {
                 PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
@@ -106,10 +121,10 @@ public class MainControllerServiceImpl {
         return startSpoofingMenuItem;
     }
 
-    private <T> void showDetails(T object, Runnable refresh){
-        if(object instanceof Target target){
+    private <T> void showDetails(T object, Runnable refresh) {
+        if (object instanceof Target target) {
             PopupShowDetails.popupShowDetails(target, refresh);
-        } else if(object instanceof SelfDevice selfDevice){
+        } else if (object instanceof SelfDevice selfDevice) {
             PopupShowDetails.popupShowDetails(selfDevice, refresh);
         } else {
             Gateway gateway = (Gateway) object;
@@ -182,8 +197,7 @@ public class MainControllerServiceImpl {
             alert.setTitle("An error occurred");
             alert.setHeaderText(title);
             alert.setContentText(message);
-            if (showAndWait)
-                alert.showAndWait();
+            if (showAndWait) alert.showAndWait();
         }
     }
 }

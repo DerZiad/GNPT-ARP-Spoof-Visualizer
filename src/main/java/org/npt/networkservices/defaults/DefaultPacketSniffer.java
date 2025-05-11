@@ -1,5 +1,6 @@
 package org.npt.networkservices.defaults;
 
+import lombok.Getter;
 import org.npt.networkservices.PacketSniffer;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
@@ -10,13 +11,17 @@ import org.xbill.DNS.Message;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DefaultPacketSniffer implements PacketSniffer {
 
     private final String networkInterface;
+    @Getter
     private final String targetIp;
     private PcapHandle handle;
+    @Getter
+    private final List<org.npt.models.Packet> packets = new ArrayList<>();
 
     private boolean running = true;
 
@@ -94,6 +99,7 @@ public class DefaultPacketSniffer implements PacketSniffer {
                     String srcIp = ipV4Packet.getHeader().getSrcAddr().getHostAddress();
                     String dstIp = ipV4Packet.getHeader().getDstAddr().getHostAddress();
                     System.out.println("Source IP: " + srcIp + ", Destination IP: " + dstIp);
+                    packets.add(new org.npt.models.Packet("IpV4",srcIp,dstIp));
                     performDnsLookup(dstIp);
                 }
             }
@@ -118,6 +124,7 @@ public class DefaultPacketSniffer implements PacketSniffer {
                     String srcIp = arpPacket.getHeader().getSrcProtocolAddr().getHostAddress();
                     String dstIp = arpPacket.getHeader().getDstProtocolAddr().getHostAddress();
                     System.out.println("ARP Packet - Source MAC: " + srcMac + ", Source IP: " + srcIp + ", Destination IP: " + dstIp);
+                    packets.add(new org.npt.models.Packet("ARP",srcIp,dstIp));
                 }
             } else {
                 // Unknown EtherType - Convert raw data to ASCII
