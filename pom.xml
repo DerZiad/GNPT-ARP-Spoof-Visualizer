@@ -13,9 +13,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version.source>23</java.version.source>
         <java.version.target>23</java.version.target>
-        <mainClass>org.npt.Launch</mainClass>
+        <mainClass>org.npt/org.npt.Launch</mainClass>
         <!-- JavaFX -->
-        <javafx.version>17.0.2</javafx.version>
+        <javafx.version>24</javafx.version>
         <javafx.controlsfx.version>11.1.2</javafx.controlsfx.version>
         <javafx.formsfx.version>11.6.0</javafx.formsfx.version>
         <javafx.validatorfx.version>0.4.0</javafx.validatorfx.version>
@@ -37,8 +37,10 @@
         <maven.surefire.plugin>3.1.2</maven.surefire.plugin>
         <maven.javafx.plugin>0.0.8</maven.javafx.plugin>
         <!-- Test -->
-        <junit.version>5.10.0</junit.version>
-        <mockito.version>5.12.0</mockito.version>
+        <junit.version>5.12.2</junit.version>
+        <assertj.version>3.27.3</assertj.version>
+        <testfx.version>4.0.18</testfx.version>
+        <mockito.version>5.17.0</mockito.version>
     </properties>
 
     <dependencies>
@@ -177,6 +179,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
@@ -188,6 +196,12 @@
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.testfx</groupId>
+            <artifactId>testfx-junit</artifactId>
+            <version>${testfx.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -197,8 +211,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin}</version>
                 <configuration>
-                    <source>${java.version.source}</source>
-                    <target>${java.version.target}</target>
+                    <release>${java.version.source}</release>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -223,9 +236,10 @@
                             <noManPages>true</noManPages>
                             <stripDebug>true</stripDebug>
                             <noHeaderFiles>true</noHeaderFiles>
-                            <jvmArguments>
-                                --enable-native-access=javafx.graphics
-                            </jvmArguments>
+                            <options>
+                                <option>--enable-native-access=ALL-UNNAMED</option>
+                                <option>--add-opens=java.base/sun.misc=ALL-UNNAMED</option>
+                            </options>
                         </configuration>
                     </execution>
                 </executions>
@@ -263,6 +277,12 @@
                 </execution></executions>
                 <configuration>
                     <mainClass>${mainClass}</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>headless</key>
+                            <value>false</value>
+                        </systemProperty>
+                    </systemProperties>
                 </configuration>
             </plugin>
             <plugin>
@@ -270,6 +290,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.plugin}</version>
                 <configuration>
+                    <systemPropertyVariables>
+                        <headless>true</headless>
+                    </systemPropertyVariables>
                     <includes>
                         <include>*Test*</include>
                     </includes>
@@ -280,6 +303,9 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${maven.failsafe.plugin}</version>
                 <configuration>
+                    <systemPropertyVariables>
+                        <headless>true</headless>
+                    </systemPropertyVariables>
                     <includes>
                         <include>*IT*</include>
                     </includes>
