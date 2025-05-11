@@ -26,6 +26,11 @@ jobs:
           source "$HOME/.sdkman/bin/sdkman-init.sh"
           sdk install java 23-open
 
+      - name: Set JAVA_HOME and update PATH
+        run: |
+          echo "JAVA_HOME=$HOME/.sdkman/candidates/java/current" >> $GITHUB_ENV
+          echo "PATH=$JAVA_HOME/bin:$PATH
+
       - name: Verify Java and Maven versions
         run: |
           java -version
