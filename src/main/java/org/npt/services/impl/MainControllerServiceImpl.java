@@ -9,6 +9,7 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 import org.npt.controllers.View;
 import org.npt.controllers.viewdetails.GatewayDetailsController;
 import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
@@ -44,7 +45,7 @@ public class MainControllerServiceImpl {
     private final GatewayService gatewayService = new DefaultGatewayService();
 
     @Getter
-    private final Set<Device> devices = new HashSet<>();
+    private final Set<Target> devices = new HashSet<>();
 
     private void spoof(Target target) throws GatewayNotFoundException, TargetIpException, GatewayIpException {
         Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
@@ -75,19 +76,34 @@ public class MainControllerServiceImpl {
         });
 
         if (device instanceof Target) {
-            MenuItem startStopSniffing = new MenuItem("Start Spoofing");
-            startStopSniffing.setOnAction(e -> {
-                try {
-                    spoof((Target) device);
-                    devices.add(device);
-                    refresh.run();
-                } catch (GatewayException | TargetException ex) {
-                    PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
-                }
-            });
-            contextMenu.getItems().add(startStopSniffing);
+            MenuItem startSpoofingMenuItem = configureMenuItem(device, refresh);
+            contextMenu.getItems().add(startSpoofingMenuItem);
         }
         contextMenu.getItems().addAll(detailsItem, removeItem);
+    }
+
+    @NotNull
+    private MenuItem configureMenuItem(Device device, Runnable refresh) {
+        MenuItem startSpoofingMenuItem = new MenuItem("Start Spoofing");
+        startSpoofingMenuItem.setOnAction(e -> {
+            try {
+                Target target = (Target) device;
+                if(startSpoofingMenuItem.getText().equals("Start Spoofing")){
+                    spoof(target);
+                    devices.add(target);
+                    refresh.run();
+                    startSpoofingMenuItem.setText("Stop Spoofing");
+                } else {
+                    stopSpoofing(target);
+                    startSpoofingMenuItem.setText("Start Spoofing");
+                    devices.remove(target);
+                    refresh.run();
+                }
+            } catch (GatewayException | TargetException ex) {
+                PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
+            }
+        });
+        return startSpoofingMenuItem;
     }
 
     private <T> void showDetails(T object, Runnable refresh){

@@ -7,11 +7,13 @@ import javafx.stage.Stage;
 import org.npt.controllers.View;
 import org.npt.data.DataService;
 import org.npt.data.defaults.DefaultDataService;
+import org.npt.services.impl.ProcessService;
 
 import java.io.IOException;
 
 import static org.npt.controllers.View.MAIN_INTERFACE.*;
-import static org.npt.controllers.View.*;
+import static org.npt.controllers.View.getCssResourceExternalForm;
+import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
 public class Launch extends Application {
 
@@ -29,6 +31,7 @@ public class Launch extends Application {
         try {
             DataService dataService = DefaultDataService.getInstance();
             dataService.run();
+            ProcessService.init();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
