@@ -1,4 +1,4 @@
-name: Build and Test on Ubuntu with Java 23
+name: Install Dependencies, Install JDK 23, Build, Test, Integration Test, Publish
 
 on:
   push:
