@@ -68,9 +68,7 @@ public class MainController {
     @FXML
     public void initialize() {
         // Devices
-        dataService.getDevices().forEach(device -> mainControllerServiceImpl.initMenu(device, _ -> {
-            initializeCanvas(canvas);
-        }));
+        dataService.getDevices().forEach(device -> mainControllerServiceImpl.initMenu(device, () -> initializeCanvas(canvas)));
 
         // Load images
         ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
@@ -93,7 +91,7 @@ public class MainController {
             centerSelfDevice();
             calculateGatewaysPosition();
         });
-        mainControllerServiceImpl.initMenu(dataService.getSelfDevice(), _ -> initializeCanvas(canvas));
+        mainControllerServiceImpl.initMenu(dataService.getSelfDevice(), () -> initializeCanvas(canvas));
 
         addDevice.setOnAction(_ -> {
             String ipAddress = this.ipAddress.getText();
@@ -104,9 +102,7 @@ public class MainController {
                 Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
                         .findAny();
                 gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
-                mainControllerServiceImpl.initMenu(target, _ -> {
-                    initializeCanvas(canvas);
-                });
+                mainControllerServiceImpl.initMenu(target, () -> initializeCanvas(canvas));
                 initializeCanvas(canvas);
             } catch (InvalidInputException e) {
                 // TODO Handle exceptions in design

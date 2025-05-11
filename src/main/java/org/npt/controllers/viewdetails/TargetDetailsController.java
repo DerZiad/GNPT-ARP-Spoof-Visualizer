@@ -6,7 +6,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import org.npt.models.Target;
-import java.util.function.Consumer;
 
 public class TargetDetailsController {
 
@@ -28,7 +27,7 @@ public class TargetDetailsController {
     @FXML
     private TableColumn<IpEntry, String> typeColumn;
 
-    public void setData(Target target, Consumer<Void> refresh) {
+    public void setData(Target target, Runnable refresh) {
         deviceNameField.setText(target.getDeviceName());
         interfaceField.setText(target.getNetworkInterface());
         ipColumn.setCellValueFactory(data -> data.getValue().getIp());
@@ -41,7 +40,7 @@ public class TargetDetailsController {
             String networkInterface = interfaceField.getText();
             target.setNetworkInterface(networkInterface);
             target.setDeviceName(deviceName);
-            refresh.accept(null);
+            refresh.run();
         });
     }
 }

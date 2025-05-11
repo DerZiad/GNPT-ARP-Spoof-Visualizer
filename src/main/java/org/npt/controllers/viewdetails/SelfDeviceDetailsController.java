@@ -10,9 +10,6 @@ import lombok.Getter;
 import org.npt.models.Gateway;
 import org.npt.models.IpAddress;
 import org.npt.models.SelfDevice;
-import org.npt.models.Target;
-
-import java.util.function.Consumer;
 
 @Getter
 class IpEntryWithNetworkInterface extends IpEntry {
@@ -55,7 +52,7 @@ public class SelfDeviceDetailsController {
     public Button saveButton;
 
 
-    public void setData(SelfDevice selfDevice, Consumer<Void> refresh) {
+    public void setData(SelfDevice selfDevice, Runnable refresh) {
         deviceNameField.setText(selfDevice.getDeviceName());
         ipColumn.setCellValueFactory(data -> data.getValue().getIp());
         typeColumn.setCellValueFactory(data -> data.getValue().getType());
@@ -76,7 +73,7 @@ public class SelfDeviceDetailsController {
         saveButton.setOnAction(_ -> {
             String deviceName = deviceNameField.getText();
             selfDevice.setDeviceName(deviceName);
-            refresh.accept(null);
+            refresh.run();
         });
     }
 }

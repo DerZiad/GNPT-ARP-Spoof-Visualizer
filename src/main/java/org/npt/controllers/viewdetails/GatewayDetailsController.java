@@ -1,16 +1,12 @@
 package org.npt.controllers.viewdetails;
 
-import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import lombok.Getter;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
-
-import java.util.function.Consumer;
 
 public class GatewayDetailsController {
 
@@ -42,7 +38,7 @@ public class GatewayDetailsController {
     public Button saveButton;
 
 
-    public void setData(Gateway gateway, Consumer<Void> refresh) {
+    public void setData(Gateway gateway, Runnable refresh) {
         deviceNameField.setText(gateway.getDeviceName());
         interfaceField.setText(gateway.getNetworkInterface());
         ipColumn.setCellValueFactory(data -> data.getValue().getIp());
@@ -62,7 +58,7 @@ public class GatewayDetailsController {
             String networkInterface = interfaceField.getText();
             gateway.setNetworkInterface(networkInterface);
             gateway.setDeviceName(deviceName);
-            refresh.accept(null);
+            refresh.run();
         });
     }
 }

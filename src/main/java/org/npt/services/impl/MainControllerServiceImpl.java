@@ -9,10 +9,10 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.Getter;
+import org.npt.controllers.View;
 import org.npt.controllers.viewdetails.GatewayDetailsController;
 import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
 import org.npt.controllers.viewdetails.TargetDetailsController;
-import org.npt.controllers.View;
 import org.npt.data.DataService;
 import org.npt.data.GatewayService;
 import org.npt.data.defaults.DefaultDataService;
@@ -32,7 +32,6 @@ import org.npt.networkservices.defaults.ArpSpoofStarterImpl;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 
 import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
@@ -64,7 +63,7 @@ public class MainControllerServiceImpl {
         arpSpoofStarter.stopSpoofing(targetIpAddress, gatewayIpAddress);
     }
 
-    public void initMenu(Device device, Consumer<Void> refresh) {
+    public void initMenu(Device device, Runnable refresh) {
         System.out.println(device);
         ContextMenu contextMenu = device.getContextMenu();
         MenuItem detailsItem = new MenuItem("View Details");
@@ -73,7 +72,7 @@ public class MainControllerServiceImpl {
         MenuItem removeItem = new MenuItem("Remove Device");
         removeItem.setOnAction(_ -> {
             dataService.removeByObject(Optional.of(device));
-            refresh.accept(null);
+            refresh.run();
         });
 
         if (device instanceof Target) {
@@ -82,7 +81,7 @@ public class MainControllerServiceImpl {
                 try {
                     spoof((Target) device);
                     devices.add(device);
-                    refresh.accept(null);
+                    refresh.run();
                 } catch (GatewayException | TargetException ex) {
                     PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
                 }
@@ -92,7 +91,7 @@ public class MainControllerServiceImpl {
         contextMenu.getItems().addAll(detailsItem, removeItem);
     }
 
-    private <T> void showDetails(T object, Consumer<Void> refresh){
+    private <T> void showDetails(T object, Runnable refresh){
         if(object instanceof Target target){
             PopupShowDetails.popupShowDetails(target, refresh);
         } else if(object instanceof SelfDevice selfDevice){
@@ -105,7 +104,7 @@ public class MainControllerServiceImpl {
 
     public static class PopupShowDetails {
 
-        public static void popupShowDetails(Target target, Consumer<Void> refresh) {
+        public static void popupShowDetails(Target target, Runnable refresh) {
             try {
                 FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
                 Parent root = loader.load();
@@ -124,7 +123,7 @@ public class MainControllerServiceImpl {
             }
         }
 
-        public static void popupShowDetails(Gateway gateway, Consumer<Void> refresh) {
+        public static void popupShowDetails(Gateway gateway, Runnable refresh) {
             try {
                 FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.GATEWAY_DETAILS_VIEW.FXML_FILE));
                 Parent root = loader.load();
@@ -143,7 +142,7 @@ public class MainControllerServiceImpl {
             }
         }
 
-        public static void popupShowDetails(SelfDevice selfDevice, Consumer<Void> refresh) {
+        public static void popupShowDetails(SelfDevice selfDevice, Runnable refresh) {
             try {
                 FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.SELF_DEVICE_DETAILS_VIEW.FXML_FILE));
                 Parent root = loader.load();
