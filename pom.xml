@@ -15,7 +15,7 @@
         <java.version.target>23</java.version.target>
         <mainClass>org.npt.Launch</mainClass>
         <!-- JavaFX -->
-        <javafx.version>22-ea+11</javafx.version>
+        <javafx.version>17.0.2</javafx.version>
         <javafx.controlsfx.version>11.1.2</javafx.controlsfx.version>
         <javafx.formsfx.version>11.6.0</javafx.formsfx.version>
         <javafx.validatorfx.version>0.4.0</javafx.validatorfx.version>
