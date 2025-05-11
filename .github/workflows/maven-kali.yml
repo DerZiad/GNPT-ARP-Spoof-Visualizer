@@ -20,11 +20,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git maven unzip wget curl dsniff
 
-      - name: Download and install JDK 23
+      - name: Download and install JDK 22
         run: |
           curl -s "https://get.sdkman.io" | bash
           source "$HOME/.sdkman/bin/sdkman-init.sh"
-          sdk install java 23-open
+          sdk install java 22-open
 
       - name: Set JAVA_HOME and update PATH
         run: |

@@ -11,8 +11,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version.source>23</java.version.source>
-        <java.version.target>23</java.version.target>
+        <java.version.source>22</java.version.source>
+        <java.version.target>22</java.version.target>
         <mainClass>org.npt/org.npt.Launch</mainClass>
         <!-- JavaFX -->
         <javafx.version>24</javafx.version>
@@ -291,7 +291,7 @@
                 <version>${maven.surefire.plugin}</version>
                 <configuration>
                     <systemPropertyVariables>
-                        <headless>true</headless>
+                        <headless>false</headless>
                     </systemPropertyVariables>
                     <includes>
                         <include>*Test*</include>
@@ -304,7 +304,7 @@
                 <version>${maven.failsafe.plugin}</version>
                 <configuration>
                     <systemPropertyVariables>
-                        <headless>true</headless>
+                        <headless>false</headless>
                     </systemPropertyVariables>
                     <includes>
                         <include>*IT*</include>
