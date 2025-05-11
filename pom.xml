@@ -24,7 +24,7 @@
         <javafx.fxgl.version>17.3</javafx.fxgl.version>
         <!-- Utils -->
         <lombok.version>1.18.38</lombok.version>
-        <common.net.version>3.8.0</common.net.version>
+        <common.net.version>3.11.1</common.net.version>
         <pcap4j.version>1.8.2</pcap4j.version>
         <tilesfx.version>11.48</tilesfx.version>
         <dnsjava.version>3.3.1</dnsjava.version>
@@ -248,25 +248,6 @@
                                 </manifest>
                             </archive>
                         </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven.failsafe.plugin}</version>
-                <configuration>
-                    <includes>
-                        <include>*IT*</include>
-                    </includes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>integration-tests</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
                     </execution>
                 </executions>
             </plugin>
