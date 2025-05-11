@@ -2,9 +2,9 @@ name: Build and Test on Ubuntu with Java 23
 
 on:
   push:
-    branches: [ gnpt-fix-maven-dependencies-and-workflow ]
+    branches: [ '*' ]
   pull_request:
-    branches: [ gnpt-fix-maven-dependencies-and-workflow ]
+    branches: [ '*' ]
 
 jobs:
   build:

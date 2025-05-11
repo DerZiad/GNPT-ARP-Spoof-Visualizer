@@ -31,7 +31,7 @@
         <slf4j.version>1.7.32</slf4j.version>
         <!-- Maven -->
         <maven.assembly.plugin>3.7.1</maven.assembly.plugin>
-        <maven.compiler.plugin>3.10.1</maven.compiler.plugin>
+        <maven.compiler.plugin>3.14.0</maven.compiler.plugin>
         <maven.exec.plugin>3.1.0</maven.exec.plugin>
         <maven.failsafe.plugin>3.1.2</maven.failsafe.plugin>
         <maven.surefire.plugin>3.1.2</maven.surefire.plugin>

@@ -64,7 +64,6 @@ public class MainControllerServiceImpl {
     }
 
     public void initMenu(Device device, Runnable refresh) {
-        System.out.println(device);
         ContextMenu contextMenu = device.getContextMenu();
         MenuItem detailsItem = new MenuItem("View Details");
         detailsItem.setOnAction(_ -> showDetails(device, refresh));
