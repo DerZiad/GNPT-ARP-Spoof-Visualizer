@@ -72,9 +72,9 @@ public class MainController {
 
         // Load images
         ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
-        images.put(Target.class, new Image(resourceLoader.getResource("computer.png")));
-        images.put(Gateway.class, new Image(resourceLoader.getResource("router.png")));
-        images.put(SelfDevice.class, new Image(resourceLoader.getResource("hacker.png")));
+        images.put(Target.class, new Image(resourceLoader.getResource("images/computer.png")));
+        images.put(Gateway.class, new Image(resourceLoader.getResource("images/router.png")));
+        images.put(SelfDevice.class, new Image(resourceLoader.getResource("images/hacker.png")));
 
         canvas.widthProperty().bind(borderPane.widthProperty());
         canvas.heightProperty().bind(borderPane.heightProperty());

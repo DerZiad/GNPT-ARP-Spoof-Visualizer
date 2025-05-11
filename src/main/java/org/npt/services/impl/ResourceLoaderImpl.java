@@ -7,7 +7,7 @@ import java.io.InputStream;
 public class ResourceLoaderImpl implements ResourceLoader {
 
     private static ResourceLoader instance = null;
-    private static final String IMAGE_REPOSITORY = "/org/npt/images/%s";
+    private static final String IMAGE_REPOSITORY = "/org/npt/%s";
 
     @Override
     public InputStream getResource(String name) {

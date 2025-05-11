@@ -1,4 +1,4 @@
 package org.npt.networkservices;
 
-public interface PacketSniffer {
+public interface PacketSniffer extends Runnable{
 }
