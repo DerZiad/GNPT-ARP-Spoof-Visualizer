@@ -41,8 +41,8 @@ public class ArpSpoofStarterImpl implements ArpSpoofStarter {
         final ProcessExecuter reverse = ProcessExecuter.execute(processName, new String[]{commandSecond}, false);
         processExecuters.add(normal);
         processExecuters.add(reverse);
-        PacketSniffer packetSniffer = new PacketSniffer(targetIp);
-        packetSniffer.startSniffing();
+        DefaultPacketSniffer defaultPacketSniffer = new DefaultPacketSniffer(targetIp, scanInterface);
+        new Thread(defaultPacketSniffer).start();
     }
 
     public static ArpSpoofStarterImpl getInstance() {

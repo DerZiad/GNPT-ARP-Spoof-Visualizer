@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.Optional;
 
 public class SelfDevice extends Device {
 
@@ -24,5 +25,14 @@ public class SelfDevice extends Device {
         super(deviceName, x, y, contextMenu);
         this.nextGateways = nextGateways;
         this.ipAddresses = ipAddresses;
+    }
+
+    public Optional<IpAddress> findFirstIPv4() {
+        for (IpAddress ipObject : this.ipAddresses) {
+            if (isValidIPv4(ipObject.getIp())) {
+                return Optional.of(ipObject);
+            }
+        }
+        return Optional.empty();
     }
 }

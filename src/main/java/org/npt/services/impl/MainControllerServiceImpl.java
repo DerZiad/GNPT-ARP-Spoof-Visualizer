@@ -8,10 +8,15 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import lombok.Getter;
+import org.npt.controllers.View;
+import org.npt.controllers.viewdetails.GatewayDetailsController;
+import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
+import org.npt.controllers.viewdetails.TargetDetailsController;
+import org.npt.data.DataService;
 import org.npt.data.GatewayService;
-import org.npt.data.TargetService;
+import org.npt.data.defaults.DefaultDataService;
 import org.npt.data.defaults.DefaultGatewayService;
-import org.npt.data.defaults.DefaultTargetService;
 import org.npt.exception.GatewayException;
 import org.npt.exception.TargetException;
 import org.npt.exception.children.GatewayIpException;
@@ -19,19 +24,27 @@ import org.npt.exception.children.GatewayNotFoundException;
 import org.npt.exception.children.TargetIpException;
 import org.npt.models.Device;
 import org.npt.models.Gateway;
+import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 import org.npt.networkservices.ArpSpoofStarter;
 import org.npt.networkservices.defaults.ArpSpoofStarterImpl;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
+
+import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
 public class MainControllerServiceImpl {
 
     private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarterImpl.getInstance();
 
-    private final TargetService targetService = new DefaultTargetService();
+    private final DataService dataService = DefaultDataService.getInstance();
 
     private final GatewayService gatewayService = new DefaultGatewayService();
+
+    @Getter
+    private final Set<Device> devices = new HashSet<>();
 
     private void spoof(Target target) throws GatewayNotFoundException, TargetIpException, GatewayIpException {
         Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
@@ -50,63 +63,109 @@ public class MainControllerServiceImpl {
         arpSpoofStarter.stopSpoofing(targetIpAddress, gatewayIpAddress);
     }
 
-    public void initMenu(Device device) {
+    public void initMenu(Device device, Runnable refresh) {
+        System.out.println(device);
         ContextMenu contextMenu = device.getContextMenu();
         MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(e -> showDeviceDetails(device));
-
-        MenuItem editIpItem = new MenuItem("Edit IP Address");
-        editIpItem.setOnAction(e -> editIpAddress(device));
+        detailsItem.setOnAction(_ -> showDetails(device, refresh));
 
         MenuItem removeItem = new MenuItem("Remove Device");
-        //removeItem.setOnAction(e -> targetService);
+        removeItem.setOnAction(_ -> {
+            dataService.removeByObject(Optional.of(device));
+            refresh.run();
+        });
 
         if (device instanceof Target) {
-            MenuItem startStopSniffing = new MenuItem("Spy");
+            MenuItem startStopSniffing = new MenuItem("Start Spoofing");
             startStopSniffing.setOnAction(e -> {
                 try {
                     spoof((Target) device);
+                    devices.add(device);
+                    refresh.run();
                 } catch (GatewayException | TargetException ex) {
-                    PopupShowDetails.showError("Error while spoofing : ", ex.getMessage(), true);
+                    PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
                 }
             });
             contextMenu.getItems().add(startStopSniffing);
         }
-        contextMenu.getItems().addAll(detailsItem, editIpItem, removeItem);
+        contextMenu.getItems().addAll(detailsItem, removeItem);
     }
 
-    private void showDeviceDetails(Device device) {
-        PopupShowDetails.popupShowDetailsGatewayOrTarget("details.fxml", "My name", true, "text area");
+    private <T> void showDetails(T object, Runnable refresh){
+        if(object instanceof Target target){
+            PopupShowDetails.popupShowDetails(target, refresh);
+        } else if(object instanceof SelfDevice selfDevice){
+            PopupShowDetails.popupShowDetails(selfDevice, refresh);
+        } else {
+            Gateway gateway = (Gateway) object;
+            PopupShowDetails.popupShowDetails(gateway, refresh);
+        }
     }
 
-    private void editIpAddress(Device device) {
-        System.out.println("Editing IP address of " + device.getDeviceName());
-    }
+    public static class PopupShowDetails {
 
-    private void removeDevice(Device device) {
-        System.out.println("Removing device " + device.getDeviceName());
-    }
-
-    static class PopupShowDetails {
-
-        public static void popupShowDetailsGatewayOrTarget(String fxmlPath, String title, Boolean showAndWait, String text) {
+        public static void popupShowDetails(Target target, Runnable refresh) {
             try {
-                FXMLLoader loader = new FXMLLoader(PopupShowDetails.class.getResource(fxmlPath));
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
                 Parent root = loader.load();
+                TargetDetailsController controller = loader.getController();
+                controller.setData(target, refresh);
                 Stage popupStage = new Stage();
                 popupStage.initModality(Modality.APPLICATION_MODAL);
-                popupStage.setTitle(title);
+                popupStage.setTitle(View.TARGET_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.TARGET_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.TARGET_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
                 popupStage.setScene(new Scene(root));
-                if (showAndWait) popupStage.showAndWait();
+                popupStage.showAndWait();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         }
 
+        public static void popupShowDetails(Gateway gateway, Runnable refresh) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.GATEWAY_DETAILS_VIEW.FXML_FILE));
+                Parent root = loader.load();
+                GatewayDetailsController controller = loader.getController();
+                controller.setData(gateway, refresh);
+                Stage popupStage = new Stage();
+                popupStage.initModality(Modality.APPLICATION_MODAL);
+                popupStage.setTitle(View.GATEWAY_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.GATEWAY_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.GATEWAY_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
+                popupStage.setScene(new Scene(root));
+                popupStage.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        public static void popupShowDetails(SelfDevice selfDevice, Runnable refresh) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.SELF_DEVICE_DETAILS_VIEW.FXML_FILE));
+                Parent root = loader.load();
+                SelfDeviceDetailsController controller = loader.getController();
+                controller.setData(selfDevice, refresh);
+                Stage popupStage = new Stage();
+                popupStage.initModality(Modality.APPLICATION_MODAL);
+                popupStage.setTitle(View.SELF_DEVICE_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.SELF_DEVICE_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.SELF_DEVICE_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
+                popupStage.setScene(new Scene(root));
+                popupStage.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+
         public static void showError(String title, String message, Boolean showAndWait) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle(title);
-            alert.setHeaderText("An error occurred");
+            alert.setTitle("An error occurred");
+            alert.setHeaderText(title);
             alert.setContentText(message);
             if (showAndWait)
                 alert.showAndWait();

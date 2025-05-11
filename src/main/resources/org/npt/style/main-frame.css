@@ -1,0 +1,127 @@
+/* Wrapper HBox */
+.form-wrapper {
+    -fx-padding: 20px;
+    -fx-background-color: #f4f7fa;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 10, 0.2, 0, 4);
+}
+
+/* VBox container */
+.form-container {
+    -fx-spacing: 15px;
+}
+
+/* Each row */
+.form-row {
+    -fx-spacing: 15px;
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* Label */
+.form-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333;
+    -fx-min-width: 140px;
+}
+
+/* TextField */
+.form-field {
+    -fx-pref-width: 300px;
+    -fx-background-color: #fff;
+    -fx-border-color: #ccc;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 6px 10px;
+}
+
+/* Button */
+.form-button {
+    -fx-background-color: #4a90e2;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 16px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+.form-button:hover {
+    -fx-background-color: #357ab8;
+}
+
+.form-row.center {
+    -fx-alignment: center;
+}
+
+/* Apply background color to the MenuBar */
+.menu-bar {
+    -fx-background-color: #ffffff; /* White background */
+    -fx-border-color: #cccccc; /* Light gray border */
+    -fx-border-width: 1;
+    -fx-text-fill: #333333; /* Dark text */
+}
+
+/* Style for each Menu */
+.menu {
+    -fx-background-color: #f0f0f0; /* Light gray background for menu */
+    -fx-text-fill: #333333; /* Dark text */
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* Change the Menu text color when hovered */
+.menu:hover {
+    -fx-background-color: #dcdcdc; /* Slightly darker gray on hover */
+}
+
+/* Style for MenuItems */
+.menu-item {
+    -fx-background-color: #ffffff; /* White background for items */
+    -fx-text-fill: #333333; /* Dark text */
+    -fx-font-size: 14px;
+    -fx-padding: 5 10 5 10; /* Padding inside the MenuItem */
+    -fx-border-color: #cccccc; /* Light border for items */
+    -fx-border-width: 0 0 1 0; /* Border only on bottom */
+}
+
+/* Change the MenuItem text color when hovered */
+.menu-item:hover {
+    -fx-background-color: #f0f0f0; /* Light gray on hover */
+}
+
+/* Style for separators */
+.separator-menu-item {
+    -fx-background-color: #eeeeee; /* Very light gray separator */
+    -fx-pref-width: 1;
+}
+
+/* Style for Submenus (e.g., "Open Recent") */
+.menu .menu {
+    -fx-background-color: #f0f0f0; /* Light gray background for submenus */
+    -fx-text-fill: #333333; /* Dark text */
+}
+
+.menu .menu-item:hover {
+    -fx-background-color: #dcdcdc; /* Darker gray when hovering over submenu items */
+}
+
+/* Style for disabled MenuItems */
+.menu-item:disabled {
+    -fx-text-fill: #a0a0a0; /* Light gray text for disabled items */
+}
+
+/* Customize the font of the MenuBar */
+.menu-bar .menu-item {
+    -fx-font-family: "Arial";
+}
+
+/* Style when a MenuItem is selected */
+.menu-item:selected {
+    -fx-background-color: #dcdcdc; /* Slightly darker gray when selected */
+}
+
+/* Style for the MenuBar when focused */
+.menu-bar:focused {
+    -fx-border-color: #4CAF50; /* Green border when focused */
+}
