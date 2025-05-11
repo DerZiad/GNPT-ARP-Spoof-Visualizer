@@ -339,17 +339,17 @@ public class MainController {
         if (deviceClass.equals(SelfDevice.class)) {
             Optional<IpAddress> ipAddress = ((SelfDevice) device).findFirstIPv4();
             ipAddress.ifPresent(ipString -> {
-                gc.fillText(ipString.getNetworkInterface(), device.getX() - 30, device.getY() + imageSize / 2 + 35);
-                gc.fillText(ipString.getIp(), device.getX() - 40, device.getY() + imageSize / 2 + 50);
+                gc.fillText(ipString.getNetworkInterface(), device.getX() - 25, device.getY() + imageSize / 2 + 40);
+                gc.fillText(ipString.getIp(), device.getX() - 25, device.getY() + imageSize / 2 + 60);
             });
         } else if (deviceClass.equals(Target.class)) {
             Target target = (Target) device;
-            gc.fillText(target.getNetworkInterface(), target.getX() - 30, target.getY() + imageSize / 2 + 35);
-            target.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, target.getX() - 50, target.getY() + imageSize / 2 + 60));
+            gc.fillText(target.getNetworkInterface(), target.getX() - 25, target.getY() + imageSize / 2 + 40);
+            target.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, target.getX() - 25, target.getY() + imageSize / 2 + 60));
         } else {
             Gateway gateway = (Gateway) device;
-            gc.fillText(gateway.getNetworkInterface(), gateway.getX() - 30, gateway.getY() + imageSize / 2 + 35);
-            gateway.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, gateway.getX() - 50, gateway.getY() + imageSize / 2 + 60));
+            gc.fillText(gateway.getNetworkInterface(), gateway.getX() - 25, gateway.getY() + imageSize / 2 + 40);
+            gateway.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, gateway.getX() - 25, gateway.getY() + imageSize / 2 + 60));
         }
     }
 

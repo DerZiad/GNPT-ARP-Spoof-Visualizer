@@ -1,5 +1,6 @@
 package org.npt.networkservices.defaults;
 
+import org.npt.networkservices.PacketSniffer;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
 import org.pcap4j.packet.namednumber.TcpPort;
@@ -11,14 +12,39 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
-public class PacketSniffer {
+public class DefaultPacketSniffer implements PacketSniffer, Runnable {
 
-    private String networkInterface = "eth0"; // Set the correct network interface name
-    private String testServerIp; // Optional target IP if needed
+    private final String networkInterface;
+    private final String targetIp;
     private PcapHandle handle;
 
-    public PacketSniffer(String targetIp) {
-        this.testServerIp = targetIp;
+    private boolean running = true;
+
+    public DefaultPacketSniffer(String targetIp, String networkInterface) {
+        this.targetIp = targetIp;
+        this.networkInterface = networkInterface;
+    }
+
+    public void stop(){
+        running = false;
+    }
+
+    @Override
+    public void run() {
+        startSniffing();
+        // Start packet capture in a separate thread to avoid blocking
+        try {
+            while (running) {
+                Packet packet = handle.getNextPacket();
+                if (packet != null) {
+                    logPacketDetails(packet);
+                } else {
+                    System.out.println("No packet captured in this cycle.");
+                }
+            }
+        } catch (NotOpenException e) {
+            e.printStackTrace();
+        }
     }
 
     public void startSniffing() {
@@ -41,31 +67,13 @@ public class PacketSniffer {
             System.out.println("Pcap handle open: " + handle.isOpen());
 
             // Remove filter to capture all packet types (TCP, UDP, ARP, etc.)
-            handle.setFilter("ip src " + testServerIp, BpfProgram.BpfCompileMode.NONOPTIMIZE); // Empty filter captures all packets
+            handle.setFilter("ip src " + targetIp, BpfProgram.BpfCompileMode.NONOPTIMIZE); // Empty filter captures all packets
             System.out.println("Starting packet capture for all packet types.");
-
-            // Start packet capture in a separate thread to avoid blocking
-            new Thread(this::capturePackets).start();
-
         } catch (PcapNativeException | NotOpenException e) {
             e.printStackTrace();
         }
     }
 
-    private void capturePackets() {
-        try {
-            while (true) {
-                Packet packet = handle.getNextPacket();
-                if (packet != null) {
-                    logPacketDetails(packet);
-                } else {
-                    System.out.println("No packet captured in this cycle.");
-                }
-            }
-        } catch (NotOpenException e) {
-            e.printStackTrace();
-        }
-    }
 
     private void logPacketDetails(Packet packet) {
         // Check if the packet is an Ethernet packet
