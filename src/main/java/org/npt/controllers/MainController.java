@@ -324,10 +324,13 @@ public class MainController {
 
         Double[] p1 = calculateSolution.apply(new Double[]{x1, y1}, false);
         Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
-        if (mainControllerServiceImpl.getDevices().contains(startLine) || mainControllerServiceImpl.getDevices().contains(endLine))
-            gc.setStroke(Color.RED);
-        else
-            gc.setStroke(Color.BLACK);
+
+        gc.setStroke(Color.BLACK);
+        for (Device device : mainControllerServiceImpl.getDevices()) {
+            if (device == startLine || device == endLine) {
+                gc.setStroke(Color.RED);
+            }
+        }
         gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
     }
 

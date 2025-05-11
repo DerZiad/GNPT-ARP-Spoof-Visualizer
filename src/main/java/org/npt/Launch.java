@@ -7,6 +7,7 @@ import javafx.stage.Stage;
 import org.npt.controllers.View;
 import org.npt.data.DataService;
 import org.npt.data.defaults.DefaultDataService;
+import org.npt.services.impl.ProcessService;
 
 import java.io.IOException;
 
@@ -30,6 +31,7 @@ public class Launch extends Application {
         try {
             DataService dataService = DefaultDataService.getInstance();
             dataService.run();
+            ProcessService.init();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

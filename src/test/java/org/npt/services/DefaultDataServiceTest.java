@@ -1,16 +1,14 @@
 package org.npt.services;
 
-import javafx.application.Platform;
-import javafx.scene.control.ContextMenu;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.npt.data.DataService;
-import org.npt.data.defaults.DefaultDataService;
 import org.npt.models.Gateway;
 import org.npt.models.IpAddress;
 import org.npt.models.SelfDevice;
-import org.npt.models.Target;
 import org.npt.networkservices.DeviceService;
 import org.npt.networkservices.defaults.DeviceServiceImpl;
 
@@ -19,10 +17,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import static org.mockito.Mockito.*;
-import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
 public class DefaultDataServiceTest {

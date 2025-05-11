@@ -75,21 +75,6 @@
     -fx-background-color: #dcdcdc; /* Slightly darker gray on hover */
 }
 
-/* Style for MenuItems */
-.menu-item {
-    -fx-background-color: #ffffff; /* White background for items */
-    -fx-text-fill: #333333; /* Dark text */
-    -fx-font-size: 14px;
-    -fx-padding: 5 10 5 10; /* Padding inside the MenuItem */
-    -fx-border-color: #cccccc; /* Light border for items */
-    -fx-border-width: 0 0 1 0; /* Border only on bottom */
-}
-
-/* Change the MenuItem text color when hovered */
-.menu-item:hover {
-    -fx-background-color: #f0f0f0; /* Light gray on hover */
-}
-
 /* Style for separators */
 .separator-menu-item {
     -fx-background-color: #eeeeee; /* Very light gray separator */
@@ -106,19 +91,9 @@
     -fx-background-color: #dcdcdc; /* Darker gray when hovering over submenu items */
 }
 
-/* Style for disabled MenuItems */
-.menu-item:disabled {
-    -fx-text-fill: #a0a0a0; /* Light gray text for disabled items */
-}
-
 /* Customize the font of the MenuBar */
 .menu-bar .menu-item {
     -fx-font-family: "Arial";
-}
-
-/* Style when a MenuItem is selected */
-.menu-item:selected {
-    -fx-background-color: #dcdcdc; /* Slightly darker gray when selected */
 }
 
 /* Style for the MenuBar when focused */
