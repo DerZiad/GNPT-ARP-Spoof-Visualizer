@@ -223,6 +223,9 @@
                             <noManPages>true</noManPages>
                             <stripDebug>true</stripDebug>
                             <noHeaderFiles>true</noHeaderFiles>
+                            <jvmArguments>
+                                --enable-native-access=javafx.graphics
+                            </jvmArguments>
                         </configuration>
                     </execution>
                 </executions>
