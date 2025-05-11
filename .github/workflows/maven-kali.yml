@@ -20,11 +20,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git maven unzip wget curl default-jdk dsniff
 
-      - name: Install SDKMAN and Java 23
+      - name: Install Java 23
         run: |
-          curl -s "https://get.sdkman.io" | bash
-          sdk install java 23.0.2-amzn
-          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sudo update-alternatives --install /usr/bin/java java /opt/jdk-23/bin/java 1234
 
       - name: Verify Java and Maven versions
         run: |
