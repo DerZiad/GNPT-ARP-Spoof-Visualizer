@@ -9,6 +9,8 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.Getter;
+import org.npt.controllers.viewdetails.GatewayDetailsController;
+import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
 import org.npt.controllers.viewdetails.TargetDetailsController;
 import org.npt.controllers.View;
 import org.npt.data.DataService;
@@ -63,12 +65,10 @@ public class MainControllerServiceImpl {
     }
 
     public void initMenu(Device device, Consumer<Void> refresh) {
-        if (device instanceof SelfDevice)
-            return;
-
+        System.out.println(device);
         ContextMenu contextMenu = device.getContextMenu();
         MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(_ -> PopupShowDetails.popupShowDetailsGatewayOrTarget((Target) device, refresh));
+        detailsItem.setOnAction(_ -> showDetails(device, refresh));
 
         MenuItem removeItem = new MenuItem("Remove Device");
         removeItem.setOnAction(_ -> {
@@ -92,9 +92,20 @@ public class MainControllerServiceImpl {
         contextMenu.getItems().addAll(detailsItem, removeItem);
     }
 
+    private <T> void showDetails(T object, Consumer<Void> refresh){
+        if(object instanceof Target target){
+            PopupShowDetails.popupShowDetails(target, refresh);
+        } else if(object instanceof SelfDevice selfDevice){
+            PopupShowDetails.popupShowDetails(selfDevice, refresh);
+        } else {
+            Gateway gateway = (Gateway) object;
+            PopupShowDetails.popupShowDetails(gateway, refresh);
+        }
+    }
+
     public static class PopupShowDetails {
 
-        public static void popupShowDetailsGatewayOrTarget(Target target, Consumer<Void> refresh) {
+        public static void popupShowDetails(Target target, Consumer<Void> refresh) {
             try {
                 FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
                 Parent root = loader.load();
@@ -105,6 +116,44 @@ public class MainControllerServiceImpl {
                 popupStage.setTitle(View.TARGET_DETAILS_VIEW.INTERFACE_TITLE);
                 popupStage.setWidth(View.TARGET_DETAILS_VIEW.WIDTH);
                 popupStage.setHeight(View.TARGET_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
+                popupStage.setScene(new Scene(root));
+                popupStage.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        public static void popupShowDetails(Gateway gateway, Consumer<Void> refresh) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.GATEWAY_DETAILS_VIEW.FXML_FILE));
+                Parent root = loader.load();
+                GatewayDetailsController controller = loader.getController();
+                controller.setData(gateway, refresh);
+                Stage popupStage = new Stage();
+                popupStage.initModality(Modality.APPLICATION_MODAL);
+                popupStage.setTitle(View.GATEWAY_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.GATEWAY_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.GATEWAY_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
+                popupStage.setScene(new Scene(root));
+                popupStage.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        public static void popupShowDetails(SelfDevice selfDevice, Consumer<Void> refresh) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.SELF_DEVICE_DETAILS_VIEW.FXML_FILE));
+                Parent root = loader.load();
+                SelfDeviceDetailsController controller = loader.getController();
+                controller.setData(selfDevice, refresh);
+                Stage popupStage = new Stage();
+                popupStage.initModality(Modality.APPLICATION_MODAL);
+                popupStage.setTitle(View.SELF_DEVICE_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.SELF_DEVICE_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.SELF_DEVICE_DETAILS_VIEW.HEIGHT);
                 popupStage.setResizable(false);
                 popupStage.setScene(new Scene(root));
                 popupStage.showAndWait();

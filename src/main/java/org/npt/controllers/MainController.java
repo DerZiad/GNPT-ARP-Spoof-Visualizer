@@ -55,9 +55,6 @@ public class MainController {
     private Canvas canvas;
 
     @FXML
-    private Canvas canvas1;
-
-    @FXML
     private MenuButton menuButton;
 
     @FXML
@@ -73,7 +70,6 @@ public class MainController {
         // Devices
         dataService.getDevices().forEach(device -> mainControllerServiceImpl.initMenu(device, _ -> {
             initializeCanvas(canvas);
-            initializeCanvas(canvas1);
         }));
 
         // Load images
@@ -89,16 +85,15 @@ public class MainController {
         // Set up listeners for drawing
         canvas.widthProperty().addListener((_, _, _) -> {
             initializeCanvas(canvas);
-            initializeCanvas(canvas1);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
         canvas.heightProperty().addListener((_, _, _) -> {
             initializeCanvas(canvas);
-            initializeCanvas(canvas1);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
+        mainControllerServiceImpl.initMenu(dataService.getSelfDevice(), _ -> initializeCanvas(canvas));
 
         addDevice.setOnAction(_ -> {
             String ipAddress = this.ipAddress.getText();
@@ -111,10 +106,8 @@ public class MainController {
                 gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
                 mainControllerServiceImpl.initMenu(target, _ -> {
                     initializeCanvas(canvas);
-                    initializeCanvas(canvas1);
                 });
                 initializeCanvas(canvas);
-                initializeCanvas(canvas1);
             } catch (InvalidInputException e) {
                 // TODO Handle exceptions in design
                 throw new RuntimeException(e);
@@ -125,7 +118,6 @@ public class MainController {
         calculateGatewaysPosition();
         setupMouseEvents();
         initializeCanvas(canvas);
-        initializeCanvas(canvas1);
     }
 
     private void initializeInterfaces() {
@@ -199,12 +191,10 @@ public class MainController {
         canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setX(canvas.getWidth() / 2);
             initializeCanvas(canvas);
-            initializeCanvas(canvas1);
         });
         canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setY(newVal.doubleValue() / 2);
             initializeCanvas(canvas);
-            initializeCanvas(canvas1);
         });
     }
 
@@ -226,6 +216,12 @@ public class MainController {
                 double y = event1.getY();
                 return x <= xRightBorder && x >= xLeftBorder && y <= yBottomBorder && y >= yTopBorder;
             };
+
+            SelfDevice selfDevice = dataService.getSelfDevice();
+            if (verifyClickInsideImage.test(selfDevice, event)) {
+                selfDevice.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                return;
+            }
 
             for (Device device : dataService.getDevices()) {
                 if (verifyClickInsideImage.test(device, event)) {
@@ -267,7 +263,6 @@ public class MainController {
             PauseTransition pause = new PauseTransition(Duration.millis(10));
             pause.setOnFinished(e -> {
                 initializeCanvas(canvas);
-                initializeCanvas(canvas1);
             });
             pause.play();
         } else if (draggedDevice != null) {
@@ -280,7 +275,6 @@ public class MainController {
             PauseTransition pause = new PauseTransition(Duration.millis(10));
             pause.setOnFinished(e -> {
                 initializeCanvas(canvas);
-                initializeCanvas(canvas1);
             });
             pause.play();
         }
