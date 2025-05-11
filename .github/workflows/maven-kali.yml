@@ -22,14 +22,9 @@ jobs:
 
       - name: Download and install JDK 23
         run: |
-          mkdir -p /opt
-          wget https://download.java.net/java/early_access/jdk23/1/GPL/openjdk-23-ea+1_linux-x64_bin.tar.gz
-          tar -xzf openjdk-23-ea+1_linux-x64_bin.tar.gz
-          sudo mv jdk-23 /opt/jdk-23
-          sudo update-alternatives --install /usr/bin/java java /opt/jdk-23/bin/java 1234
-          sudo update-alternatives --install /usr/bin/javac javac /opt/jdk-23/bin/javac 1234
-          sudo update-alternatives --set java /opt/jdk-23/bin/java
-          sudo update-alternatives --set javac /opt/jdk-23/bin/javac
+          curl -s "https://get.sdkman.io" | bash
+          source "$HOME/.sdkman/bin/sdkman-init.sh"
+          sdk install java 23-open
 
       - name: Verify Java and Maven versions
         run: |
