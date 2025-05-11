@@ -29,7 +29,7 @@ jobs:
       - name: Set JAVA_HOME and update PATH
         run: |
           echo "JAVA_HOME=$HOME/.sdkman/candidates/java/current" >> $GITHUB_ENV
-          echo "PATH=$JAVA_HOME/bin:$PATH
+          echo "PATH=$JAVA_HOME/bin:$PATH" >> $GITHUB_ENV
 
       - name: Verify Java and Maven versions
         run: |
