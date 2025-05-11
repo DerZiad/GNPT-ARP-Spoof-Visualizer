@@ -11,8 +11,7 @@ import org.npt.data.defaults.DefaultDataService;
 import java.io.IOException;
 
 import static org.npt.controllers.View.MAIN_INTERFACE.*;
-import static org.npt.controllers.View.getCssResourceExternalForm;
-import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
+import static org.npt.controllers.View.*;
 
 public class Launch extends Application {
 
