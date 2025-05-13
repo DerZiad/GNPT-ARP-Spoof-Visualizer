@@ -10,7 +10,7 @@ import org.npt.models.Gateway;
 import org.npt.models.IpAddress;
 import org.npt.models.SelfDevice;
 import org.npt.networkservices.DeviceService;
-import org.npt.networkservices.defaults.DeviceServiceImpl;
+import org.npt.networkservices.defaults.DefaultDeviceService;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -33,7 +33,7 @@ public class DefaultDataServiceTest {
     @BeforeAll
     public static void setup() throws SocketException, UnknownHostException {
         // Mocking DeviceService
-        DeviceServiceImpl deviceService = mock(DeviceServiceImpl.class);
+        DefaultDeviceService deviceService = mock(DefaultDeviceService.class);
         when(deviceService.scanCurrentGateways())
                 .thenReturn(gateways);
         when(deviceService.scanActualDevice(any()))

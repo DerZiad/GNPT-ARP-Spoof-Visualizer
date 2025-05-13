@@ -29,7 +29,6 @@ import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 import org.npt.networkservices.ArpSpoofStarter;
-import org.npt.networkservices.defaults.ArpSpoofStarterImpl;
 
 import java.util.HashSet;
 import java.util.Optional;
@@ -39,7 +38,7 @@ import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
 public class MainControllerServiceImpl {
 
-    private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarterImpl.getInstance();
+    private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarter.getInstance();
 
     private final DataService dataService = DefaultDataService.getInstance();
 
@@ -54,7 +53,7 @@ public class MainControllerServiceImpl {
         String scanInterface = target.getNetworkInterface();
         String targetIpAddress = target.findFirstIPv4().orElseThrow(() -> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
         String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(() -> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));
-        arpSpoofStarter.startSpoofing(scanInterface, targetIpAddress, gatewayIpAddress);
+        arpSpoofStarter.startSpoofing(scanInterface, target, gatewayIpAddress);
     }
 
     private void stopSpoofing(Target target) throws TargetException, GatewayException {

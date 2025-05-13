@@ -7,7 +7,6 @@ import org.npt.models.Device;
 import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
 import org.npt.networkservices.DeviceService;
-import org.npt.networkservices.defaults.DeviceServiceImpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,7 +27,7 @@ public class DefaultDataService implements DataService {
     @Override
     public void run() throws Exception {
         devices = new ArrayList<>(EXPECTED_CAPACITY);
-        final DeviceService deviceService = new DeviceServiceImpl();
+        final DeviceService deviceService = DeviceService.getInstance();
         List<Gateway> gateways = deviceService.scanCurrentGateways();
         devices.addAll(gateways);
         selfDevice = deviceService.scanActualDevice(gateways);

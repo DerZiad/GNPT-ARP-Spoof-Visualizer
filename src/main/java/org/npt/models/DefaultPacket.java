@@ -1,13 +1,15 @@
 package org.npt.models;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
-public class Packet {
+@Builder
+public class DefaultPacket {
 
     private String type;
     private String srcIp;

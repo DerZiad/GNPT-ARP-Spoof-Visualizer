@@ -27,7 +27,6 @@ import org.npt.exception.InvalidInputException;
 import org.npt.models.*;
 import org.npt.services.ResourceLoader;
 import org.npt.services.impl.MainControllerServiceImpl;
-import org.npt.services.impl.ResourceLoaderImpl;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -71,7 +70,7 @@ public class MainController {
         dataService.getDevices().forEach(device -> mainControllerServiceImpl.initMenu(device, () -> initializeCanvas(canvas)));
 
         // Load images
-        ResourceLoader resourceLoader = ResourceLoaderImpl.getInstance();
+        ResourceLoader resourceLoader = ResourceLoader.getInstance();
         images.put(Target.class, new Image(resourceLoader.getResource("images/computer.png")));
         images.put(Gateway.class, new Image(resourceLoader.getResource("images/router.png")));
         images.put(SelfDevice.class, new Image(resourceLoader.getResource("images/hacker.png")));

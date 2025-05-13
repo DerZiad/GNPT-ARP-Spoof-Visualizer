@@ -7,11 +7,9 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import lombok.Setter;
 import org.npt.controllers.StatisticsController;
-import org.npt.controllers.View;
 import org.npt.data.DataService;
 import org.npt.data.defaults.DefaultDataService;
 import org.npt.models.Target;
-import org.npt.services.impl.ProcessService;
 
 import java.io.IOException;
 
@@ -39,7 +37,6 @@ public class Launch extends Application {
         try {
             DataService dataService = DefaultDataService.getInstance();
             dataService.run();
-            ProcessService.init();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

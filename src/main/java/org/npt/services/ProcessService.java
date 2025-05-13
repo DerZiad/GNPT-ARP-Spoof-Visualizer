@@ -1,8 +1,5 @@
-package org.npt.services.impl;
+package org.npt.services;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.npt.models.Task;
 
 import java.security.MessageDigest;
@@ -10,13 +7,9 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class ProcessService {
+public interface ProcessService {
 
-    @Getter
-    private static final List<Task> tasks = new ArrayList<>();
-
-    private static ProcessService processService = null;
+    List<Task> tasks = new ArrayList<>();
 
     public static void execute(String processName, String[] command) {
         String commandString = String.join(" ", command);
@@ -26,12 +19,7 @@ public class ProcessService {
         thread.start();
     }
 
-    public static void init(){
-        if(processService == null)
-            processService = new ProcessService();
-    }
-
-    public static class ProcessUtils {
+    class ProcessUtils {
 
         public static String generateProcessNameFrom(String input) {
             try {

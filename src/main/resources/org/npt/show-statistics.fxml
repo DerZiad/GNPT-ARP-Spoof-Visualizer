@@ -4,27 +4,10 @@
 <?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 
-<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="674.0" prefWidth="1054.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.npt.controllers.StatisticsController">
+<HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="674.0" prefWidth="1054.0" style="@style/statistics.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.npt.controllers.StatisticsController">
     <VBox fx:id="vboxPane" prefHeight="674.0" prefWidth="345.0">
-
-        <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="400.0" spacing="10" style="-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 5; -fx-padding: 10;" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
-
-            <!-- Icon (Left side) -->
-            <ImageView fx:id="icon" fitHeight="92.0" fitWidth="93.0" pickOnBounds="true" preserveRatio="true">
-                <image>
-                    <!-- <Image/>  Replace with your icon path -->
-                </image>
-            </ImageView>
-
-            <!-- Progress Bars (Right side) -->
-            <VBox spacing="10" HBox.hgrow="ALWAYS">
-            <Label prefHeight="18.0" prefWidth="151.0" text="Incoming Packets" />
-                <ProgressBar fx:id="redProgress" prefWidth="300.0" progress="0.4" style="-fx-accent: red;" />
-            <Label prefHeight="18.0" prefWidth="160.0" text="Outgoing Packets" />
-                <ProgressBar fx:id="greenProgress" prefWidth="300.0" progress="0.7" style="-fx-accent: green;" />
-            </VBox>
-        </HBox>
     </VBox>
-    <VBox prefHeight="674.0" prefWidth="373.0" />
-    <VBox prefHeight="674.0" prefWidth="313.0" />
+    <VBox fx:id="vboxPane1" prefHeight="674.0" prefWidth="330.0">
+    </VBox>
+    <VBox fx:id="vboxPane2" prefHeight="674.0" prefWidth="380.0" />
 </HBox>
