@@ -6,9 +6,8 @@ import org.npt.models.Target;
 import org.pcap4j.core.*;
 import org.pcap4j.packet.*;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 class DefaultPacketSniffer implements PacketSniffer {
@@ -20,7 +19,8 @@ class DefaultPacketSniffer implements PacketSniffer {
     private PcapHandle handle;
 
     @Getter
-    private final List<DefaultPacket> defaultPackets = new ArrayList<>(4000);
+    private final List<DefaultPacket> defaultPackets = Collections.synchronizedList(new ArrayList<>(4000));
+
     private boolean running = true;
 
     private DefaultPacketSniffer(Target target, String networkInterface) {
@@ -93,16 +93,13 @@ class DefaultPacketSniffer implements PacketSniffer {
 
         if (srcIp == null || dstIp == null) return;
 
-        // Reverse DNS lookup (best effort)
-        String resolvedSrc = resolveHostname(srcIp);
-        String resolvedDst = resolveHostname(dstIp);
-
         DefaultPacket defaultPacket = DefaultPacket.builder()
-                .srcIp(resolvedSrc)
-                .dstIp(resolvedDst)
+                .srcIp(srcIp)
+                .dstIp(dstIp)
                 .type(type)
                 .build();
 
+        System.out.println(srcIp + " -----> " + dstIp);
         defaultPackets.add(defaultPacket);
     }
 
@@ -115,7 +112,6 @@ class DefaultPacketSniffer implements PacketSniffer {
                 int port = tcp.getHeader().getDstPort().valueAsInt();
                 if (port == 22) return "SSH";
                 if (port == 53) {
-                    System.out.println("DNS Request Detected to " + dstIp);
                     return "DNS";
                 }
                 return "TCP";
@@ -123,15 +119,14 @@ class DefaultPacketSniffer implements PacketSniffer {
             case UdpPacket udp -> {
                 int port = udp.getHeader().getDstPort().valueAsInt();
                 if (port == 53) {
-                    System.out.println("DNS Request Detected to " + dstIp);
                     return "DNS";
                 }
                 return "UDP";
             }
-            case IcmpV4CommonPacket packets -> {
+            case IcmpV4CommonPacket _ -> {
                 return "ICMPv4";
             }
-            case IcmpV6CommonPacket packets -> {
+            case IcmpV6CommonPacket _ -> {
                 return "ICMPv6";
             }
             default -> {
@@ -139,15 +134,6 @@ class DefaultPacketSniffer implements PacketSniffer {
         }
 
         return payload.getClass().getSimpleName();
-    }
-
-    private String resolveHostname(String ip) {
-        try {
-            InetAddress inet = InetAddress.getByName(ip);
-            return inet.getHostName();
-        } catch (UnknownHostException e) {
-            return ip; // fallback to IP if DNS fails
-        }
     }
 
     public void startSniffing() {

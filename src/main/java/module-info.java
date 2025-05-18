@@ -22,8 +22,6 @@ module org.npt {
     opens org.npt.models;
     exports org.npt.services;
     opens org.npt.services;
-    exports org.npt.services.impl;
-    opens org.npt.services.impl;
     exports org.npt.exception;
     opens org.npt.exception;
     exports org.npt.exception.children;

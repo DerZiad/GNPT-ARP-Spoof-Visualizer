@@ -72,14 +72,19 @@ public class DefaultTargetService implements TargetService {
     private void validate(Target target) throws InvalidInputException {
         HashMap<String, String> errors = new HashMap<>();
         String deviceName = target.getDeviceName();
-        if (deviceName == null && deviceName.isEmpty())
+        if (deviceName == null || deviceName.isEmpty())
             errors.put("Device Name", "Device name is empty and blank.");
         String networkInterface = target.getNetworkInterface();
-        if (networkInterface == null && networkInterface.isEmpty())
+        if (networkInterface == null || networkInterface.isEmpty())
             errors.put("Network Interface", "Network Interface is empty and blank.");
-        if (target.getIpAddresses().isEmpty())
+        if (target.getIpAddresses() == null || target.getIpAddresses().isEmpty())
             errors.put("IP Addresses", "IP Addresses list are empty.");
-
+        else {
+            Optional<String> ip = target.findFirstIPv4();
+            if (ip.isEmpty()) {
+                errors.put("IP Addresses", "In order to perform Arp spoof, IPv4 must be present");
+            }
+        }
         if (!errors.isEmpty())
             throw new InvalidInputException("Error while validating input data", errors);
     }

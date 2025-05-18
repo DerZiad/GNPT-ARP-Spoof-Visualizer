@@ -1,13 +1,14 @@
 package org.npt.controllers;
 
 import javafx.animation.PauseTransition;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.MenuButton;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -15,37 +16,64 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.util.Duration;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
+import org.npt.Launch;
+import org.npt.controllers.viewdetails.GatewayDetailsController;
+import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
+import org.npt.controllers.viewdetails.TargetDetailsController;
 import org.npt.data.DataService;
 import org.npt.data.GatewayService;
 import org.npt.data.TargetService;
 import org.npt.data.defaults.DefaultDataService;
 import org.npt.data.defaults.DefaultGatewayService;
 import org.npt.data.defaults.DefaultTargetService;
+import org.npt.exception.GatewayException;
 import org.npt.exception.InvalidInputException;
+import org.npt.exception.TargetException;
+import org.npt.exception.children.GatewayIpException;
+import org.npt.exception.children.GatewayNotFoundException;
+import org.npt.exception.children.TargetIpException;
 import org.npt.models.*;
+import org.npt.networkservices.ArpSpoofStarter;
 import org.npt.services.ResourceLoader;
-import org.npt.services.impl.MainControllerServiceImpl;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
 @Slf4j
 public class MainController {
 
-    public TextField ipAddress;
-    public Button addDevice;
-    public TextField deviceName;
+    private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarter.getInstance();
+    private final HashMap<Class, Image> images = new HashMap<>();
+    private final TargetService targetService = new DefaultTargetService();
+    private final DataService dataService = DefaultDataService.getInstance();
+    private final GatewayService gatewayService = new DefaultGatewayService();
+
     private Device draggedDevice = null;
     private double dragOffsetX;
     private double dragOffsetY;
     private boolean draggingRouter = false;
-    private final MainControllerServiceImpl mainControllerServiceImpl = new MainControllerServiceImpl();
+
+    @Getter
+    private final Set<Target> devices = new HashSet<>();
+
+    public TextField ipAddress;
+
+    public Button addDevice;
+
+    public TextField deviceName;
 
     @FXML
     public VBox vboxPane;
@@ -59,15 +87,10 @@ public class MainController {
     @FXML
     private BorderPane borderPane;
 
-    private final HashMap<Class, Image> images = new HashMap<>();
-    private final TargetService targetService = new DefaultTargetService();
-    private final DataService dataService = DefaultDataService.getInstance();
-    private final GatewayService gatewayService = new DefaultGatewayService();
-
     @FXML
     public void initialize() {
         // Devices
-        dataService.getDevices().forEach(device -> mainControllerServiceImpl.initMenu(device, () -> initializeCanvas(canvas)));
+        dataService.getDevices().forEach(device -> initMenu(device, () -> initCanvas(canvas)));
 
         // Load images
         ResourceLoader resourceLoader = ResourceLoader.getInstance();
@@ -81,16 +104,16 @@ public class MainController {
 
         // Set up listeners for drawing
         canvas.widthProperty().addListener((_, _, _) -> {
-            initializeCanvas(canvas);
+            initCanvas(canvas);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
         canvas.heightProperty().addListener((_, _, _) -> {
-            initializeCanvas(canvas);
+            initCanvas(canvas);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
-        mainControllerServiceImpl.initMenu(dataService.getSelfDevice(), () -> initializeCanvas(canvas));
+        initMenu(dataService.getSelfDevice(), () -> initCanvas(canvas));
 
         addDevice.setOnAction(_ -> {
             String ipAddress = this.ipAddress.getText();
@@ -98,24 +121,25 @@ public class MainController {
             String deviceName = this.deviceName.getText();
             try {
                 Target target = targetService.create(deviceName, deviceInterface, new String[]{ipAddress});
-                Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
+                Optional<Gateway> gatewayOptional = gatewayService.find().stream()
+                        .filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
                         .findAny();
                 gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
-                mainControllerServiceImpl.initMenu(target, () -> initializeCanvas(canvas));
-                initializeCanvas(canvas);
+                initMenu(target, () -> initCanvas(canvas));
+                initCanvas(canvas);
             } catch (InvalidInputException e) {
                 // TODO Handle exceptions in design
                 throw new RuntimeException(e);
             }
         });
-        initializeInterfaces();
+        scanCurrentDeviceNetworkInterfaces();
         centerSelfDevice();
         calculateGatewaysPosition();
         setupMouseEvents();
-        initializeCanvas(canvas);
+        initCanvas(canvas);
     }
 
-    private void initializeInterfaces() {
+    private void scanCurrentDeviceNetworkInterfaces() {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface networkInterface : Collections.list(interfaces)) {
@@ -136,7 +160,7 @@ public class MainController {
         }
     }
 
-    public void initializeCanvas(Canvas canvas) {
+    public void initCanvas(Canvas canvas) {
         GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         graphicsContext.setStroke(Color.BLACK);
@@ -185,99 +209,95 @@ public class MainController {
 
         canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setX(canvas.getWidth() / 2);
-            initializeCanvas(canvas);
+            initCanvas(canvas);
         });
         canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setY(newVal.doubleValue() / 2);
-            initializeCanvas(canvas);
+            initCanvas(canvas);
         });
     }
 
     private void setupMouseEvents() {
-        canvas.setOnMousePressed(this::onMousePressed);
-        canvas.setOnMouseDragged(this::onMouseDragged);
-        canvas.setOnMouseReleased(event -> onMouseReleased());
-    }
+        EventHandler<MouseEvent> onMousePressed = event -> {
+            double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+            if (event.getButton() == MouseButton.SECONDARY) {
+                BiPredicate<Device, MouseEvent> verifyClickInsideImage = (device, event1) -> {
+                    double xLeftBorder = device.getX() - imageSize / 2;
+                    double xRightBorder = device.getX() + imageSize / 2;
+                    double yTopBorder = device.getY() - imageSize / 2;
+                    double yBottomBorder = device.getY() + imageSize / 2;
+                    double x = event1.getX();
+                    double y = event1.getY();
+                    return x <= xRightBorder && x >= xLeftBorder && y <= yBottomBorder && y >= yTopBorder;
+                };
 
-    private void onMousePressed(MouseEvent event) {
-        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        if (event.getButton() == MouseButton.SECONDARY) {
-            BiPredicate<Device, MouseEvent> verifyClickInsideImage = (device, event1) -> {
-                double xLeftBorder = device.getX() - imageSize / 2;
-                double xRightBorder = device.getX() + imageSize / 2;
-                double yTopBorder = device.getY() - imageSize / 2;
-                double yBottomBorder = device.getY() + imageSize / 2;
-                double x = event1.getX();
-                double y = event1.getY();
-                return x <= xRightBorder && x >= xLeftBorder && y <= yBottomBorder && y >= yTopBorder;
-            };
-
-            SelfDevice selfDevice = dataService.getSelfDevice();
-            if (verifyClickInsideImage.test(selfDevice, event)) {
-                selfDevice.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
-                return;
-            }
-
-            for (Device device : dataService.getDevices()) {
-                if (verifyClickInsideImage.test(device, event)) {
-                    device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                SelfDevice selfDevice = dataService.getSelfDevice();
+                if (verifyClickInsideImage.test(selfDevice, event)) {
+                    selfDevice.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                     return;
                 }
-            }
-        } else {
-            SelfDevice selfDevice = dataService.getSelfDevice();
-            if (event.getX() >= selfDevice.getX() - imageSize / 2 && event.getX() <= selfDevice.getX() + imageSize / 2 &&
-                    event.getY() >= selfDevice.getY() - imageSize / 2 && event.getY() <= selfDevice.getY() + imageSize / 2) {
-                draggingRouter = true;
-                dragOffsetX = event.getX() - selfDevice.getX();
-                dragOffsetY = event.getY() - selfDevice.getY();
-                return;
-            }
 
-            for (Device device : dataService.getDevices()) {
-                if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
-                        event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
-                    draggedDevice = device;
-                    dragOffsetX = event.getX() - device.getX();
-                    dragOffsetY = event.getY() - device.getY();
-                    break;
+                for (Device device : dataService.getDevices()) {
+                    if (verifyClickInsideImage.test(device, event)) {
+                        device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                        return;
+                    }
+                }
+            } else {
+                SelfDevice selfDevice = dataService.getSelfDevice();
+                if (event.getX() >= selfDevice.getX() - imageSize / 2 && event.getX() <= selfDevice.getX() + imageSize / 2 &&
+                        event.getY() >= selfDevice.getY() - imageSize / 2 && event.getY() <= selfDevice.getY() + imageSize / 2) {
+                    draggingRouter = true;
+                    dragOffsetX = event.getX() - selfDevice.getX();
+                    dragOffsetY = event.getY() - selfDevice.getY();
+                    return;
+                }
+
+                for (Device device : dataService.getDevices()) {
+                    if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
+                            event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
+                        draggedDevice = device;
+                        dragOffsetX = event.getX() - device.getX();
+                        dragOffsetY = event.getY() - device.getY();
+                        break;
+                    }
                 }
             }
-        }
-    }
-
-    private void onMouseDragged(MouseEvent event) {
-        SelfDevice selfDevice = dataService.getSelfDevice();
-        if (draggingRouter) {
-            double dx = event.getX() - dragOffsetX;
-            double dy = event.getY() - dragOffsetY;
-            if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
-                return;
-            selfDevice.setX(dx);
-            selfDevice.setY(dy);
-            PauseTransition pause = new PauseTransition(Duration.millis(10));
-            pause.setOnFinished(e -> {
-                initializeCanvas(canvas);
-            });
-            pause.play();
-        } else if (draggedDevice != null) {
-            double dx = event.getX() - dragOffsetX;
-            double dy = event.getY() - dragOffsetY;
-            if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
-                return;
-            draggedDevice.setX(dx);
-            draggedDevice.setY(dy);
-            PauseTransition pause = new PauseTransition(Duration.millis(10));
-            pause.setOnFinished(e -> {
-                initializeCanvas(canvas);
-            });
-            pause.play();
-        }
-    }
-
-    private void onMouseReleased() {
-        draggedDevice = null;
-        draggingRouter = false;
+        };
+        EventHandler<MouseEvent> onMouseDragged = event -> {
+            SelfDevice selfDevice = dataService.getSelfDevice();
+            if (draggingRouter) {
+                double dx = event.getX() - dragOffsetX;
+                double dy = event.getY() - dragOffsetY;
+                if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
+                    return;
+                selfDevice.setX(dx);
+                selfDevice.setY(dy);
+                PauseTransition pause = new PauseTransition(Duration.millis(10));
+                pause.setOnFinished(e -> {
+                    initCanvas(canvas);
+                });
+                pause.play();
+            } else if (draggedDevice != null) {
+                double dx = event.getX() - dragOffsetX;
+                double dy = event.getY() - dragOffsetY;
+                if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
+                    return;
+                draggedDevice.setX(dx);
+                draggedDevice.setY(dy);
+                PauseTransition pause = new PauseTransition(Duration.millis(10));
+                pause.setOnFinished(e -> {
+                    initCanvas(canvas);
+                });
+                pause.play();
+            }
+        };
+        canvas.setOnMousePressed(onMousePressed);
+        canvas.setOnMouseDragged(onMouseDragged);
+        canvas.setOnMouseReleased(_ -> {
+            draggedDevice = null;
+            draggingRouter = false;
+        });
     }
 
     private void drawConnection(GraphicsContext gc, Device startLine, Device endLine) {
@@ -325,7 +345,7 @@ public class MainController {
         Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
 
         gc.setStroke(Color.BLACK);
-        for (Device device : mainControllerServiceImpl.getDevices()) {
+        for (Device device : this.devices) {
             if (device == startLine || device == endLine) {
                 gc.setStroke(Color.RED);
             }
@@ -355,4 +375,155 @@ public class MainController {
         }
     }
 
+    public void initMenu(Device device, Runnable refresh) {
+        ContextMenu contextMenu = device.getContextMenu();
+        MenuItem detailsItem = new MenuItem("View Details");
+        detailsItem.setOnAction(_ -> showDetails(device, refresh));
+
+        MenuItem removeItem = new MenuItem("Remove Device");
+        removeItem.setOnAction(_ -> {
+            dataService.removeByObject(Optional.of(device));
+            refresh.run();
+        });
+
+        if (device instanceof Target) {
+            MenuItem startSpoofingMenuItem = configureMenuItem(device, refresh, contextMenu);
+            contextMenu.getItems().add(startSpoofingMenuItem);
+        }
+        contextMenu.getItems().addAll(detailsItem, removeItem);
+    }
+
+    private void spoof(Target target) throws GatewayNotFoundException, TargetIpException, GatewayIpException {
+        Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
+        Gateway gateway = gatewayOptional.orElseThrow(() -> new GatewayNotFoundException("Couldn't spoof a target that it is not connected"));
+        String scanInterface = target.getNetworkInterface();
+        String targetIpAddress = target.findFirstIPv4().orElseThrow(() -> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
+        String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(() -> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));
+        arpSpoofStarter.startSpoofing(scanInterface, target, gatewayIpAddress);
+    }
+
+    private void stopSpoofing(Target target) throws TargetException, GatewayException {
+        Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
+        Gateway gateway = gatewayOptional.orElseThrow(() -> new GatewayNotFoundException("Couldn't spoof a target that it is not connected"));
+        String targetIpAddress = target.findFirstIPv4().orElseThrow(() -> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
+        String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(() -> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));
+        arpSpoofStarter.stopSpoofing(target, gatewayIpAddress);
+    }
+
+    @NotNull
+    private MenuItem configureMenuItem(Device device, Runnable refresh, ContextMenu contextMenu) {
+        MenuItem startSpoofingMenuItem = new MenuItem("Start Spoofing");
+        startSpoofingMenuItem.setOnAction(e -> {
+            try {
+                Target target = (Target) device;
+                if (startSpoofingMenuItem.getText().equals("Start Spoofing")) {
+                    spoof(target);
+                    devices.add(target);
+                    refresh.run();
+                    startSpoofingMenuItem.setText("Stop Spoofing");
+                    MenuItem menuItem = new MenuItem("Spy");
+                    menuItem.setOnAction(_ -> {
+                        Launch.StageSwitcher.switchTo(View.STATISTICS_DETAILS_VIEW.FXML_FILE, View.STATISTICS_DETAILS_VIEW.WIDTH, View.STATISTICS_DETAILS_VIEW.HEIGHT, View.STATISTICS_DETAILS_VIEW.INTERFACE_TITLE, target);
+                    });
+                    contextMenu.getItems().add(menuItem);
+                } else {
+                    stopSpoofing(target);
+                    startSpoofingMenuItem.setText("Start Spoofing");
+                    devices.remove(target);
+                    refresh.run();
+                    int i;
+                    for (i = 0; i < contextMenu.getItems().size(); i++) {
+                        MenuItem menuItem = contextMenu.getItems().get(i);
+                        if (menuItem.getText().equals("Spy")) {
+                            contextMenu.getItems().remove(i);
+                            break;
+                        }
+                    }
+
+                }
+            } catch (GatewayException | TargetException ex) {
+                PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
+            }
+        });
+        return startSpoofingMenuItem;
+    }
+
+    private <T> void showDetails(T object, Runnable refresh) {
+        if (object instanceof Target target) {
+            PopupShowDetails.popupShowDetails(target, refresh);
+        } else if (object instanceof SelfDevice selfDevice) {
+            PopupShowDetails.popupShowDetails(selfDevice, refresh);
+        } else {
+            Gateway gateway = (Gateway) object;
+            PopupShowDetails.popupShowDetails(gateway, refresh);
+        }
+    }
+
+    public static class PopupShowDetails {
+
+        public static void popupShowDetails(Target target, Runnable refresh) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
+                Parent root = loader.load();
+                TargetDetailsController controller = loader.getController();
+                controller.setData(target, refresh);
+                Stage popupStage = new Stage();
+                popupStage.initModality(Modality.APPLICATION_MODAL);
+                popupStage.setTitle(View.TARGET_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.TARGET_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.TARGET_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
+                popupStage.setScene(new Scene(root));
+                popupStage.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        public static void popupShowDetails(Gateway gateway, Runnable refresh) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.GATEWAY_DETAILS_VIEW.FXML_FILE));
+                Parent root = loader.load();
+                GatewayDetailsController controller = loader.getController();
+                controller.setData(gateway, refresh);
+                Stage popupStage = new Stage();
+                popupStage.initModality(Modality.APPLICATION_MODAL);
+                popupStage.setTitle(View.GATEWAY_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.GATEWAY_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.GATEWAY_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
+                popupStage.setScene(new Scene(root));
+                popupStage.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        public static void popupShowDetails(SelfDevice selfDevice, Runnable refresh) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.SELF_DEVICE_DETAILS_VIEW.FXML_FILE));
+                Parent root = loader.load();
+                SelfDeviceDetailsController controller = loader.getController();
+                controller.setData(selfDevice, refresh);
+                Stage popupStage = new Stage();
+                popupStage.initModality(Modality.APPLICATION_MODAL);
+                popupStage.setTitle(View.SELF_DEVICE_DETAILS_VIEW.INTERFACE_TITLE);
+                popupStage.setWidth(View.SELF_DEVICE_DETAILS_VIEW.WIDTH);
+                popupStage.setHeight(View.SELF_DEVICE_DETAILS_VIEW.HEIGHT);
+                popupStage.setResizable(false);
+                popupStage.setScene(new Scene(root));
+                popupStage.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        public static void showError(String title, String message, Boolean showAndWait) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("An error occurred");
+            alert.setHeaderText(title);
+            alert.setContentText(message);
+            if (showAndWait) alert.showAndWait();
+        }
+    }
 }

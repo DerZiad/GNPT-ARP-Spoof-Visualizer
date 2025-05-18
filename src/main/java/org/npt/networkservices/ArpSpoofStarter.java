@@ -28,11 +28,12 @@ class DefaultArpSpoofStarter implements ArpSpoofStarter {
 
     @Override
     public Optional<PacketSniffer> getPacketSnifferByTarget(Target target) {
-        return Optional.empty();
+        return packetSniffers.stream().filter(packetSniffer -> packetSniffer.getTarget() == target)
+                .findAny();
     }
 
-    public void stopSpoofing(String targetIp, String gatewayIp) {
-        final String processName = ProcessService.ProcessUtils.generateProcessNameFrom(String.format(PROCESS_NAME, targetIp, gatewayIp));
+    public void stopSpoofing(Target target, String gatewayIp) {
+        final String processName = ProcessService.ProcessUtils.generateProcessNameFrom(String.format(PROCESS_NAME, target.findFirstIPv4().get(), gatewayIp));
         ProcessService.tasks.stream()
                 .filter(task -> task.getProcessName().equals(processName))
                 .forEach(Task::destroy);
@@ -64,7 +65,7 @@ public interface ArpSpoofStarter {
 
     public List<PacketSniffer> getPacketSniffers();
 
-    public void stopSpoofing(String targetIp, String gatewayIp);
+    public void stopSpoofing(Target target, String gatewayIp);
 
     public void startSpoofing(String scanInterface, Target target, String gatewayIp);
 

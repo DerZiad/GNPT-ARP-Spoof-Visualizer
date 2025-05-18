@@ -9,6 +9,7 @@ import lombok.Setter;
 import org.npt.controllers.StatisticsController;
 import org.npt.data.DataService;
 import org.npt.data.defaults.DefaultDataService;
+import org.npt.exception.ShutdownException;
 import org.npt.models.Target;
 
 import java.io.IOException;
@@ -58,6 +59,12 @@ public class Launch extends Application {
                 Parent root = loader.load();
                 StatisticsController controller = loader.getController();
                 controller.setData(target);
+                try {
+                    controller.initialize();
+                } catch (ShutdownException e) {
+                    // TODO
+                    throw new RuntimeException(e);
+                }
                 Scene newScene = new Scene(root, width, height);
                 primaryStage.setTitle(title);
                 primaryStage.setScene(newScene);
