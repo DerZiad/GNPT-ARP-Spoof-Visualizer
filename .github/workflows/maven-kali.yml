@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git maven unzip wget curl dsniff
+          sudo apt-get install -y git maven unzip wget curl dsniff xvfb
 
       - name: Download and install JDK 22
         run: |
@@ -40,7 +40,7 @@ jobs:
         run: mvn clean compile
 
       - name: Run unit tests
-        run: mvn test
+        run: mvn test -Djava.awt.headless=false
 
       - name: Run integration tests
         run: mvn verify
