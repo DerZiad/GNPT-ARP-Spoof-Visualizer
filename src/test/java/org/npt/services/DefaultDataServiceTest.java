@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 public class DefaultDataServiceTest {
 
     private static final List<Gateway> gateways = Arrays.asList(
-            new Gateway("Test Device", "eth0Device", Arrays.asList("192.168.178.55"), 0, 0, null, Arrays.asList()),
+            new Gateway("Test Device", "eth0Device", List.of("192.168.178.55"), 0, 0, null, Arrays.asList()),
             new Gateway("Test Device", "eth0Device", Arrays.asList("192.168.178.55"), 0, 0, null, Arrays.asList()),
             new Gateway("Test Device", "eth0Device", Arrays.asList("192.168.178.55"), 0, 0, null, Arrays.asList())
     );

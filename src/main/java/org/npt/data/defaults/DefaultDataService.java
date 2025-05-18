@@ -88,6 +88,11 @@ public class DefaultDataService implements DataService {
     }
 
     @Override
+    public void clear() {
+        devices.clear();
+    }
+
+    @Override
     public SelfDevice getSelfDevice() {
         return selfDevice;
     }

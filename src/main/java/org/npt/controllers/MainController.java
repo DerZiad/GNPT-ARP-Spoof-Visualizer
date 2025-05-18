@@ -40,6 +40,7 @@ import org.npt.exception.children.GatewayNotFoundException;
 import org.npt.exception.children.TargetIpException;
 import org.npt.models.*;
 import org.npt.networkservices.ArpSpoofStarter;
+import org.npt.networkservices.DeviceService;
 import org.npt.services.ResourceLoader;
 
 import java.net.NetworkInterface;
@@ -55,11 +56,11 @@ import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 @Slf4j
 public class MainController {
 
-    private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarter.getInstance();
     private final HashMap<Class, Image> images = new HashMap<>();
     private final TargetService targetService = new DefaultTargetService();
     private final DataService dataService = DefaultDataService.getInstance();
     private final GatewayService gatewayService = new DefaultGatewayService();
+    private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarter.getInstance();
 
     private Device draggedDevice = null;
     private double dragOffsetX;
@@ -86,6 +87,12 @@ public class MainController {
 
     @FXML
     private BorderPane borderPane;
+
+    @FXML
+    public MenuItem newMenu;
+
+    @FXML
+    public MenuItem aboutGnptMenu;
 
     @FXML
     public void initialize() {
@@ -127,11 +134,25 @@ public class MainController {
                 gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
                 initMenu(target, () -> initCanvas(canvas));
                 initCanvas(canvas);
+                this.ipAddress.setText("");
+                this.deviceName.setText("");
             } catch (InvalidInputException e) {
                 // TODO Handle exceptions in design
                 throw new RuntimeException(e);
             }
         });
+
+        newMenu.setOnAction(_ -> {
+            arpSpoofStarter.clear();
+            dataService.clear();
+            try {
+                dataService.run();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            initialize();
+        });
+
         scanCurrentDeviceNetworkInterfaces();
         centerSelfDevice();
         calculateGatewaysPosition();

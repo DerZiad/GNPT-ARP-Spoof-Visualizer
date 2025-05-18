@@ -22,6 +22,8 @@ public interface DataService extends OnInit {
 
     public <T> HashMap<Integer, T> getDevices(final Optional<Class<T>> tClass) throws NullPointerException;
 
+    public void clear();
+
     public SelfDevice getSelfDevice();
 
 }

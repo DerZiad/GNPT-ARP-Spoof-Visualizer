@@ -5,12 +5,12 @@
 <?import javafx.scene.layout.*?>
 <VBox fx:id="vboxPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="674.0" prefWidth="1054.0" style="@style/main-frame.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.npt.controllers.MainController">
     <MenuBar>
-        <Menu mnemonicParsing="false" text="Settings">
-            <MenuItem mnemonicParsing="false" text="New" />
-            <MenuItem mnemonicParsing="false" text="Quit" />
+        <Menu text="New">
+            <MenuItem fx:id="newMenu" text="Clear All Devices" />
         </Menu>
-        <Menu mnemonicParsing="false" text="Help">
-            <MenuItem mnemonicParsing="false" text="About MyHelloApp" />
+
+        <Menu text="About GNPT">
+            <MenuItem fx:id="aboutGnptMenu" text="Version Info"/>
         </Menu>
     </MenuBar>
 

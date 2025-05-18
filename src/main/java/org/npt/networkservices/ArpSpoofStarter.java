@@ -51,6 +51,12 @@ class DefaultArpSpoofStarter implements ArpSpoofStarter {
         new Thread(defaultPacketSniffer).start();
     }
 
+    @Override
+    public void clear() {
+        ProcessService.tasks.forEach(Task::destroy);
+        packetSniffers.clear();
+    }
+
     public static ArpSpoofStarter getInstance() {
         if (instance == null)
             instance = new DefaultArpSpoofStarter();
@@ -68,6 +74,8 @@ public interface ArpSpoofStarter {
     public void stopSpoofing(Target target, String gatewayIp);
 
     public void startSpoofing(String scanInterface, Target target, String gatewayIp);
+
+    public void clear();
 
     public static ArpSpoofStarter getInstance() {
         return DefaultArpSpoofStarter.getInstance();
