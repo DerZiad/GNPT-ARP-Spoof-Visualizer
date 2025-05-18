@@ -32,8 +32,8 @@ public interface ProcessService {
                     hexString.append(hex);
                 }
                 return hexString.toString();
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException("MD5 algorithm not found", e);
+            } catch (NoSuchAlgorithmException _) {
+                return null;
             }
         }
     }

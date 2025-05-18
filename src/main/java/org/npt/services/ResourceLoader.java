@@ -9,11 +9,11 @@ import java.io.InputStream;
 class DefaultResourceLoader implements ResourceLoader {
 
     private static ResourceLoader instance = null;
-    private static final String IMAGE_REPOSITORY = "/org/npt/%s";
+    private static final String PATH = "/org/npt/%s";
 
     @Override
     public InputStream getResource(String name) {
-        String resourcePath = String.format(IMAGE_REPOSITORY, name);
+        String resourcePath = String.format(PATH, name);
         return this.getClass().getResourceAsStream(resourcePath);
     }
 

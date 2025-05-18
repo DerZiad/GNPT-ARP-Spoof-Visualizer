@@ -40,7 +40,6 @@ import org.npt.exception.children.GatewayNotFoundException;
 import org.npt.exception.children.TargetIpException;
 import org.npt.models.*;
 import org.npt.networkservices.ArpSpoofStarter;
-import org.npt.networkservices.DeviceService;
 import org.npt.services.ResourceLoader;
 
 import java.net.NetworkInterface;
@@ -48,7 +47,6 @@ import java.net.SocketException;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
@@ -56,7 +54,7 @@ import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 @Slf4j
 public class MainController {
 
-    private final HashMap<Class, Image> images = new HashMap<>();
+    private final HashMap<Class<? extends Device>, Image> images = new HashMap<>();
     private final TargetService targetService = new DefaultTargetService();
     private final DataService dataService = DefaultDataService.getInstance();
     private final GatewayService gatewayService = new DefaultGatewayService();
@@ -70,10 +68,13 @@ public class MainController {
     @Getter
     private final Set<Target> devices = new HashSet<>();
 
+    @FXML
     public TextField ipAddress;
 
+    @FXML
     public Button addDevice;
 
+    @FXML
     public TextField deviceName;
 
     @FXML
