@@ -319,6 +319,41 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>download-and-unzip-javafx</id>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <target>
+                                <available file="${project.basedir}/javafx-sdk.zip" property="javafx.zip.present" />
+                                <echo message="JavaFX zip present? ${javafx.zip.present}" />
+                                <condition property="need.download" value="true" else="false">
+                                    <not>
+                                        <isset property="javafx.zip.present" />
+                                    </not>
+                                </condition>
+                                <echo message="Need download? ${need.download}" />
+                                <fail message="JavaFX zip already exists, skipping download" unless="need.download" />
+                                <get src="https://download2.gluonhq.com/openjfx/21.0.7/openjfx-21.0.7_linux-x64_bin-sdk.zip"
+                                     dest="${project.basedir}/javafx-sdk.zip" verbose="true" />
+                                <unzip src="${project.basedir}/javafx-sdk.zip" dest="${project.basedir}/javafx-sdk" />
+                                <move file="${project.basedir}/javafx-sdk/javafx-sdk-21.0.7" tofile="${project.basedir}/javafx-sdk" />
+                                <move file="${project.basedir}/javafx-sdk" tofile="${project.basedir}/javafx" />
+                                <remove file="${project.basedir}/javafx-sdk.zip" />
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${maven.failsafe.plugin}</version>
                 <executions>
