@@ -1,5 +1,6 @@
-package org.npt.controllers;
+//package org.npt.controllers;
 
+/*
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.fxml.FXML;
@@ -25,6 +26,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
 
 @Data
 @AllArgsConstructor
@@ -176,3 +178,4 @@ public class StatisticsController {
         this.target = target;
     }
 }
+*/

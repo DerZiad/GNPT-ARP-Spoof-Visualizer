@@ -16,6 +16,8 @@ public interface GatewayService {
 
     public Optional<Gateway> findByDeviceName(final String deviceName);
 
+    Optional<Gateway> findByTarget(final Target target);
+
     public HashMap<Integer, Gateway> findByNetworkInterface(final String networkInterface);
 
     public HashMap<Integer, Gateway> findByIpAddress(final String ipAddress);

@@ -43,6 +43,14 @@ public class DefaultGatewayService implements GatewayService {
     }
 
     @Override
+    public Optional<Gateway> findByTarget(Target target) {
+        return dataService.getDevices(Gateway.class).values()
+                .stream()
+                .filter(gateway -> gateway.getDevices().contains(target))
+                .findFirst();
+    }
+
+    @Override
     public HashMap<Integer, Gateway> findByNetworkInterface(String networkInterface) {
         final HashMap<Integer, Gateway> filteredMap = new HashMap<>();
         final HashMap<Integer, Gateway> allGateways = dataService.getDevices(Gateway.class);

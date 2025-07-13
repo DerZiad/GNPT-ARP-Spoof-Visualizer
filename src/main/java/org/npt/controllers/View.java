@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public class View {
 
-    public static final String CSS_PATH = "/org/npt/style/";
+    public static final String CSS_PATH = "/org/npt/css/";
 
     public static class MAIN_INTERFACE {
 

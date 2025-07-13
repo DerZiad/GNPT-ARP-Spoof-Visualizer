@@ -26,7 +26,7 @@
         <java.fx.lib.path>./javafx/lib</java.fx.lib.path>
 
         <!-- Utility Libraries -->
-        <lombok.version>1.18.38</lombok.version>
+        <lombok.version>1.18.36</lombok.version>
         <common.net.version>3.11.1</common.net.version>
         <pcap4j.version>1.8.2</pcap4j.version>
         <tilesfx.version>11.48</tilesfx.version>

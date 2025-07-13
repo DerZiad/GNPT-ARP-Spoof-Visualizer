@@ -36,10 +36,15 @@ import org.npt.exception.children.GatewayIpException;
 import org.npt.exception.children.GatewayNotFoundException;
 import org.npt.exception.children.TargetIpException;
 import org.npt.models.*;
-import org.npt.services.*;
+import org.npt.models.ui.DeviceUI;
+import org.npt.services.ArpSpoofService;
+import org.npt.services.DataService;
+import org.npt.services.GatewayService;
+import org.npt.services.TargetService;
 import org.npt.services.defaults.DefaultDataService;
 import org.npt.services.defaults.DefaultGatewayService;
 import org.npt.services.defaults.DefaultTargetService;
+import org.npt.uiservices.DeviceUiMapperService;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -50,33 +55,16 @@ import java.util.function.Function;
 
 import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-class DeviceUI {
-
-    private Device device;
-    private double x;
-    private double y;
-    private ContextMenu contextMenu;
-}
-
 @Slf4j
 public class MainController extends DataInjector {
 
-    private final HashMap<Class<? extends Device>, Image> images = new HashMap<>();
-    private final TargetService targetService = new DefaultTargetService();
-    private final DataService dataService = DefaultDataService.getInstance();
-    private final GatewayService gatewayService = new DefaultGatewayService();
-    private final ArpSpoofService arpSpoofStarter = ArpSpoofService.getInstance();
+    private static DeviceUiMapperService deviceUiMapperService;
+    private static final HashMap<Class<? extends Device>, Image> images = new HashMap<>();
 
-    private Device draggedDevice = null;
+    private DeviceUI draggedDevice = null;
     private double dragOffsetX;
     private double dragOffsetY;
     private boolean draggingRouter = false;
-
-    @Getter
-    private final Set<Target> devices = new HashSet<>();
 
     @FXML
     public TextField ipAddress;
@@ -108,13 +96,12 @@ public class MainController extends DataInjector {
     @FXML
     public void initialize() {
         // Devices
-        dataService.getDevices().forEach(device -> initMenu(device, () -> initCanvas(canvas)));
+        deviceUiMapperService = new DeviceUiMapperService(() -> initCanvas(canvas));
 
         // Load images
-        ResourceLoader resourceLoader = ResourceLoader.getInstance();
-        images.put(Target.class, new Image(resourceLoader.getResource("images/computer.png")));
-        images.put(Gateway.class, new Image(resourceLoader.getResource("images/router.png")));
-        images.put(SelfDevice.class, new Image(resourceLoader.getResource("images/hacker.png")));
+        images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
+        images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));
+        images.put(SelfDevice.class, new Image(graphicalNetworkTracerFactory.getResource("images/hacker.png")));
 
         canvas.widthProperty().bind(borderPane.widthProperty());
         canvas.heightProperty().bind(borderPane.heightProperty());
@@ -131,10 +118,9 @@ public class MainController extends DataInjector {
             centerSelfDevice();
             calculateGatewaysPosition();
         });
-        initMenu(dataService.getSelfDevice(), () -> initCanvas(canvas));
 
         addDevice.setOnAction(ignored -> {
-            String ipAddress = this.ipAddress.getText();
+            /*String ipAddress = this.ipAddress.getText();
             String deviceInterface = this.menuButton.getText();
             String deviceName = this.deviceName.getText();
             try {
@@ -150,18 +136,18 @@ public class MainController extends DataInjector {
             } catch (InvalidInputException e) {
                 // TODO Handle exceptions in design
                 throw new RuntimeException(e);
-            }
+            }*/
         });
 
         newMenu.setOnAction(ignored -> {
-            arpSpoofStarter.clear();
+            /*arpSpoofService.clear();
             dataService.clear();
             try {
                 dataService.run();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            initialize();
+            initialize();*/
         });
 
         scanCurrentDeviceNetworkInterfaces();
@@ -196,14 +182,18 @@ public class MainController extends DataInjector {
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(3);
         double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        SelfDevice selfDevice = dataService.getSelfDevice();
+        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         draw(graphicsContext, selfDevice, imageSize, SelfDevice.class);
-        Collection<Gateway> gateways = gatewayService.find();
+        List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
 
-        for (Gateway gateway : gateways) {
+        for (DeviceUI gateway : gateways) {
             draw(graphicsContext, gateway, imageSize, Gateway.class);
             drawConnection(graphicsContext, gateway, selfDevice);
-            for (Target target : gateway.getDevices()) {
+            Gateway gatewayData = (Gateway) gateway.getDevice();
+            List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class).stream()
+                    .filter(deviceUi -> gatewayData.getDevices().contains((Target) deviceUi.getDevice()))
+                    .toList();
+            for (DeviceUI target : targets) {
                 draw(graphicsContext, target, imageSize, Target.class);
                 drawConnection(graphicsContext, gateway, target);
             }
@@ -211,21 +201,22 @@ public class MainController extends DataInjector {
     }
 
     public void calculateGatewaysPosition() {
-        Collection<Gateway> gateways = gatewayService.find();
+
+        final List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
         int gatewaysSize = gateways.size();
         if (gatewaysSize == 0) return;
-        double xCenter = dataService.getSelfDevice().getX();
-        double yCenter = dataService.getSelfDevice().getY();
+        double xCenter = deviceUiMapperService.getSelfDevice().getX();
+        double yCenter = deviceUiMapperService.getSelfDevice().getY();
         double R = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
         double step = 2 * Math.PI / gatewaysSize;
 
-        Iterator<Gateway> iterator = gateways.iterator();
+        Iterator<DeviceUI> iterator = gateways.iterator();
         int i = 0;
         while (iterator.hasNext()) {
             double angle = step * i;
             double x = xCenter + R * Math.cos(angle);
             double y = yCenter + R * Math.sin(angle);
-            Gateway gateway = iterator.next();
+            DeviceUI gateway = iterator.next();
             gateway.setX(x);
             gateway.setY(y);
             i++;
@@ -233,7 +224,7 @@ public class MainController extends DataInjector {
     }
 
     private void centerSelfDevice() {
-        SelfDevice selfDevice = dataService.getSelfDevice();
+        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         selfDevice.setX(canvas.getWidth() / 2);
         selfDevice.setY(canvas.getHeight() / 2);
 
@@ -251,7 +242,7 @@ public class MainController extends DataInjector {
         EventHandler<MouseEvent> onMousePressed = event -> {
             double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
             if (event.getButton() == MouseButton.SECONDARY) {
-                BiPredicate<Device, MouseEvent> verifyClickInsideImage = (device, event1) -> {
+                BiPredicate<DeviceUI, MouseEvent> verifyClickInsideImage = (device, event1) -> {
                     double xLeftBorder = device.getX() - imageSize / 2;
                     double xRightBorder = device.getX() + imageSize / 2;
                     double yTopBorder = device.getY() - imageSize / 2;
@@ -261,20 +252,20 @@ public class MainController extends DataInjector {
                     return x <= xRightBorder && x >= xLeftBorder && y <= yBottomBorder && y >= yTopBorder;
                 };
 
-                SelfDevice selfDevice = dataService.getSelfDevice();
+                DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
                 if (verifyClickInsideImage.test(selfDevice, event)) {
                     selfDevice.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                     return;
                 }
 
-                for (Device device : dataService.getDevices()) {
+                for (DeviceUI device : deviceUiMapperService.getDevices()) {
                     if (verifyClickInsideImage.test(device, event)) {
                         device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                         return;
                     }
                 }
             } else {
-                SelfDevice selfDevice = dataService.getSelfDevice();
+                DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
                 if (event.getX() >= selfDevice.getX() - imageSize / 2 && event.getX() <= selfDevice.getX() + imageSize / 2 &&
                         event.getY() >= selfDevice.getY() - imageSize / 2 && event.getY() <= selfDevice.getY() + imageSize / 2) {
                     draggingRouter = true;
@@ -283,7 +274,7 @@ public class MainController extends DataInjector {
                     return;
                 }
 
-                for (Device device : dataService.getDevices()) {
+                for (DeviceUI device : deviceUiMapperService.getDevices()) {
                     if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
                             event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
                         draggedDevice = device;
@@ -295,7 +286,7 @@ public class MainController extends DataInjector {
             }
         };
         EventHandler<MouseEvent> onMouseDragged = event -> {
-            SelfDevice selfDevice = dataService.getSelfDevice();
+            DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
             if (draggingRouter) {
                 double dx = event.getX() - dragOffsetX;
                 double dy = event.getY() - dragOffsetY;
@@ -330,7 +321,7 @@ public class MainController extends DataInjector {
         });
     }
 
-    private void drawConnection(GraphicsContext gc, Device startLine, Device endLine) {
+    private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
         double r = 35;
         double x1 = startLine.getX();
         double y1 = startLine.getY();
@@ -375,183 +366,30 @@ public class MainController extends DataInjector {
         Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
 
         gc.setStroke(Color.BLACK);
-        for (Device device : this.devices) {
-            if (device == startLine || device == endLine) {
-                gc.setStroke(Color.RED);
-            }
-        }
         gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
     }
 
-    private void draw(GraphicsContext gc, Device device, double imageSize, Class deviceClass) {
-        gc.drawImage(images.get(deviceClass), device.getX() - imageSize / 2, device.getY() - imageSize / 2, imageSize, imageSize);
+    private void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class deviceClass) {
+        gc.drawImage(images.get(deviceClass), deviceUi.getX() - imageSize / 2, deviceUi.getY() - imageSize / 2, imageSize, imageSize);
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
-        gc.fillText(device.getDeviceName(), device.getX() - 25, device.getY() + imageSize / 2 + 20);
+        gc.fillText(deviceUi.getDevice().getDeviceName(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 20);
+
         if (deviceClass.equals(SelfDevice.class)) {
-            Optional<IpAddress> ipAddress = ((SelfDevice) device).findFirstIPv4();
+            Optional<IpAddress> ipAddress = ((SelfDevice) deviceUi.getDevice()).findFirstIPv4();
             ipAddress.ifPresent(ipString -> {
-                gc.fillText(ipString.getNetworkInterface(), device.getX() - 25, device.getY() + imageSize / 2 + 40);
-                gc.fillText(ipString.getIp(), device.getX() - 25, device.getY() + imageSize / 2 + 60);
+                gc.fillText(ipString.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
+                gc.fillText(ipString.getIp(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60);
             });
         } else if (deviceClass.equals(Target.class)) {
-            Target target = (Target) device;
-            gc.fillText(target.getNetworkInterface(), target.getX() - 25, target.getY() + imageSize / 2 + 40);
-            target.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, target.getX() - 25, target.getY() + imageSize / 2 + 60));
+            Target target = (Target) deviceUi.getDevice();
+            gc.fillText(target.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
+            target.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60));
         } else {
-            Gateway gateway = (Gateway) device;
-            gc.fillText(gateway.getNetworkInterface(), gateway.getX() - 25, gateway.getY() + imageSize / 2 + 40);
-            gateway.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, gateway.getX() - 25, gateway.getY() + imageSize / 2 + 60));
+            Gateway gateway = (Gateway) deviceUi.getDevice();
+            gc.fillText(gateway.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
+            gateway.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60));
         }
     }
 
-    public void initMenu(Device device, Runnable refresh) {
-        ContextMenu contextMenu = device.getContextMenu();
-        MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(ignored -> showDetails(device, refresh));
-
-        MenuItem removeItem = new MenuItem("Remove Device");
-        removeItem.setOnAction(ignored -> {
-            dataService.removeByObject(Optional.of(device));
-            refresh.run();
-        });
-
-        if (device instanceof Target) {
-            MenuItem startSpoofingMenuItem = configureMenuItem(device, refresh, contextMenu);
-            contextMenu.getItems().add(startSpoofingMenuItem);
-        }
-        contextMenu.getItems().addAll(detailsItem, removeItem);
-    }
-
-    private void spoof(Target target) throws GatewayNotFoundException, TargetIpException, GatewayIpException {
-        Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
-        Gateway gateway = gatewayOptional.orElseThrow(() -> new GatewayNotFoundException("Couldn't spoof a target that it is not connected"));
-        String scanInterface = target.getNetworkInterface();
-        String targetIpAddress = target.findFirstIPv4().orElseThrow(() -> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
-        String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(() -> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));
-        arpSpoofStarter.spoof(scanInterface, target, gatewayIpAddress);
-    }
-
-    private void stopSpoofing(Target target) throws TargetException, GatewayException {
-        Optional<Gateway> gatewayOptional = gatewayService.find().stream().filter(gateway -> gateway.getDevices().contains(target)).findAny();
-        Gateway gateway = gatewayOptional.orElseThrow(() -> new GatewayNotFoundException("Couldn't spoof a target that it is not connected"));
-        String targetIpAddress = target.findFirstIPv4().orElseThrow(() -> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
-        String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(() -> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));
-        arpSpoofStarter.stop(target, gatewayIpAddress);
-    }
-
-    @NotNull
-    private MenuItem configureMenuItem(Device device, Runnable refresh, ContextMenu contextMenu) {
-        MenuItem startSpoofingMenuItem = new MenuItem("Start Spoofing");
-        startSpoofingMenuItem.setOnAction(e -> {
-            try {
-                Target target = (Target) device;
-                if (startSpoofingMenuItem.getText().equals("Start Spoofing")) {
-                    spoof(target);
-                    devices.add(target);
-                    refresh.run();
-                    startSpoofingMenuItem.setText("Stop Spoofing");
-                    MenuItem menuItem = new MenuItem("Spy");
-                    menuItem.setOnAction(ignored -> Launch.StageSwitcher.switchTo(View.STATISTICS_DETAILS_VIEW.FXML_FILE, View.STATISTICS_DETAILS_VIEW.WIDTH, View.STATISTICS_DETAILS_VIEW.HEIGHT, View.STATISTICS_DETAILS_VIEW.INTERFACE_TITLE, target));
-                    contextMenu.getItems().add(menuItem);
-                } else {
-                    stopSpoofing(target);
-                    startSpoofingMenuItem.setText("Start Spoofing");
-                    devices.remove(target);
-                    refresh.run();
-                    int i;
-                    for (i = 0; i < contextMenu.getItems().size(); i++) {
-                        MenuItem menuItem = contextMenu.getItems().get(i);
-                        if (menuItem.getText().equals("Spy")) {
-                            contextMenu.getItems().remove(i);
-                            break;
-                        }
-                    }
-
-                }
-            } catch (GatewayException | TargetException ex) {
-                PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
-            }
-        });
-        return startSpoofingMenuItem;
-    }
-
-    private <T> void showDetails(T object, Runnable refresh) {
-        if (object instanceof Target target) {
-            PopupShowDetails.popupShowDetails(target, refresh);
-        } else if (object instanceof SelfDevice selfDevice) {
-            PopupShowDetails.popupShowDetails(selfDevice, refresh);
-        } else {
-            Gateway gateway = (Gateway) object;
-            PopupShowDetails.popupShowDetails(gateway, refresh);
-        }
-    }
-
-    public static class PopupShowDetails {
-
-        public static void popupShowDetails(Target target, Runnable refresh) {
-            try {
-                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
-                Parent root = loader.load();
-                TargetDetailsController controller = loader.getController();
-                controller.setData(target, refresh);
-                Stage popupStage = new Stage();
-                popupStage.initModality(Modality.APPLICATION_MODAL);
-                popupStage.setTitle(View.TARGET_DETAILS_VIEW.INTERFACE_TITLE);
-                popupStage.setWidth(View.TARGET_DETAILS_VIEW.WIDTH);
-                popupStage.setHeight(View.TARGET_DETAILS_VIEW.HEIGHT);
-                popupStage.setResizable(false);
-                popupStage.setScene(new Scene(root));
-                popupStage.showAndWait();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        public static void popupShowDetails(Gateway gateway, Runnable refresh) {
-            try {
-                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.GATEWAY_DETAILS_VIEW.FXML_FILE));
-                Parent root = loader.load();
-                GatewayDetailsController controller = loader.getController();
-                controller.setData(gateway, refresh);
-                Stage popupStage = new Stage();
-                popupStage.initModality(Modality.APPLICATION_MODAL);
-                popupStage.setTitle(View.GATEWAY_DETAILS_VIEW.INTERFACE_TITLE);
-                popupStage.setWidth(View.GATEWAY_DETAILS_VIEW.WIDTH);
-                popupStage.setHeight(View.GATEWAY_DETAILS_VIEW.HEIGHT);
-                popupStage.setResizable(false);
-                popupStage.setScene(new Scene(root));
-                popupStage.showAndWait();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        public static void popupShowDetails(SelfDevice selfDevice, Runnable refresh) {
-            try {
-                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.SELF_DEVICE_DETAILS_VIEW.FXML_FILE));
-                Parent root = loader.load();
-                SelfDeviceDetailsController controller = loader.getController();
-                controller.setData(selfDevice, refresh);
-                Stage popupStage = new Stage();
-                popupStage.initModality(Modality.APPLICATION_MODAL);
-                popupStage.setTitle(View.SELF_DEVICE_DETAILS_VIEW.INTERFACE_TITLE);
-                popupStage.setWidth(View.SELF_DEVICE_DETAILS_VIEW.WIDTH);
-                popupStage.setHeight(View.SELF_DEVICE_DETAILS_VIEW.HEIGHT);
-                popupStage.setResizable(false);
-                popupStage.setScene(new Scene(root));
-                popupStage.showAndWait();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        public static void showError(String title, String message, Boolean showAndWait) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("An error occurred");
-            alert.setHeaderText(title);
-            alert.setContentText(message);
-            if (showAndWait) alert.showAndWait();
-        }
-    }
 }

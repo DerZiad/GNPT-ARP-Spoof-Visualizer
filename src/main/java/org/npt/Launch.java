@@ -1,77 +1,41 @@
 package org.npt;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
-import lombok.Setter;
 import org.npt.controllers.FrameService;
-import org.npt.controllers.StatisticsController;
-import org.npt.exception.ShutdownException;
-import org.npt.models.Target;
 import org.npt.services.DataService;
 import org.npt.services.defaults.DefaultDataService;
 
 import java.io.IOException;
 
-import static org.npt.controllers.View.MAIN_INTERFACE.*;
-import static org.npt.controllers.View.getCssResourceExternalForm;
-import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
-
 public class Launch extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        FrameService frameService = FrameService.getInstance();
-        frameService.runMainFrame(stage);
-
-        FXMLLoader fxmlLoader = new FXMLLoader(getFxmlResourceAsExternalForm(FXML_FILE));
-        Parent root = fxmlLoader.load();
-        Scene scene = new Scene(root, WIDTH, HEIGHT);
-        scene.getStylesheets().add(getCssResourceExternalForm(CSS_FILE));
-        stage.setTitle(INTERFACE_TITLE);
-        stage.setScene(scene);
-        stage.show();
-        StageSwitcher.setPrimaryStage(stage);
-    }
-
-    public static void main(String[] args) {
+        // Initialize data services AFTER JavaFX has started
         try {
             DataService dataService = DefaultDataService.getInstance();
             dataService.run();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to start data service", e);
         }
 
-        boolean isHeadless = Boolean.getBoolean("headless");
-        if (!isHeadless) {
-            launch();
-        }
+        // Load JavaFX UI
+        FrameService frameService = FrameService.getInstance();
+        frameService.runMainFrame(stage);
     }
 
-    public static class StageSwitcher {
+    public static void main(String[] args) {
+        boolean isHeadless = Boolean.getBoolean("headless");
 
-        @Setter
-        private static Stage primaryStage;
-
-        public static void switchTo(String fxmlFile, int width, int height, String title, Target target) {
+        if (!isHeadless) {
+            launch(args);
+        } else {
             try {
-                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(fxmlFile));
-                Parent root = loader.load();
-                StatisticsController controller = loader.getController();
-                controller.setData(target);
-                try {
-                    controller.initialize();
-                } catch (ShutdownException e) {
-                    // TODO
-                    throw new RuntimeException(e);
-                }
-                Scene newScene = new Scene(root, width, height);
-                primaryStage.setTitle(title);
-                primaryStage.setScene(newScene);
-            } catch (IOException e) {
-                e.printStackTrace();
+                DataService dataService = DefaultDataService.getInstance();
+                dataService.run();
+            } catch (Exception e) {
+                throw new RuntimeException("Headless data service failed", e);
             }
         }
     }

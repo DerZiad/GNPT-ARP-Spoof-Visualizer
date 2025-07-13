@@ -3,7 +3,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.AnchorPane?>
 <AnchorPane fx:id="rootPane" fx:controller="org.npt.controllers.viewdetails.TargetDetailsController" prefHeight="533.0"
-            prefWidth="722.0" stylesheets="@style/details-target.css" xmlns="http://javafx.com/javafx/17.0.12"
+            prefWidth="722.0" stylesheets="@css/details-target.css" xmlns="http://javafx.com/javafx/17.0.12"
             xmlns:fx="http://javafx.com/fxml/1">
    <Label layoutX="65.0" layoutY="53.0" prefHeight="21.0" prefWidth="224.0" styleClass="form-label"
           text="Device Name                     :"/>

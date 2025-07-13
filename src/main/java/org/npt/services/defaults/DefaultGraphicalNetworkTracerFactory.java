@@ -14,6 +14,16 @@ public class DefaultGraphicalNetworkTracerFactory implements GraphicalNetworkTra
     private static DefaultGraphicalNetworkTracerFactory instance = null;
     private static final String PATH = "/org/npt/%s";
 
+    private DefaultGraphicalNetworkTracerFactory() {
+
+        try {
+            run();
+        } catch (ShutdownException e) {
+            // TODO shutdownException should be handled properly
+            throw new RuntimeException(e);
+        }
+    }
+
     @Getter
     private final HashMap<String, KnownHost> knownHosts = new HashMap<>();
 
@@ -35,6 +45,12 @@ public class DefaultGraphicalNetworkTracerFactory implements GraphicalNetworkTra
     @Override
     public GatewayService getGatewayService() {
         return DefaultGatewayService.getInstance();
+    }
+
+    @Override
+    public InputStream getResource(String name) {
+        String resourcePath = String.format(PATH, name);
+        return this.getClass().getResourceAsStream(resourcePath);
     }
 
     public static DefaultGraphicalNetworkTracerFactory getInstance() {
@@ -67,10 +83,5 @@ public class DefaultGraphicalNetworkTracerFactory implements GraphicalNetworkTra
             }
         }
 
-    }
-
-    public InputStream getResource(String name) {
-        String resourcePath = String.format(PATH, name);
-        return this.getClass().getResourceAsStream(resourcePath);
     }
 }

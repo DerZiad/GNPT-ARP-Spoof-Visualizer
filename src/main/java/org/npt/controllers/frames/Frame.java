@@ -8,6 +8,8 @@ import org.npt.controllers.MainController;
 @Data
 public class Frame {
 
+    private static final String PREFIX = "org/npt";
+
     private String key;
     private String title;
     private String fxmlLocation;
@@ -22,11 +24,11 @@ public class Frame {
     public static Frame createMainFrame() {
         return new Frame(
                 "mainFrame",
-                "Graphical Network Tracer",
-                "fxml/main_frame.fxml",
+                "Network Packet Tracer",
+                PREFIX + "/main_frame.fxml",
                 MainController.class,
                 new Object[]{},
-                new Size(930.0,593.0)
+                new Size(1054.0,674.0)
         );
     }
 }
