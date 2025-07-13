@@ -1,6 +1,5 @@
 package org.npt.models;
 
-import javafx.scene.control.ContextMenu;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,8 +18,8 @@ public class Gateway extends Device {
     @Setter
     private List<String> ipAddresses;
 
-    public Gateway(String deviceName, String networkInterface, List<String> ipAddresses, double x, double y, ContextMenu contextMenu, List<Target> devices) {
-        super(deviceName, x, y, contextMenu);
+    public Gateway(String deviceName, String networkInterface, List<String> ipAddresses, List<Target> devices) {
+        super(deviceName);
         this.devices = devices;
         this.networkInterface = networkInterface;
         this.ipAddresses = ipAddresses;

@@ -13,9 +13,9 @@ public class View {
 
         public static final String INTERFACE_TITLE = "NetworkPacketTracer";
 
-        public static final String FXML_FILE = "main-interface.fxml";
+        public static final String FXML_FILE = "main_frame.fxml";
 
-        public static final String CSS_FILE = "main-frame.css";
+        public static final String CSS_FILE = "main_frame.css";
 
         public static final Integer WIDTH = 1054;
 

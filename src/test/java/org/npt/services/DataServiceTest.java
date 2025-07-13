@@ -3,8 +3,7 @@ package org.npt.services;
 import javafx.application.Platform;
 import javafx.scene.control.ContextMenu;
 import org.junit.jupiter.api.*;
-import org.npt.data.DataService;
-import org.npt.data.defaults.DefaultDataService;
+import org.npt.services.defaults.DefaultDataService;
 import org.npt.models.*;
 
 import java.util.List;
@@ -46,7 +45,7 @@ public class DataServiceTest {
         dataService.addDevice(Optional.of(target));
 
         // Then
-        assertThatThrownBy(() -> dataService.addDevice(Optional.of(null)))
+        assertThatThrownBy(() -> dataService.addDevice(Optional.empty()))
                 .isInstanceOf(NullPointerException.class);
         assertThat(dataService.getDevices()).contains(target);
     }
@@ -58,7 +57,7 @@ public class DataServiceTest {
         dataService.addDevice(Optional.of(target));
         dataService.removeByObject(Optional.of(target));
 
-        assertThatThrownBy(() -> dataService.removeByObject(Optional.of(null)))
+        assertThatThrownBy(() -> dataService.removeByObject(Optional.empty()))
                 .isInstanceOf(NullPointerException.class);
         assertThat(dataService.getDevices()).doesNotContain(target);
     }
@@ -70,7 +69,7 @@ public class DataServiceTest {
         dataService.addDevice(Optional.of(target));
         dataService.removeByIndex(Optional.of(0));
 
-        assertThatThrownBy(() -> dataService.removeByIndex(Optional.of(null)))
+        assertThatThrownBy(() -> dataService.removeByIndex(Optional.empty()))
                 .isInstanceOf(NullPointerException.class);
         assertThat(dataService.getDevices()).doesNotContain(target);
     }
@@ -81,7 +80,7 @@ public class DataServiceTest {
         Target target = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP), 0, 0, new ContextMenu());
         dataService.addDevice(Optional.of(target));
 
-        assertThatThrownBy(() -> dataService.getDevice(Optional.of(null)))
+        assertThatThrownBy(() -> dataService.getDevice(Optional.empty()))
                 .isInstanceOf(NullPointerException.class);
         assertThat(dataService.getDevice(Optional.of(0))).isPresent();
         assertThat(dataService.getDevice(Optional.of(100))).isEmpty();

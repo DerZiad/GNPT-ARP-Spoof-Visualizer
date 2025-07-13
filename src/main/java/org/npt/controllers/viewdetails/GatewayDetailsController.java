@@ -53,7 +53,7 @@ public class GatewayDetailsController {
             String ip = target.findFirstIPv4().get();
             nextDevicesTable.getItems().add(new IpEntry(ip, gateway.isValidIPv4(ip)?"IPv4":"IPv6"));
         }
-        saveButton.setOnAction(_ -> {
+        saveButton.setOnAction(ignored -> {
             String deviceName = deviceNameField.getText();
             String networkInterface = interfaceField.getText();
             gateway.setNetworkInterface(networkInterface);

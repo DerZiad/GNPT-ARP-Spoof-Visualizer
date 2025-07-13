@@ -70,7 +70,7 @@ public class SelfDeviceDetailsController {
             String ip = target.findFirstIPv4().get();
             nextDevicesTable.getItems().add(new IpEntry(ip, selfDevice.isValidIPv4(ip)?"IPv4":"IPv6"));
         }
-        saveButton.setOnAction(_ -> {
+        saveButton.setOnAction(ignored -> {
             String deviceName = deviceNameField.getText();
             selfDevice.setDeviceName(deviceName);
             refresh.run();

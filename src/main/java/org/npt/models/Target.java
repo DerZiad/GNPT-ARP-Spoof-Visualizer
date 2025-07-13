@@ -1,6 +1,5 @@
 package org.npt.models;
 
-import javafx.scene.control.ContextMenu;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -17,8 +16,8 @@ public class Target extends Device {
     @Setter
     private List<String> ipAddresses;
 
-    public Target(String deviceName, String networkInterface, List<String> ipAddresses, double x, double y, ContextMenu contextMenu) {
-        super(deviceName, x, y, contextMenu);
+    public Target(String deviceName, String networkInterface, List<String> ipAddresses) {
+        super(deviceName);
         this.ipAddresses = ipAddresses;
         this.networkInterface = networkInterface;
     }

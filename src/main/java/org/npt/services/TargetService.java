@@ -1,4 +1,4 @@
-package org.npt.data;
+package org.npt.services;
 
 import org.npt.exception.InvalidInputException;
 import org.npt.models.Target;

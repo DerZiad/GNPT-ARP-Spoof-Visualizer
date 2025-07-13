@@ -6,11 +6,12 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import lombok.Setter;
+import org.npt.controllers.FrameService;
 import org.npt.controllers.StatisticsController;
-import org.npt.data.DataService;
-import org.npt.data.defaults.DefaultDataService;
 import org.npt.exception.ShutdownException;
 import org.npt.models.Target;
+import org.npt.services.DataService;
+import org.npt.services.defaults.DefaultDataService;
 
 import java.io.IOException;
 
@@ -22,15 +23,16 @@ public class Launch extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
+        FrameService frameService = FrameService.getInstance();
+        frameService.runMainFrame(stage);
+
         FXMLLoader fxmlLoader = new FXMLLoader(getFxmlResourceAsExternalForm(FXML_FILE));
         Parent root = fxmlLoader.load();
-
         Scene scene = new Scene(root, WIDTH, HEIGHT);
         scene.getStylesheets().add(getCssResourceExternalForm(CSS_FILE));
         stage.setTitle(INTERFACE_TITLE);
         stage.setScene(scene);
         stage.show();
-
         StageSwitcher.setPrimaryStage(stage);
     }
 

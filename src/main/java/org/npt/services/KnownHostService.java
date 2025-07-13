@@ -10,9 +10,9 @@ import java.util.*;
 
 public interface KnownHostService {
 
-    public HashMap<String, KnownHost> getKnownHosts();
+    HashMap<String, KnownHost> getKnownHosts();
 
-    public static KnownHostService getInstance() throws ShutdownException {
+    static KnownHostService getInstance() throws ShutdownException {
         return DefaultKnownHostService.getInstance();
     }
 }

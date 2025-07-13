@@ -17,8 +17,7 @@ import org.npt.exception.ShutdownException;
 import org.npt.models.DefaultPacket;
 import org.npt.models.KnownHost;
 import org.npt.models.Target;
-import org.npt.networkservices.ArpSpoofStarter;
-import org.npt.networkservices.PacketSniffer;
+import org.npt.services.ArpSpoofService;
 import org.npt.services.KnownHostService;
 import org.npt.services.ResourceLoader;
 
@@ -61,7 +60,7 @@ public class StatisticsController {
     private static ResourceLoader resourceLoader;
 
     public void initialize() throws ShutdownException {
-        ArpSpoofStarter arpSpoofStarter = ArpSpoofStarter.getInstance();
+        ArpSpoofService arpSpoofStarter = ArpSpoofService.getInstance();
         Optional<PacketSniffer> optionalPacketSniffer = arpSpoofStarter.getPacketSnifferByTarget(target);
         optionalPacketSniffer.ifPresentOrElse(packetSnifferNotNull -> packetSniffer = packetSnifferNotNull, () -> {
         });

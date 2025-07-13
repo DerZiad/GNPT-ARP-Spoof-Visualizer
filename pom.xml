@@ -11,32 +11,37 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version.source>22</java.version.source>
-        <java.version.target>22</java.version.target>
+        <java.version>21</java.version>
         <mainClass>org.npt/org.npt.Launch</mainClass>
+        <output.jar>NetworkPacketTracer-1.0.jar</output.jar>
+
         <!-- JavaFX -->
-        <javafx.version>24</javafx.version>
-        <javafx.controlsfx.version>11.1.2</javafx.controlsfx.version>
+        <javafx.version>21.0.8-ea+2</javafx.version>
+        <javafx.controlsfx.version>11.2.2</javafx.controlsfx.version>
         <javafx.formsfx.version>11.6.0</javafx.formsfx.version>
-        <javafx.validatorfx.version>0.4.0</javafx.validatorfx.version>
+        <javafx.validatorfx.version>0.6.1</javafx.validatorfx.version>
         <javafx.ikonli.version>12.3.1</javafx.ikonli.version>
         <javafx.bootstrapfx.version>0.4.0</javafx.bootstrapfx.version>
-        <javafx.fxgl.version>17.3</javafx.fxgl.version>
-        <!-- Utils -->
+        <javafx.fxgl.version>21.1</javafx.fxgl.version>
+        <java.fx.lib.path>./javafx/lib</java.fx.lib.path>
+
+        <!-- Utility Libraries -->
         <lombok.version>1.18.38</lombok.version>
         <common.net.version>3.11.1</common.net.version>
         <pcap4j.version>1.8.2</pcap4j.version>
         <tilesfx.version>11.48</tilesfx.version>
         <dnsjava.version>3.3.1</dnsjava.version>
         <slf4j.version>1.7.32</slf4j.version>
-        <!-- Maven -->
+
+        <!-- Maven Plugins -->
         <maven.assembly.plugin>3.7.1</maven.assembly.plugin>
         <maven.compiler.plugin>3.14.0</maven.compiler.plugin>
         <maven.exec.plugin>3.1.0</maven.exec.plugin>
         <maven.failsafe.plugin>3.1.2</maven.failsafe.plugin>
         <maven.surefire.plugin>3.1.2</maven.surefire.plugin>
         <maven.javafx.plugin>0.0.8</maven.javafx.plugin>
-        <!-- Test -->
+
+        <!-- Testing -->
         <junit.version>5.12.2</junit.version>
         <assertj.version>3.27.3</assertj.version>
         <testfx.version>4.0.18</testfx.version>
@@ -44,6 +49,8 @@
     </properties>
 
     <dependencies>
+
+        <!-- JavaFX Core -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -69,6 +76,8 @@
             <artifactId>javafx-media</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+
+        <!-- JavaFX UI Enhancements -->
         <dependency>
             <groupId>org.controlsfx</groupId>
             <artifactId>controlsfx</artifactId>
@@ -129,6 +138,7 @@
             </exclusions>
         </dependency>
 
+        <!-- Network & Utility -->
         <dependency>
             <groupId>org.pcap4j</groupId>
             <artifactId>pcap4j-core</artifactId>
@@ -139,13 +149,6 @@
             <artifactId>pcap4j-packetfactory-static</artifactId>
             <version>${pcap4j.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>commons-net</groupId>
             <artifactId>commons-net</artifactId>
@@ -157,7 +160,26 @@
             <version>${dnsjava.version}</version>
         </dependency>
 
-        <!-- Lombok Dependency -->
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- Annotation Support -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>24.0.0</version>
+        </dependency>
+
+        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -165,7 +187,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- JUnit and Mockito Dependencies for Testing -->
+        <!-- Testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -202,16 +224,35 @@
             <version>${testfx.version}</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
+                <filtering>false</filtering>
+            </resource>
+        </resources>
+        <finalName>${output.jar}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin}</version>
                 <configuration>
-                    <release>${java.version.source}</release>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <compilerArgs>
+                        <arg>--module-path</arg>
+                        <arg>${java.fx.lib.path}</arg>
+                        <arg>--add-modules</arg>
+                        <arg>javafx.controls,javafx.fxml,javafx.swing</arg>
+                    </compilerArgs>
+                    <encoding>${project.build.sourceEncoding}</encoding>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
@@ -222,104 +263,87 @@
                 </configuration>
             </plugin>
             <plugin>
-                <groupId>org.openjfx</groupId>
-                <artifactId>javafx-maven-plugin</artifactId>
-                <version>${maven.javafx.plugin}</version>
-                <executions>
-                    <execution>
-                        <id>default-cli</id>
-                        <configuration>
-                            <mainClass>${mainClass}</mainClass>
-                            <launcher>app</launcher>
-                            <jlinkZipName>app</jlinkZipName>
-                            <jlinkImageName>app</jlinkImageName>
-                            <noManPages>true</noManPages>
-                            <stripDebug>true</stripDebug>
-                            <noHeaderFiles>true</noHeaderFiles>
-                            <options>
-                                <option>--enable-native-access=ALL-UNNAMED</option>
-                                <option>--add-opens=java.base/sun.misc=ALL-UNNAMED</option>
-                            </options>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${maven.exec.plugin}</version>
+                <configuration>
+                    <mainClass>${mainClass}</mainClass>
+                    <arguments>
+                        <argument>--module-path</argument>
+                        <argument>${java.fx.lib.path}</argument>
+                        <argument>--add-modules</argument>
+                        <argument>javafx.controls,javafx.fxml,javafx.swing</argument>
+                    </arguments>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven.assembly.plugin}</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${mainClass}</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <finalName>${output.jar}</finalName>
+                </configuration>
                 <executions>
                     <execution>
-                        <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <configuration>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                            <archive>
-                                <manifest>
-                                    <mainClass>${mainClass}</mainClass>
-                                </manifest>
-                            </archive>
-                        </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>${maven.exec.plugin}</version>
-                <executions><execution>
-                    <goals><goal>java</goal></goals>
-                </execution></executions>
-                <configuration>
-                    <mainClass>${mainClass}</mainClass>
-                    <systemProperties>
-                        <systemProperty>
-                            <key>headless</key>
-                            <value>false</value>
-                        </systemProperty>
-                    </systemProperties>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.plugin}</version>
                 <configuration>
-                    <systemPropertyVariables>
-                        <headless>false</headless>
-                    </systemPropertyVariables>
+                    <testSourceDirectory>src/test</testSourceDirectory>
+                    <argLine>
+                        --module-path ${java.fx.lib.path} --add-modules javafx.controls,javafx.fxml,javafx.swing
+                    </argLine>
                     <includes>
-                        <include>*Test*</include>
+                        <include>**/*UnitTest.java</include>
                     </includes>
+                    <systemPropertyVariables>
+                        <java.awt.headless>false</java.awt.headless>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <version>${maven.failsafe.plugin}</version>
-                <configuration>
-                    <systemPropertyVariables>
-                        <headless>false</headless>
-                    </systemPropertyVariables>
-                    <includes>
-                        <include>*IT*</include>
-                    </includes>
-                </configuration>
                 <executions>
                     <execution>
-                        <id>integration-tests</id>
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <testSourceDirectory>src/integrationTest</testSourceDirectory>
+                    <argLine>
+                        --module-path ${java.fx.lib.path} --add-modules javafx.controls,javafx.fxml,javafx.swing
+                    </argLine>
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                    <systemPropertyVariables>
+                        <java.awt.headless>false</java.awt.headless>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+
 </project>
+

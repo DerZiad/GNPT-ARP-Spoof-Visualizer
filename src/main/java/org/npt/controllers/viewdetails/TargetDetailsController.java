@@ -35,7 +35,7 @@ public class TargetDetailsController {
         for(String ip:target.getIpAddresses()){
             ipTable.getItems().add(new IpEntry(ip, target.isValidIPv4(ip)?"IPv4":"IPv6"));
         }
-        saveButton.setOnAction(_ -> {
+        saveButton.setOnAction(ignored -> {
             String deviceName = deviceNameField.getText();
             String networkInterface = interfaceField.getText();
             target.setNetworkInterface(networkInterface);

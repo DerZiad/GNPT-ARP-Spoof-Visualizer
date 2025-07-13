@@ -19,19 +19,16 @@ import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.npt.Launch;
 import org.npt.controllers.viewdetails.GatewayDetailsController;
 import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
 import org.npt.controllers.viewdetails.TargetDetailsController;
-import org.npt.data.DataService;
-import org.npt.data.GatewayService;
-import org.npt.data.TargetService;
-import org.npt.data.defaults.DefaultDataService;
-import org.npt.data.defaults.DefaultGatewayService;
-import org.npt.data.defaults.DefaultTargetService;
 import org.npt.exception.GatewayException;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.TargetException;
@@ -39,8 +36,10 @@ import org.npt.exception.children.GatewayIpException;
 import org.npt.exception.children.GatewayNotFoundException;
 import org.npt.exception.children.TargetIpException;
 import org.npt.models.*;
-import org.npt.networkservices.ArpSpoofStarter;
-import org.npt.services.ResourceLoader;
+import org.npt.services.*;
+import org.npt.services.defaults.DefaultDataService;
+import org.npt.services.defaults.DefaultGatewayService;
+import org.npt.services.defaults.DefaultTargetService;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -51,14 +50,25 @@ import java.util.function.Function;
 
 import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+class DeviceUI {
+
+    private Device device;
+    private double x;
+    private double y;
+    private ContextMenu contextMenu;
+}
+
 @Slf4j
-public class MainController {
+public class MainController extends DataInjector {
 
     private final HashMap<Class<? extends Device>, Image> images = new HashMap<>();
     private final TargetService targetService = new DefaultTargetService();
     private final DataService dataService = DefaultDataService.getInstance();
     private final GatewayService gatewayService = new DefaultGatewayService();
-    private final ArpSpoofStarter arpSpoofStarter = ArpSpoofStarter.getInstance();
+    private final ArpSpoofService arpSpoofStarter = ArpSpoofService.getInstance();
 
     private Device draggedDevice = null;
     private double dragOffsetX;
@@ -111,19 +121,19 @@ public class MainController {
         borderPane.setMinSize(0, 0);
 
         // Set up listeners for drawing
-        canvas.widthProperty().addListener((_, _, _) -> {
+        canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             initCanvas(canvas);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
-        canvas.heightProperty().addListener((_, _, _) -> {
+        canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
             initCanvas(canvas);
             centerSelfDevice();
             calculateGatewaysPosition();
         });
         initMenu(dataService.getSelfDevice(), () -> initCanvas(canvas));
 
-        addDevice.setOnAction(_ -> {
+        addDevice.setOnAction(ignored -> {
             String ipAddress = this.ipAddress.getText();
             String deviceInterface = this.menuButton.getText();
             String deviceName = this.deviceName.getText();
@@ -143,7 +153,7 @@ public class MainController {
             }
         });
 
-        newMenu.setOnAction(_ -> {
+        newMenu.setOnAction(ignored -> {
             arpSpoofStarter.clear();
             dataService.clear();
             try {
@@ -166,9 +176,7 @@ public class MainController {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface networkInterface : Collections.list(interfaces)) {
                 MenuItem menuItem = new MenuItem(networkInterface.getName());
-                menuItem.setOnAction(_ -> {
-                    menuButton.setText(menuItem.getText());
-                });
+                menuItem.setOnAction(ignored -> menuButton.setText(menuItem.getText()));
                 menuButton.getItems().add(menuItem);
             }
             if (menuButton.getItems().isEmpty()) {
@@ -316,7 +324,7 @@ public class MainController {
         };
         canvas.setOnMousePressed(onMousePressed);
         canvas.setOnMouseDragged(onMouseDragged);
-        canvas.setOnMouseReleased(_ -> {
+        canvas.setOnMouseReleased(ignored -> {
             draggedDevice = null;
             draggingRouter = false;
         });
@@ -400,10 +408,10 @@ public class MainController {
     public void initMenu(Device device, Runnable refresh) {
         ContextMenu contextMenu = device.getContextMenu();
         MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(_ -> showDetails(device, refresh));
+        detailsItem.setOnAction(ignored -> showDetails(device, refresh));
 
         MenuItem removeItem = new MenuItem("Remove Device");
-        removeItem.setOnAction(_ -> {
+        removeItem.setOnAction(ignored -> {
             dataService.removeByObject(Optional.of(device));
             refresh.run();
         });
@@ -421,7 +429,7 @@ public class MainController {
         String scanInterface = target.getNetworkInterface();
         String targetIpAddress = target.findFirstIPv4().orElseThrow(() -> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
         String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(() -> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));
-        arpSpoofStarter.startSpoofing(scanInterface, target, gatewayIpAddress);
+        arpSpoofStarter.spoof(scanInterface, target, gatewayIpAddress);
     }
 
     private void stopSpoofing(Target target) throws TargetException, GatewayException {
@@ -429,7 +437,7 @@ public class MainController {
         Gateway gateway = gatewayOptional.orElseThrow(() -> new GatewayNotFoundException("Couldn't spoof a target that it is not connected"));
         String targetIpAddress = target.findFirstIPv4().orElseThrow(() -> new TargetIpException("No IpV4 found for target " + target.getDeviceName()));
         String gatewayIpAddress = gateway.findFirstIPv4().orElseThrow(() -> new GatewayIpException("No IpV4 found for gateway " + gateway.getDeviceName()));
-        arpSpoofStarter.stopSpoofing(target, gatewayIpAddress);
+        arpSpoofStarter.stop(target, gatewayIpAddress);
     }
 
     @NotNull
@@ -444,9 +452,7 @@ public class MainController {
                     refresh.run();
                     startSpoofingMenuItem.setText("Stop Spoofing");
                     MenuItem menuItem = new MenuItem("Spy");
-                    menuItem.setOnAction(_ -> {
-                        Launch.StageSwitcher.switchTo(View.STATISTICS_DETAILS_VIEW.FXML_FILE, View.STATISTICS_DETAILS_VIEW.WIDTH, View.STATISTICS_DETAILS_VIEW.HEIGHT, View.STATISTICS_DETAILS_VIEW.INTERFACE_TITLE, target);
-                    });
+                    menuItem.setOnAction(ignored -> Launch.StageSwitcher.switchTo(View.STATISTICS_DETAILS_VIEW.FXML_FILE, View.STATISTICS_DETAILS_VIEW.WIDTH, View.STATISTICS_DETAILS_VIEW.HEIGHT, View.STATISTICS_DETAILS_VIEW.INTERFACE_TITLE, target));
                     contextMenu.getItems().add(menuItem);
                 } else {
                     stopSpoofing(target);
