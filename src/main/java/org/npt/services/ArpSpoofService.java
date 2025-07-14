@@ -20,7 +20,7 @@ public interface ArpSpoofService {
      *
      * @param target the target device
      * @return an {@code Optional} containing the {@link DefaultArpSpoofService.ArpSpoofProcess} if it exists,
-     *         or an empty {@code Optional} if not found
+     * or an empty {@code Optional} if not found
      */
     Optional<DefaultArpSpoofService.ArpSpoofProcess> getArpSpoofProcess(Target target);
 

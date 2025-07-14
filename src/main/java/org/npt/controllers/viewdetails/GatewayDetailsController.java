@@ -40,22 +40,22 @@ public class GatewayDetailsController extends DataInjector {
     public Button saveButton;
 
     @FXML
-    public void initialize(){
+    public void initialize() {
         Gateway gateway = (Gateway) super.getArgs()[0];
         Runnable refresh = (Runnable) super.getArgs()[1];
         deviceNameField.setText(gateway.getDeviceName());
         interfaceField.setText(gateway.getNetworkInterface());
         ipColumn.setCellValueFactory(data -> data.getValue().getIp());
         typeColumn.setCellValueFactory(data -> data.getValue().getType());
-        for(String ip:gateway.getIpAddresses()){
-            ipTable.getItems().add(new IpEntry(ip, gateway.isValidIPv4(ip)?"IPv4":"IPv6"));
+        for (String ip : gateway.getIpAddresses()) {
+            ipTable.getItems().add(new IpEntry(ip, gateway.isValidIPv4(ip) ? "IPv4" : "IPv6"));
         }
 
         ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
         typeColumn1.setCellValueFactory(data -> data.getValue().getType());
-        for (Target target:gateway.getDevices()){
+        for (Target target : gateway.getDevices()) {
             String ip = target.findFirstIPv4().get();
-            nextDevicesTable.getItems().add(new IpEntry(ip, gateway.isValidIPv4(ip)?"IPv4":"IPv6"));
+            nextDevicesTable.getItems().add(new IpEntry(ip, gateway.isValidIPv4(ip) ? "IPv4" : "IPv6"));
         }
         saveButton.setOnAction(ignored -> {
             String deviceName = deviceNameField.getText();

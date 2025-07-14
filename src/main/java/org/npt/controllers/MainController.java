@@ -325,7 +325,7 @@ public class MainController extends DataInjector {
 
     private void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class deviceClass) {
         if (deviceUi.getDevice() instanceof SelfDevice) {
-            int enlargedSize = (int)(imageSize * 1.5);
+            int enlargedSize = (int) (imageSize * 1.5);
             gc.drawImage(images.get(deviceClass),
                     deviceUi.getX() - enlargedSize / 2,
                     deviceUi.getY() - enlargedSize / 2,
@@ -359,8 +359,8 @@ public class MainController extends DataInjector {
         }
     }
 
-    private void drawGrid(GraphicsContext gc){
-        for(double percentage = 0.1; percentage <= 1.0; percentage += 0.1) {
+    private void drawGrid(GraphicsContext gc) {
+        for (double percentage = 0.1; percentage <= 1.0; percentage += 0.1) {
             double x = canvas.getWidth() * percentage;
             double y = canvas.getHeight() * percentage;
             gc.setStroke(Color.LIGHTGRAY);

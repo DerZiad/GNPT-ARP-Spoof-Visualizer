@@ -32,51 +32,51 @@ public class Frame {
                 PREFIX + "/main_frame.fxml",
                 MainController.class,
                 new Object[]{},
-                new Size(1054.0,674.0)
+                new Size(1054.0, 674.0)
         );
     }
 
-    public static Frame createTargetView(){
+    public static Frame createTargetView() {
         return new Frame(
                 "targetFrame",
                 "Target Details",
                 PREFIX + "/target_frame.fxml",
                 TargetDetailsController.class,
                 new Object[]{},
-                new Size(722,640)
+                new Size(722, 640)
         );
     }
 
-    public static Frame createGatewayDetails(){
+    public static Frame createGatewayDetails() {
         return new Frame(
                 "gatewayDetails",
                 "Gateway Details",
                 PREFIX + "/gateway_frame.fxml",
                 GatewayDetailsController.class,
                 new Object[]{},
-                new Size(722,800)
+                new Size(722, 800)
         );
     }
 
-    public static Frame createSelfDetails(){
+    public static Frame createSelfDetails() {
         return new Frame(
                 "selfDeviceDetails",
                 "Self Device Details",
                 PREFIX + "/selfdevice_frame.fxml",
                 SelfDeviceDetailsController.class,
                 new Object[]{},
-                new Size(730,630)
+                new Size(730, 630)
         );
     }
 
-    public static Frame createStatisticsDetails(){
+    public static Frame createStatisticsDetails() {
         return new Frame(
                 "showDetailsFrame",
                 "Show Details",
                 PREFIX + "/showdetails_frame.fxml",
                 StatisticsController.class,
                 new Object[]{},
-                new Size(1054,674)
+                new Size(1054, 674)
         );
     }
 }

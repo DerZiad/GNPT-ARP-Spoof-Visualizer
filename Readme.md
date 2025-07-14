@@ -23,6 +23,16 @@
 * JavaFX SDK downloaded (the project includes an automated task for this).
 * Network interface with permissions to sniff packets.
 
+> **⚠️ OS Compatibility Note:**
+>
+> This project is intended to be run on **Kali Linux**.
+>
+> If you are using **Ubuntu**, you must install additional dependencies with:
+>
+> ```bash
+> sudo apt-get install -y git maven unzip wget curl dsniff xvfb
+> ```
+
 ---
 
 ## Setup & Build Instructions
@@ -104,4 +114,3 @@ Make sure the `javafx/lib` directory exists and contains the JavaFX SDK librarie
 * Maven for build automation.
 
 ---
-

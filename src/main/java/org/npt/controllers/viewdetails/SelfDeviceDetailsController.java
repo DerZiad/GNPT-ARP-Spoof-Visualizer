@@ -15,57 +15,57 @@ import org.npt.models.ui.IpEntryWithNetworkInterface;
 
 public class SelfDeviceDetailsController extends DataInjector {
 
-	@FXML
-	public TextField deviceNameField;
+    @FXML
+    public TextField deviceNameField;
 
-	@FXML
-	private TableView<IpEntry> ipTable;
+    @FXML
+    private TableView<IpEntry> ipTable;
 
-	@FXML
-	private TableColumn<IpEntryWithNetworkInterface, String> ipColumn;
+    @FXML
+    private TableColumn<IpEntryWithNetworkInterface, String> ipColumn;
 
-	@FXML
-	private TableColumn<IpEntryWithNetworkInterface, String> typeColumn;
+    @FXML
+    private TableColumn<IpEntryWithNetworkInterface, String> typeColumn;
 
-	@FXML
-	public TableColumn<IpEntryWithNetworkInterface, String> networkInterface;
+    @FXML
+    public TableColumn<IpEntryWithNetworkInterface, String> networkInterface;
 
-	@FXML
-	public TableView<IpEntry> nextDevicesTable;
+    @FXML
+    public TableView<IpEntry> nextDevicesTable;
 
-	@FXML
-	private TableColumn<IpEntry, String> ipColumn1;
+    @FXML
+    private TableColumn<IpEntry, String> ipColumn1;
 
-	@FXML
-	private TableColumn<IpEntry, String> typeColumn1;
+    @FXML
+    private TableColumn<IpEntry, String> typeColumn1;
 
-	@FXML
-	public Button saveButton;
+    @FXML
+    public Button saveButton;
 
-	@FXML
-	public void initialize() {
-		SelfDevice selfDevice = (SelfDevice) getArgs()[0];
-		Runnable refresh = (Runnable) getArgs()[1];
-		deviceNameField.setText(selfDevice.getDeviceName());
-		ipColumn.setCellValueFactory(data -> data.getValue().getIp());
-		typeColumn.setCellValueFactory(data -> data.getValue().getType());
-		networkInterface.setCellValueFactory(data -> data.getValue().getNetworkInterface());
-		for (IpAddress ipAddress : selfDevice.getIpAddresses()) {
-			IpEntryWithNetworkInterface ipEntryWithNetworkInterface = new IpEntryWithNetworkInterface(new SimpleStringProperty(ipAddress.getIp()),
-					new SimpleStringProperty(selfDevice.isValidIPv4(ipAddress.getIp()) ? "IPv4" : "IPv6"),
-					new SimpleStringProperty(ipAddress.getNetworkInterface()));
-			ipTable.getItems().add(ipEntryWithNetworkInterface);
-		}
+    @FXML
+    public void initialize() {
+        SelfDevice selfDevice = (SelfDevice) getArgs()[0];
+        Runnable refresh = (Runnable) getArgs()[1];
+        deviceNameField.setText(selfDevice.getDeviceName());
+        ipColumn.setCellValueFactory(data -> data.getValue().getIp());
+        typeColumn.setCellValueFactory(data -> data.getValue().getType());
+        networkInterface.setCellValueFactory(data -> data.getValue().getNetworkInterface());
+        for (IpAddress ipAddress : selfDevice.getIpAddresses()) {
+            IpEntryWithNetworkInterface ipEntryWithNetworkInterface = new IpEntryWithNetworkInterface(new SimpleStringProperty(ipAddress.getIp()),
+                    new SimpleStringProperty(selfDevice.isValidIPv4(ipAddress.getIp()) ? "IPv4" : "IPv6"),
+                    new SimpleStringProperty(ipAddress.getNetworkInterface()));
+            ipTable.getItems().add(ipEntryWithNetworkInterface);
+        }
 
-		ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
-		typeColumn1.setCellValueFactory(data -> data.getValue().getType());
-		for (Gateway target : selfDevice.getNextGateways()) {
-			target.findFirstIPv4().ifPresent(ip -> nextDevicesTable.getItems().add(new IpEntry(ip, selfDevice.isValidIPv4(ip) ? "IPv4" : "IPv6")));
-		}
-		saveButton.setOnAction(ignored -> {
-			String deviceName = deviceNameField.getText();
-			selfDevice.setDeviceName(deviceName);
-			refresh.run();
-		});
-	}
+        ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
+        typeColumn1.setCellValueFactory(data -> data.getValue().getType());
+        for (Gateway target : selfDevice.getNextGateways()) {
+            target.findFirstIPv4().ifPresent(ip -> nextDevicesTable.getItems().add(new IpEntry(ip, selfDevice.isValidIPv4(ip) ? "IPv4" : "IPv6")));
+        }
+        saveButton.setOnAction(ignored -> {
+            String deviceName = deviceNameField.getText();
+            selfDevice.setDeviceName(deviceName);
+            refresh.run();
+        });
+    }
 }

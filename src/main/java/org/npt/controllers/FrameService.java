@@ -127,7 +127,6 @@ public class FrameService {
     }
 
 
-
     private URL readFileResource(String resourcePath) {
         return FrameService.class.getClassLoader().getResource(resourcePath);
     }

@@ -15,7 +15,6 @@ import org.pcap4j.packet.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DefaultArpSpoofService implements ArpSpoofService {
 

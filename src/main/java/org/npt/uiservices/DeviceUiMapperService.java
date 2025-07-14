@@ -84,7 +84,7 @@ public class DeviceUiMapperService {
     }
 
     @SneakyThrows
-    public void clear(){
+    public void clear() {
         devices.clear();
         dataService.clear();
         arpSpoofService.clear();

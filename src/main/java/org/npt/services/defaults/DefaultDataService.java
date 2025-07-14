@@ -42,7 +42,7 @@ public class DefaultDataService implements DataService {
             List<Gateway> gateways = discoverGateways();
             devices.addAll(gateways);
             selfDevice = discoverSelfDevice(gateways);
-        }catch (SocketException | UnknownHostException e){
+        } catch (SocketException | UnknownHostException e) {
             throw new DrawNetworkException("Error by drawing network.");
         }
     }
