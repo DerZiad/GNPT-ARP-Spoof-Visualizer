@@ -1,20 +1,17 @@
 package org.npt.controllers.viewdetails;
 
-import java.util.Optional;
-
-import org.npt.controllers.DataInjector;
-import org.npt.models.Gateway;
-import org.npt.models.IpAddress;
-import org.npt.models.SelfDevice;
-import org.npt.models.ui.IpEntry;
-import org.npt.models.ui.IpEntryWithNetworkInterface;
-
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import org.npt.controllers.DataInjector;
+import org.npt.models.Gateway;
+import org.npt.models.IpAddress;
+import org.npt.models.SelfDevice;
+import org.npt.models.ui.IpEntry;
+import org.npt.models.ui.IpEntryWithNetworkInterface;
 
 public class SelfDeviceDetailsController extends DataInjector {
 

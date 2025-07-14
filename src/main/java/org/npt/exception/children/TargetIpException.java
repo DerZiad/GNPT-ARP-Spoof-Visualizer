@@ -1,8 +1,7 @@
 package org.npt.exception.children;
 
-import org.npt.exception.TargetException;
-
 import lombok.NoArgsConstructor;
+import org.npt.exception.TargetException;
 
 @NoArgsConstructor
 public class TargetIpException extends TargetException {

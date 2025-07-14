@@ -1,10 +1,10 @@
 package org.npt.services;
 
-import java.io.InputStream;
-import java.util.HashMap;
-
 import org.npt.models.KnownHost;
 import org.npt.services.defaults.DefaultGraphicalNetworkTracerFactory;
+
+import java.io.InputStream;
+import java.util.HashMap;
 
 public interface GraphicalNetworkTracerFactory {
 

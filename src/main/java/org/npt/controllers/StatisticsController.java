@@ -14,6 +14,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 import org.npt.exception.ShutdownException;
 import org.npt.models.DefaultPacket;
 import org.npt.models.KnownHost;
@@ -54,13 +55,10 @@ public class StatisticsController extends DataInjector {
     public void initialize() {
         graphicalNetworkTracerFactory = GraphicalNetworkTracerFactory.getInstance();
         knownHosts = graphicalNetworkTracerFactory.getKnownHosts();
-
-        // Initialize target from injected args, make sure it's saved to this.target
         this.target = (Target) super.getArgs()[0];
-
         deviceSniffer = findDeviceSniffer(target);
         if (deviceSniffer == null) {
-            System.err.println("DeviceSniffer not found for target: " + target);
+            // TODO handle correctly the error here
             return;
         } else {
             deviceSniffer = findDeviceSniffer(target);
@@ -119,7 +117,6 @@ public class StatisticsController extends DataInjector {
     private Map<String, IncomingOutgoingPacket> calculateNumberOfPackets() {
         Map<String, IncomingOutgoingPacket> numberDict = new HashMap<>();
 
-        // Defensive: if deviceSniffer or packets null, return empty map
         if (deviceSniffer == null || deviceSniffer.getDefaultPackets() == null) {
             return numberDict;
         }
@@ -134,11 +131,9 @@ public class StatisticsController extends DataInjector {
                     if (numbers == null) {
                         numbers = new IncomingOutgoingPacket(0L, 0L, knownHost);
                     }
-                    // increment incoming if src belongs to knownHost
                     if (knownHost.containsIp(src)) {
                         numbers.setIncoming(numbers.getIncoming() + 1);
                     }
-                    // increment outgoing if dst belongs to knownHost
                     if (knownHost.containsIp(dst)) {
                         numbers.setOutgoing(numbers.getOutgoing() + 1);
                     }
@@ -165,7 +160,20 @@ public class StatisticsController extends DataInjector {
         icon.setFitWidth(93);
         icon.setPreserveRatio(true);
 
-        int totalPackets = deviceSniffer.getDefaultPackets().size();
+        VBox progressVBox = getVBox(incomingOutgoingPacket);
+        HBox.setHgrow(progressVBox, Priority.ALWAYS);
+
+        HBox rowBox = new HBox(10, icon, progressVBox);
+        rowBox.setAlignment(Pos.CENTER_LEFT);
+        rowBox.setPrefHeight(100);
+        rowBox.setPrefWidth(400);
+        rowBox.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 5; -fx-padding: 10;");
+
+        vBox.getChildren().add(rowBox);
+    }
+
+    private static @NotNull VBox getVBox(IncomingOutgoingPacket incomingOutgoingPacket) {
+        long totalPackets = incomingOutgoingPacket.getIncoming() + incomingOutgoingPacket.getOutgoing();
         double outgoingRatio = totalPackets > 0 ? (double) incomingOutgoingPacket.getOutgoing() / totalPackets : 0;
         double incomingRatio = totalPackets > 0 ? (double) incomingOutgoingPacket.getIncoming() / totalPackets : 0;
 
@@ -180,14 +188,6 @@ public class StatisticsController extends DataInjector {
         greenProgress.setStyle("-fx-accent: green;");
 
         VBox progressVBox = new VBox(10, incomingLabel, redProgress, outgoingLabel, greenProgress);
-        HBox.setHgrow(progressVBox, Priority.ALWAYS);
-
-        HBox rowBox = new HBox(10, icon, progressVBox);
-        rowBox.setAlignment(Pos.CENTER_LEFT);
-        rowBox.setPrefHeight(100);
-        rowBox.setPrefWidth(400);
-        rowBox.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 5; -fx-padding: 10;");
-
-        vBox.getChildren().add(rowBox);
+        return progressVBox;
     }
 }

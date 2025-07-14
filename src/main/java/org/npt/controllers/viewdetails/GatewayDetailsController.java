@@ -1,15 +1,14 @@
 package org.npt.controllers.viewdetails;
 
-import org.npt.controllers.DataInjector;
-import org.npt.models.Gateway;
-import org.npt.models.Target;
-import org.npt.models.ui.IpEntry;
-
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import org.npt.controllers.DataInjector;
+import org.npt.models.Gateway;
+import org.npt.models.Target;
+import org.npt.models.ui.IpEntry;
 
 public class GatewayDetailsController extends DataInjector {
 

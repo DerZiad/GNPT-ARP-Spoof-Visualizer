@@ -1,11 +1,9 @@
 package org.npt.uiservices;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
+import javafx.scene.control.Alert;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import lombok.Getter;
 import org.npt.controllers.FrameService;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
@@ -16,10 +14,11 @@ import org.npt.models.ui.DeviceUI;
 import org.npt.models.ui.Frame;
 import org.npt.services.*;
 
-import javafx.scene.control.Alert;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
-import lombok.Getter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class DeviceUiMapperService {
 

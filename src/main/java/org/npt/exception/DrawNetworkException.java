@@ -6,11 +6,4 @@ public class DrawNetworkException extends Exception {
         super(message);
     }
 
-    public DrawNetworkException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public DrawNetworkException(Throwable cause) {
-        super(cause);
-    }
 }

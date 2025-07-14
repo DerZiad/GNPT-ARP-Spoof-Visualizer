@@ -1,13 +1,12 @@
 package org.npt;
 
-import java.io.IOException;
-
+import javafx.application.Application;
+import javafx.stage.Stage;
 import org.npt.controllers.FrameService;
 import org.npt.services.DataService;
 import org.npt.services.defaults.DefaultDataService;
 
-import javafx.application.Application;
-import javafx.stage.Stage;
+import java.io.IOException;
 
 public class Launch extends Application {
 
