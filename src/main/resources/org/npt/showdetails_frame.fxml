@@ -7,7 +7,7 @@
       xmlns:fx="http://javafx.com/fxml/1">
     <AnchorPane prefHeight="84.0" prefWidth="1054.0">
         <Button layoutX="392.0" layoutY="11.0" styleClass="button-return" text="Return To Main Interface"
-                AnchorPane.leftAnchor="392.0" AnchorPane.rightAnchor="444.0"/>
+                AnchorPane.leftAnchor="392.0" AnchorPane.rightAnchor="444.0" fx:id="returnToMainInterface"/>
     </AnchorPane>
 
     <HBox prefHeight="674.0" prefWidth="1054.0">

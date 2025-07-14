@@ -1,12 +1,5 @@
 package org.npt.controllers;
 
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Stack;
-
-import org.npt.models.ui.Frame;
-
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -14,11 +7,13 @@ import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import kotlin.Pair;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
+import lombok.*;
+import org.npt.models.ui.Frame;
+
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PRIVATE)

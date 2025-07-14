@@ -1,25 +1,5 @@
 package org.npt.controllers;
 
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-
-import org.npt.models.Device;
-import org.npt.models.Gateway;
-import org.npt.models.IpAddress;
-import org.npt.models.SelfDevice;
-import org.npt.models.Target;
-import org.npt.models.ui.DeviceUI;
-import org.npt.uiservices.DeviceUiMapperService;
-
 import javafx.animation.PauseTransition;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -38,6 +18,16 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
+import org.npt.models.*;
+import org.npt.models.ui.DeviceUI;
+import org.npt.uiservices.DeviceUiMapperService;
+
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 @Slf4j
 public class MainController extends DataInjector {

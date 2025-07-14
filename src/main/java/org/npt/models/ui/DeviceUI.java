@@ -1,11 +1,10 @@
 package org.npt.models.ui;
 
-import org.npt.models.Device;
-
 import javafx.scene.control.ContextMenu;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.npt.models.Device;
 
 @Data
 @AllArgsConstructor

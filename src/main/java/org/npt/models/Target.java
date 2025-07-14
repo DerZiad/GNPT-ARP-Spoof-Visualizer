@@ -1,10 +1,10 @@
 package org.npt.models;
 
-import java.util.List;
-import java.util.Optional;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
+import java.util.Optional;
 
 public class Target extends Device {
 

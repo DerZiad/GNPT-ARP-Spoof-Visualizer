@@ -3,11 +3,11 @@ package org.npt.exception;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+@Getter
 public class ShutdownException extends Exception {
 
     public static final String ERROR_FORMAT = "%s : %s";
 
-    @Getter
     private final Integer code;
 
     public ShutdownException(String message, ShutdownExceptionErrorCode code) {

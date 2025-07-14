@@ -1,5 +1,16 @@
 package org.npt.services.defaults;
 
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.npt.exception.DrawNetworkException;
+import org.npt.models.Device;
+import org.npt.models.Gateway;
+import org.npt.models.IpAddress;
+import org.npt.models.SelfDevice;
+import org.npt.services.DataService;
+
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -10,18 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.NotNull;
-import org.npt.exception.DrawNetworkException;
-import org.npt.models.Device;
-import org.npt.models.Gateway;
-import org.npt.models.IpAddress;
-import org.npt.models.SelfDevice;
-import org.npt.services.DataService;
-
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DefaultDataService implements DataService {

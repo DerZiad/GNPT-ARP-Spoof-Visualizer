@@ -1,8 +1,7 @@
 package org.npt.exception.children;
 
-import org.npt.exception.GatewayException;
-
 import lombok.NoArgsConstructor;
+import org.npt.exception.GatewayException;
 
 @NoArgsConstructor
 public class GatewayIpException extends GatewayException {

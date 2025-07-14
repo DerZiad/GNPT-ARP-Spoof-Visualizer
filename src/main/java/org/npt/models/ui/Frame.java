@@ -1,13 +1,12 @@
 package org.npt.models.ui;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import org.npt.controllers.MainController;
 import org.npt.controllers.StatisticsController;
 import org.npt.controllers.viewdetails.GatewayDetailsController;
 import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
 import org.npt.controllers.viewdetails.TargetDetailsController;
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
 
 @AllArgsConstructor
 @Data

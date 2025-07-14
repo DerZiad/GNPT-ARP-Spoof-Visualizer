@@ -1,12 +1,12 @@
 package org.npt.services;
 
-import java.util.HashMap;
-import java.util.List;
-
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
 import org.npt.models.Device;
 import org.npt.models.SelfDevice;
+
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Service interface for managing and interacting with network device data.
