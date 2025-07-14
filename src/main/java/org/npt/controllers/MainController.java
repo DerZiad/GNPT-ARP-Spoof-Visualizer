@@ -1,14 +1,34 @@
 package org.npt.controllers;
 
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
+
+import org.npt.models.Device;
+import org.npt.models.Gateway;
+import org.npt.models.IpAddress;
+import org.npt.models.SelfDevice;
+import org.npt.models.Target;
+import org.npt.models.ui.DeviceUI;
+import org.npt.uiservices.DeviceUiMapperService;
+
 import javafx.animation.PauseTransition;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -16,44 +36,8 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
 import javafx.util.Duration;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
-import org.npt.Launch;
-import org.npt.controllers.viewdetails.GatewayDetailsController;
-import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
-import org.npt.controllers.viewdetails.TargetDetailsController;
-import org.npt.exception.GatewayException;
-import org.npt.exception.InvalidInputException;
-import org.npt.exception.TargetException;
-import org.npt.exception.children.GatewayIpException;
-import org.npt.exception.children.GatewayNotFoundException;
-import org.npt.exception.children.TargetIpException;
-import org.npt.models.*;
-import org.npt.models.ui.DeviceUI;
-import org.npt.services.ArpSpoofService;
-import org.npt.services.DataService;
-import org.npt.services.GatewayService;
-import org.npt.services.TargetService;
-import org.npt.services.defaults.DefaultDataService;
-import org.npt.services.defaults.DefaultGatewayService;
-import org.npt.services.defaults.DefaultTargetService;
-import org.npt.uiservices.DeviceUiMapperService;
-
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-
-import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
 
 @Slf4j
 public class MainController extends DataInjector {
@@ -120,23 +104,12 @@ public class MainController extends DataInjector {
         });
 
         addDevice.setOnAction(ignored -> {
-            /*String ipAddress = this.ipAddress.getText();
-            String deviceInterface = this.menuButton.getText();
-            String deviceName = this.deviceName.getText();
-            try {
-                Target target = targetService.create(deviceName, deviceInterface, new String[]{ipAddress});
-                Optional<Gateway> gatewayOptional = gatewayService.find().stream()
-                        .filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
-                        .findAny();
-                gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
-                initMenu(target, () -> initCanvas(canvas));
-                initCanvas(canvas);
-                this.ipAddress.setText("");
-                this.deviceName.setText("");
-            } catch (InvalidInputException e) {
-                // TODO Handle exceptions in design
-                throw new RuntimeException(e);
-            }*/
+            final String ipAddress = this.ipAddress.getText();
+            final String deviceInterface = this.menuButton.getText();
+            final String deviceName = this.deviceName.getText();
+            deviceUiMapperService.addTarget(ipAddress, deviceInterface, deviceName);
+            this.ipAddress.setText("");
+            this.deviceName.setText("");
         });
 
         newMenu.setOnAction(ignored -> {

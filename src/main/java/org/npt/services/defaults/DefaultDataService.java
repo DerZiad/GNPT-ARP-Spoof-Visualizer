@@ -1,15 +1,5 @@
 package org.npt.services.defaults;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import org.npt.exception.DrawNetworkException;
-import org.npt.models.Device;
-import org.npt.models.Gateway;
-import org.npt.models.IpAddress;
-import org.npt.models.SelfDevice;
-import org.npt.services.DataService;
-
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -20,6 +10,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import org.jetbrains.annotations.NotNull;
+import org.npt.exception.DrawNetworkException;
+import org.npt.models.Device;
+import org.npt.models.Gateway;
+import org.npt.models.IpAddress;
+import org.npt.models.SelfDevice;
+import org.npt.services.DataService;
+
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DefaultDataService implements DataService {
@@ -47,17 +49,17 @@ public class DefaultDataService implements DataService {
     }
 
     @Override
-    public void addDevice(Device device) {
+    public void addDevice(@NotNull Device device) {
         devices.add(device);
     }
 
     @Override
-    public void removeByIndex(Integer index) {
+    public void removeByIndex(@NotNull Integer index) {
         devices.remove(index.intValue());
     }
 
     @Override
-    public void removeByObject(Device device) {
+    public void removeByObject(@NotNull Device device) {
         for (int i = 0; i < devices.size(); i++) {
             if (device.equals(devices.get(i))) {
                 removeByIndex(i);
@@ -67,12 +69,12 @@ public class DefaultDataService implements DataService {
     }
 
     @Override
-    public Device getDevice(Integer index) {
+    public Device getDevice(@NotNull Integer index) {
         return devices.get(index);
     }
 
     @Override
-    public <T> HashMap<Integer, T> getDevices(Class<T> tClass) {
+    public <T> HashMap<Integer, T> getDevices(@NotNull Class<T> tClass) {
         AtomicInteger index = new AtomicInteger(0);
         return devices.stream()
                 .filter(tClass::isInstance)

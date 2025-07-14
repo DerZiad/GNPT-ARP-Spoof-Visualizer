@@ -1,7 +1,13 @@
 package org.npt.services.defaults;
 
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import org.npt.exception.InvalidInputException;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
@@ -9,7 +15,8 @@ import org.npt.services.DataService;
 import org.npt.services.GatewayService;
 import org.npt.services.GraphicalNetworkTracerFactory;
 
-import java.util.*;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class DefaultGatewayService implements GatewayService {

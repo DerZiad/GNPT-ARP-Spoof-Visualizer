@@ -1,7 +1,8 @@
 package org.npt.controllers;
 
+import org.npt.services.GraphicalNetworkTracerFactory;
+
 import lombok.Data;
-import org.npt.services.*;
 
 @Data
 public class DataInjector {

@@ -1,46 +1,46 @@
 package org.npt.uiservices;
 
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import lombok.Getter;
-import org.npt.controllers.View;
-import org.npt.controllers.viewdetails.GatewayDetailsController;
-import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
-import org.npt.controllers.viewdetails.TargetDetailsController;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.npt.controllers.FrameService;
+import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
 import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 import org.npt.models.ui.DeviceUI;
-import org.npt.services.ArpSpoofService;
-import org.npt.services.DataService;
-import org.npt.services.GatewayService;
-import org.npt.services.GraphicalNetworkTracerFactory;
+import org.npt.models.ui.Frame;
+import org.npt.services.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
-import static org.npt.controllers.View.getFxmlResourceAsExternalForm;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.MenuItem;
+import lombok.Getter;
 
 public class DeviceUiMapperService {
 
     private static final GraphicalNetworkTracerFactory graphicalNetworkTracerFactory = GraphicalNetworkTracerFactory.getInstance();
+
     private static final DataService dataService = graphicalNetworkTracerFactory.getDataService();
+
+    private static final TargetService targetService = graphicalNetworkTracerFactory.getTargetService();
+
     private static final ArpSpoofService arpSpoofService = graphicalNetworkTracerFactory.getArpSpoofService();
+
     private static final GatewayService gatewayService = graphicalNetworkTracerFactory.getGatewayService();
 
     private static final String START_SPOOFING_TEXT = "Start Spoofing";
+
     private static final String STOP_SPOOFING_TEXT = "Stop Spoofing";
+
     private static final String SHOW_DETAILS_TEXT = "View Details";
+
     private static final String REMOVE_DEVICE_TEXT = "Remove Device";
+
     private static final String SPY_TEXT = "Spy";
 
     private final Runnable refreshAction;
@@ -69,11 +69,28 @@ public class DeviceUiMapperService {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
+    public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) {
+
+        try {
+            Target target = targetService.create(deviceName, deviceInterface, new String[]{ipAddress});
+            Optional<Gateway> gatewayOptional = gatewayService.find().stream()
+                    .filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
+                    .findAny();
+            gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
+            DeviceUI deviceUI = new DeviceUI(target);
+            initMenu(deviceUI);
+            devices.add(deviceUI);
+            refreshAction.run();
+        } catch (InvalidInputException e) {
+            ErrorHandler.handle(e);
+        }
+    }
+
     // Privates functions
     private void initMenu(DeviceUI deviceUI) {
         ContextMenu contextMenu = deviceUI.getContextMenu();
         MenuItem detailsItem = new MenuItem(SHOW_DETAILS_TEXT);
-        detailsItem.setOnAction(ignored -> showDetails(deviceUI, refreshAction));
+        detailsItem.setOnAction(ignored -> showDetails(deviceUI));
 
         MenuItem removeItem = new MenuItem(REMOVE_DEVICE_TEXT);
         removeItem.setOnAction(ignored -> {
@@ -99,7 +116,7 @@ public class DeviceUiMapperService {
                     }
                     refreshAction.run();
                 } catch (NotFoundException ex) {
-                    PopupShowDetails.showError("Error while spoofing", ex.getMessage(), true);
+                    ErrorHandler.handle(ex);
                 }
             });
             contextMenu.getItems().add(startSpoofingMenuItem);
@@ -118,88 +135,63 @@ public class DeviceUiMapperService {
     private void stop(DeviceUI deviceUI) throws NotFoundException {
         Target target = (Target) deviceUI.getDevice();
         Gateway gateway = gatewayService.findByTarget(target)
-                .orElseThrow(() -> new NotFoundException("During search to stop spoofing, the target was not found in the gateways list, this may be due to the target not being connected to the same network as the gateway or disconnected from the network."));
+                .orElseThrow(() -> new NotFoundException(
+                        "During search to stop spoofing, the target was not found in the gateways list, this may be due to the target not being connected to the same network as the gateway or disconnected from the network."));
         arpSpoofService.stop(target, gateway);
     }
 
-    // TODO use FrameService to switch to StatisticsController and to PopupShowDetails
-
-    private <T> void showDetails(T object, Runnable refresh) {
-        if (object instanceof Target target) {
-            PopupShowDetails.popupShowDetails(target, refresh);
-        } else if (object instanceof SelfDevice selfDevice) {
-            PopupShowDetails.popupShowDetails(selfDevice, refresh);
-        } else {
-            Gateway gateway = (Gateway) object;
-            PopupShowDetails.popupShowDetails(gateway, refresh);
+    public void showDetails(DeviceUI deviceUI) {
+        FrameService frameService = FrameService.getInstance();
+        switch (deviceUI.getDevice()) {
+            case Target target -> {
+                Frame detailsFrame = Frame.createTargetView();
+                detailsFrame.setArgs(new Object[]{target, refreshAction});
+                frameService.createNewStage(detailsFrame, false);
+            }
+            case SelfDevice selfDevice -> {
+                Frame detailsFrame = Frame.createSelfDetails();
+                detailsFrame.setArgs(new Object[]{selfDevice, refreshAction});
+                frameService.createNewStage(detailsFrame, false);
+            }
+            case Gateway gateway -> {
+                Frame detailsFrame = Frame.createGatewayDetails();
+                detailsFrame.setArgs(new Object[]{gateway, refreshAction});
+                frameService.createNewStage(detailsFrame, false);
+            }
+            default -> {
+                // ignored
+            }
         }
     }
+}
 
-    public static class PopupShowDetails {
+class ErrorHandler {
 
-        public static void popupShowDetails(Target target, Runnable refresh) {
-            try {
-                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.TARGET_DETAILS_VIEW.FXML_FILE));
-                Parent root = loader.load();
-                TargetDetailsController controller = loader.getController();
-                controller.setData(target, refresh);
-                Stage popupStage = new Stage();
-                popupStage.initModality(Modality.APPLICATION_MODAL);
-                popupStage.setTitle(View.TARGET_DETAILS_VIEW.INTERFACE_TITLE);
-                popupStage.setWidth(View.TARGET_DETAILS_VIEW.WIDTH);
-                popupStage.setHeight(View.TARGET_DETAILS_VIEW.HEIGHT);
-                popupStage.setResizable(false);
-                popupStage.setScene(new Scene(root));
-                popupStage.showAndWait();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+    private static final String ERROR_TITLE = "Error Occurred while processing your request";
+
+    public static void handle(NotFoundException e) {
+
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(ERROR_TITLE);
+        alert.setHeaderText("Not Found Exception");
+        alert.setContentText(e.getMessage());
+        alert.show();
+    }
+
+    public static void handle(InvalidInputException e) {
+
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(ERROR_TITLE);
+        alert.setHeaderText("Invalid Input Exception");
+        StringBuilder errorMessage = new StringBuilder(e.getMessage() + " : \n");
+        for (String key : e.getErrors().keySet()) {
+            errorMessage.append("* ")
+                    .append(key)
+                    .append(" - ")
+                    .append(e.getErrors().get(key))
+                    .append("\n");
         }
-
-        public static void popupShowDetails(Gateway gateway, Runnable refresh) {
-            try {
-                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.GATEWAY_DETAILS_VIEW.FXML_FILE));
-                Parent root = loader.load();
-                GatewayDetailsController controller = loader.getController();
-                controller.setData(gateway, refresh);
-                Stage popupStage = new Stage();
-                popupStage.initModality(Modality.APPLICATION_MODAL);
-                popupStage.setTitle(View.GATEWAY_DETAILS_VIEW.INTERFACE_TITLE);
-                popupStage.setWidth(View.GATEWAY_DETAILS_VIEW.WIDTH);
-                popupStage.setHeight(View.GATEWAY_DETAILS_VIEW.HEIGHT);
-                popupStage.setResizable(false);
-                popupStage.setScene(new Scene(root));
-                popupStage.showAndWait();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        public static void popupShowDetails(SelfDevice selfDevice, Runnable refresh) {
-            try {
-                FXMLLoader loader = new FXMLLoader(getFxmlResourceAsExternalForm(View.SELF_DEVICE_DETAILS_VIEW.FXML_FILE));
-                Parent root = loader.load();
-                SelfDeviceDetailsController controller = loader.getController();
-                controller.setData(selfDevice, refresh);
-                Stage popupStage = new Stage();
-                popupStage.initModality(Modality.APPLICATION_MODAL);
-                popupStage.setTitle(View.SELF_DEVICE_DETAILS_VIEW.INTERFACE_TITLE);
-                popupStage.setWidth(View.SELF_DEVICE_DETAILS_VIEW.WIDTH);
-                popupStage.setHeight(View.SELF_DEVICE_DETAILS_VIEW.HEIGHT);
-                popupStage.setResizable(false);
-                popupStage.setScene(new Scene(root));
-                popupStage.showAndWait();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        }
-
-        public static void showError(String title, String message, Boolean showAndWait) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("An error occurred");
-            alert.setHeaderText(title);
-            alert.setContentText(message);
-            if (showAndWait) alert.showAndWait();
-        }
+        alert.setContentText(errorMessage.toString());
+        alert.show();
     }
 }

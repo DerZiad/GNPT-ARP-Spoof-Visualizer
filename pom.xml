@@ -327,21 +327,34 @@
                         <phase>generate-resources</phase>
                         <configuration>
                             <target>
+                                <!-- Set a property if the file already exists -->
                                 <available file="${project.basedir}/javafx-sdk.zip" property="javafx.zip.present" />
-                                <echo message="JavaFX zip present? ${javafx.zip.present}" />
-                                <condition property="need.download" value="true" else="false">
+
+                                <!-- Only run download if zip is not present -->
+                                <condition property="download.needed">
                                     <not>
                                         <isset property="javafx.zip.present" />
                                     </not>
                                 </condition>
-                                <echo message="Need download? ${need.download}" />
-                                <fail message="JavaFX zip already exists, skipping download" unless="need.download" />
+
+                                <echo message="JavaFX zip present? ${javafx.zip.present}" />
+                                <echo message="Download needed? ${download.needed}" />
+
+                                <!-- Do everything only if download is needed -->
+                                <antcall target="download-javafx" />
+                            </target>
+
+                            <target name="download-javafx" if="download.needed">
+                                <echo message="Downloading JavaFX SDK..." />
                                 <get src="https://download2.gluonhq.com/openjfx/21.0.7/openjfx-21.0.7_linux-x64_bin-sdk.zip"
                                      dest="${project.basedir}/javafx-sdk.zip" verbose="true" />
-                                <unzip src="${project.basedir}/javafx-sdk.zip" dest="${project.basedir}/javafx-sdk" />
-                                <move file="${project.basedir}/javafx-sdk/javafx-sdk-21.0.7" tofile="${project.basedir}/javafx-sdk" />
-                                <move file="${project.basedir}/javafx-sdk" tofile="${project.basedir}/javafx" />
-                                <remove file="${project.basedir}/javafx-sdk.zip" />
+                                <unzip src="${project.basedir}/javafx-sdk.zip"
+                                       dest="${project.basedir}/javafx-sdk" />
+                                <move file="${project.basedir}/javafx-sdk/javafx-sdk-21.0.7"
+                                      tofile="${project.basedir}/javafx-sdk" />
+                                <move file="${project.basedir}/javafx-sdk"
+                                      tofile="${project.basedir}/javafx" />
+                                <delete file="${project.basedir}/javafx-sdk.zip" />
                             </target>
                         </configuration>
                         <goals>
@@ -350,6 +363,7 @@
                     </execution>
                 </executions>
             </plugin>
+
 
 
             <plugin>

@@ -1,20 +1,38 @@
 package org.npt.services.defaults;
 
-import javafx.util.Pair;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.SneakyThrows;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
 import org.npt.exception.NotFoundException;
 import org.npt.models.DefaultPacket;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
 import org.npt.services.ArpSpoofService;
-import org.pcap4j.core.*;
-import org.pcap4j.packet.*;
+import org.pcap4j.core.BpfProgram;
+import org.pcap4j.core.NotOpenException;
+import org.pcap4j.core.PcapHandle;
+import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.PcapNetworkInterface;
+import org.pcap4j.core.Pcaps;
+import org.pcap4j.packet.ArpPacket;
+import org.pcap4j.packet.EthernetPacket;
+import org.pcap4j.packet.IcmpV4CommonPacket;
+import org.pcap4j.packet.IcmpV6CommonPacket;
+import org.pcap4j.packet.IpV4Packet;
+import org.pcap4j.packet.IpV6Packet;
+import org.pcap4j.packet.Packet;
+import org.pcap4j.packet.TcpPacket;
+import org.pcap4j.packet.UdpPacket;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import javafx.util.Pair;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.SneakyThrows;
 
 class DeviceSniffer implements Runnable {
 

@@ -1,26 +1,24 @@
 package org.npt;
 
-import javafx.application.Application;
-import javafx.stage.Stage;
+import java.io.IOException;
+
 import org.npt.controllers.FrameService;
 import org.npt.services.DataService;
 import org.npt.services.defaults.DefaultDataService;
 
-import java.io.IOException;
+import javafx.application.Application;
+import javafx.stage.Stage;
 
 public class Launch extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        // Initialize data services AFTER JavaFX has started
         try {
             DataService dataService = DefaultDataService.getInstance();
             dataService.run();
         } catch (Exception e) {
             throw new RuntimeException("Failed to start data service", e);
         }
-
-        // Load JavaFX UI
         FrameService frameService = FrameService.getInstance();
         frameService.runMainFrame(stage);
     }

@@ -1,7 +1,8 @@
 package org.npt.exception.children;
 
-import lombok.NoArgsConstructor;
 import org.npt.exception.GatewayException;
+
+import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 public class GatewayNotFoundException extends GatewayException {

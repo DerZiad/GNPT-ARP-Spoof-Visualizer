@@ -1,11 +1,12 @@
 package org.npt.services;
 
+import java.util.HashMap;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
 import org.npt.models.Device;
 import org.npt.models.SelfDevice;
-
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * Service interface for managing and interacting with network device data.
@@ -25,21 +26,21 @@ public interface DataService {
      *
      * @param device The device to add.
      */
-    void addDevice(final Device device);
+    void addDevice(@NotNull final Device device);
 
     /**
      * Removes a device from the list using its index.
      *
      * @param index The index of the device to remove.
      */
-    void removeByIndex(final Integer index);
+    void removeByIndex(@NotNull final Integer index);
 
     /**
      * Removes a specific device from the list.
      *
      * @param device The device instance to remove.
      */
-    void removeByObject(final Device device);
+    void removeByObject(@NotNull final Device device);
 
     /**
      * Retrieves a device from the list by index.
@@ -47,7 +48,7 @@ public interface DataService {
      * @param index The index of the device to retrieve.
      * @return The device at the specified index.
      */
-    Device getDevice(final Integer index);
+    Device getDevice(@NotNull final Integer index);
 
     /**
      * Runs the initial network scan and initializes internal state,
@@ -64,7 +65,7 @@ public interface DataService {
      * @param <T>    The generic type of devices.
      * @return A map of index-to-device entries for the matching type.
      */
-    <T> HashMap<Integer, T> getDevices(final Class<T> tClass);
+    <T> HashMap<Integer, T> getDevices(@NotNull final Class<T> tClass);
 
     /**
      * Clears all internal device data.

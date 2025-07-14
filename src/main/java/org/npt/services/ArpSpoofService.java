@@ -1,11 +1,11 @@
 package org.npt.services;
 
+import java.util.Optional;
+
 import org.npt.exception.NotFoundException;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
 import org.npt.services.defaults.DefaultArpSpoofService;
-
-import java.util.Optional;
 
 /**
  * Service interface for managing ARP spoofing processes.
