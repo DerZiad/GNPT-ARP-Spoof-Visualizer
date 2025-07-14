@@ -14,19 +14,14 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import javafx.util.Pair;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-import org.npt.exception.NotFoundException;
 import org.npt.models.DefaultPacket;
-import org.npt.models.Gateway;
 import org.npt.models.KnownHost;
 import org.npt.models.Target;
-import org.npt.models.ui.DeviceUI;
 import org.npt.models.ui.Frame;
 import org.npt.models.ui.IncomingOutgoingPacket;
 import org.npt.services.ArpSpoofService;
-import org.npt.services.GatewayService;
 import org.npt.services.GraphicalNetworkTracerFactory;
 import org.npt.services.defaults.DefaultArpSpoofService;
 
@@ -39,6 +34,10 @@ import java.util.Optional;
 public class StatisticsController extends DataInjector {
 
     private static final Integer MAX_ELEMENT_TO_DISPLAY_PER_PANE = 10;
+    private DefaultArpSpoofService.DeviceSniffer deviceSniffer;
+    private static HashMap<String, KnownHost> knownHosts;
+    private static GraphicalNetworkTracerFactory graphicalNetworkTracerFactory;
+    private static ArpSpoofService arpSpoofService;
 
     @FXML
     private VBox vboxPane2;
@@ -55,16 +54,9 @@ public class StatisticsController extends DataInjector {
     @Getter
     private Target target;
 
-    private DefaultArpSpoofService.DeviceSniffer deviceSniffer;
-    private static HashMap<String, KnownHost> knownHosts;
-    private static GraphicalNetworkTracerFactory graphicalNetworkTracerFactory;
-    private static GatewayService gatewayService;
-    private static ArpSpoofService arpSpoofService;
-
     @FXML
     public void initialize() {
         graphicalNetworkTracerFactory = GraphicalNetworkTracerFactory.getInstance();
-        gatewayService = graphicalNetworkTracerFactory.getGatewayService();
         arpSpoofService = graphicalNetworkTracerFactory.getArpSpoofService();
         knownHosts = graphicalNetworkTracerFactory.getKnownHosts();
         this.target = (Target) super.getArgs()[0];
@@ -73,11 +65,7 @@ public class StatisticsController extends DataInjector {
         returnToMainInterface.setOnAction(event -> {
             FrameService frameService = FrameService.getInstance();
             frameService.removeCurrentScene(Frame.createMainFrame().getKey());
-            arpSpoofProcess.packetSnifferThreadPair().getKey().interrupt();
-            try {
-                stop();
-            } catch (NotFoundException ignored) {
-            }
+            arpSpoofService.stop(arpSpoofProcess);
         });
         startRepeatingUpdates();
     }
@@ -192,12 +180,5 @@ public class StatisticsController extends DataInjector {
         greenProgress.setPrefWidth(300);
         greenProgress.setStyle("-fx-accent: green;");
         return new VBox(10, incomingLabel, redProgress, outgoingLabel, greenProgress);
-    }
-
-    private void stop() throws NotFoundException {
-        Gateway gateway = gatewayService.findByTarget(target)
-                .orElseThrow(() -> new NotFoundException(
-                        "During search to stop spoofing, the target was not found in the gateways list, this may be due to the target not being connected to the same network as the gateway or disconnected from the network."));
-        arpSpoofService.stop(target, gateway);
     }
 }

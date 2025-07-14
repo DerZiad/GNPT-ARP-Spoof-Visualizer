@@ -1,9 +1,9 @@
 package org.npt.uiservices;
 
-import javafx.scene.control.Alert;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import lombok.Getter;
+import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.npt.controllers.FrameService;
 import org.npt.exception.InvalidInputException;
@@ -68,7 +68,6 @@ public class DeviceUiMapperService {
     }
 
     public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) {
-
         try {
             Target target = targetService.create(deviceName, deviceInterface, new String[]{ipAddress});
             Optional<Gateway> gatewayOptional = gatewayService.find().stream()
@@ -82,6 +81,15 @@ public class DeviceUiMapperService {
         } catch (InvalidInputException e) {
             ErrorHandler.handle(e);
         }
+    }
+
+    @SneakyThrows
+    public void clear(){
+        devices.clear();
+        dataService.clear();
+        arpSpoofService.clear();
+        dataService.run();
+        refreshAction.run();
     }
 
     // Privates functions
@@ -153,36 +161,5 @@ public class DeviceUiMapperService {
                 // ignored
             }
         }
-    }
-}
-
-class ErrorHandler {
-
-    private static final String ERROR_TITLE = "Error Occurred while processing your request";
-
-    public static void handle(NotFoundException e) {
-
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(ERROR_TITLE);
-        alert.setHeaderText("Not Found Exception");
-        alert.setContentText(e.getMessage());
-        alert.show();
-    }
-
-    public static void handle(InvalidInputException e) {
-
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(ERROR_TITLE);
-        alert.setHeaderText("Invalid Input Exception");
-        StringBuilder errorMessage = new StringBuilder(e.getMessage() + " : \n");
-        for (String key : e.getErrors().keySet()) {
-            errorMessage.append("* ")
-                    .append(key)
-                    .append(" - ")
-                    .append(e.getErrors().get(key))
-                    .append("\n");
-        }
-        alert.setContentText(errorMessage.toString());
-        alert.show();
     }
 }

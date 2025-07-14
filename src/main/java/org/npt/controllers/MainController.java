@@ -69,10 +69,8 @@ public class MainController extends DataInjector {
 
     @FXML
     public void initialize() {
-        // Devices
         deviceUiMapperService = new DeviceUiMapperService(() -> initCanvas(canvas));
 
-        // Load images
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
         images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));
         images.put(SelfDevice.class, new Image(graphicalNetworkTracerFactory.getResource("images/hacker.png")));
@@ -81,7 +79,6 @@ public class MainController extends DataInjector {
         canvas.heightProperty().bind(borderPane.heightProperty());
         borderPane.setMinSize(0, 0);
 
-        // Set up listeners for drawing
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             initCanvas(canvas);
             centerSelfDevice();
@@ -103,14 +100,7 @@ public class MainController extends DataInjector {
         });
 
         newMenu.setOnAction(ignored -> {
-            /*arpSpoofService.clear();
-            dataService.clear();
-            try {
-                dataService.run();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            initialize();*/
+            deviceUiMapperService.clear();
         });
 
         scanCurrentDeviceNetworkInterfaces();
@@ -142,6 +132,7 @@ public class MainController extends DataInjector {
     public void initCanvas(Canvas canvas) {
         GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawGrid(graphicsContext);
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(3);
         double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
@@ -328,12 +319,25 @@ public class MainController extends DataInjector {
         Double[] p1 = calculateSolution.apply(new Double[]{x1, y1}, false);
         Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
 
-        gc.setStroke(Color.BLACK);
+        gc.setStroke(Color.RED);
         gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
     }
 
     private void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class deviceClass) {
-        gc.drawImage(images.get(deviceClass), deviceUi.getX() - imageSize / 2, deviceUi.getY() - imageSize / 2, imageSize, imageSize);
+        if (deviceUi.getDevice() instanceof SelfDevice) {
+            int enlargedSize = (int)(imageSize * 1.5);
+            gc.drawImage(images.get(deviceClass),
+                    deviceUi.getX() - enlargedSize / 2,
+                    deviceUi.getY() - enlargedSize / 2,
+                    enlargedSize,
+                    enlargedSize);
+        } else {
+            gc.drawImage(images.get(deviceClass),
+                    deviceUi.getX() - imageSize / 2,
+                    deviceUi.getY() - imageSize / 2,
+                    imageSize,
+                    imageSize);
+        }
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
         gc.fillText(deviceUi.getDevice().getDeviceName(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 20);
@@ -352,6 +356,17 @@ public class MainController extends DataInjector {
             Gateway gateway = (Gateway) deviceUi.getDevice();
             gc.fillText(gateway.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
             gateway.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60));
+        }
+    }
+
+    private void drawGrid(GraphicsContext gc){
+        for(double percentage = 0.1; percentage <= 1.0; percentage += 0.1) {
+            double x = canvas.getWidth() * percentage;
+            double y = canvas.getHeight() * percentage;
+            gc.setStroke(Color.LIGHTGRAY);
+            gc.setLineWidth(1);
+            gc.strokeLine(x, 0, x, canvas.getHeight());
+            gc.strokeLine(0, y, canvas.getWidth(), y);
         }
     }
 

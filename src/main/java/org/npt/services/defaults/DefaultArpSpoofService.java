@@ -15,6 +15,7 @@ import org.pcap4j.packet.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DefaultArpSpoofService implements ArpSpoofService {
 
@@ -39,20 +40,13 @@ public class DefaultArpSpoofService implements ArpSpoofService {
     }
 
     @Override
-    public void stop(Target target, Gateway gateway) throws NotFoundException {
-        final String targetIp = target.findFirstIPv4()
-                .orElseThrow(() -> new NotFoundException("Target does not have a valid IPv4 address"));
-        final String gatewayIp = gateway.findFirstIPv4()
-                .orElseThrow(() -> new NotFoundException("Gateway does not have a valid IPv4 address"));
-        final String processName = generateProcessNameFrom(String.format(KEY_BUILDER, targetIp, gatewayIp));
-        final ArpSpoofProcess arpSpoofProcess = arpSpoofProcesses.stream()
-                .filter(process -> process.key().equals(processName))
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException("ArpSpoofProcess not found for target: " + targetIp + " and gateway: " + gatewayIp));
+    public void stop(ArpSpoofProcess arpSpoofProcess) {
         arpSpoofProcess.tasksThreads().forEach(pair -> {
             pair.getValue().destroy();
             pair.getKey().interrupt();
         });
+        arpSpoofProcess.packetSnifferThreadPair.getValue().stop();
+        arpSpoofProcess.packetSnifferThreadPair.getKey().interrupt();
     }
 
     @Override
@@ -99,7 +93,8 @@ public class DefaultArpSpoofService implements ArpSpoofService {
     }
 
     @Builder
-    public record ArpSpoofProcess(String key, Target target, Gateway gateway, Pair<Thread, DeviceSniffer> packetSnifferThreadPair,
+    public record ArpSpoofProcess(String key, Target target, Gateway gateway,
+                                  Pair<Thread, DeviceSniffer> packetSnifferThreadPair,
                                   List<Pair<Thread, Task>> tasksThreads) {
 
     }
@@ -134,7 +129,7 @@ public class DefaultArpSpoofService implements ArpSpoofService {
         private PcapHandle handle;
 
         @Getter
-        private final List<DefaultPacket> defaultPackets = Collections.synchronizedList(new ArrayList<>(4000));
+        private final List<DefaultPacket> defaultPackets = Collections.synchronizedList(new ArrayList<>(40000));
 
         private boolean running = true;
 
@@ -145,16 +140,17 @@ public class DefaultArpSpoofService implements ArpSpoofService {
 
         @Override
         public void run() {
-            sniff();
             try {
+                sniff();
                 while (running) {
                     Packet packet = handle.getNextPacket();
                     if (packet != null) {
                         processPacket(packet);
                     }
                 }
-            } catch (NotOpenException e) {
+            } catch (NotOpenException | PcapNativeException e) {
                 e.printStackTrace();
+                stop();
             }
         }
 
@@ -242,28 +238,21 @@ public class DefaultArpSpoofService implements ArpSpoofService {
             return payload.getClass().getSimpleName();
         }
 
-        public void sniff() {
-            try {
-                PcapNetworkInterface device = Pcaps.getDevByName(networkInterface);
-                if (device == null) {
-                    System.out.println("No device found for interface: " + networkInterface);
-                    return;
-                }
-
-                handle = device.openLive(65536, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
-                String filter = "ip src " + target.getIpAddresses().getFirst();
-                handle.setFilter(filter, BpfProgram.BpfCompileMode.NONOPTIMIZE);
-
-                System.out.println("Packet capture started on: " + networkInterface);
-            } catch (PcapNativeException | NotOpenException e) {
-                e.printStackTrace();
+        public void sniff() throws PcapNativeException, NotOpenException {
+            PcapNetworkInterface device = Pcaps.getDevByName(networkInterface);
+            if (device == null) {
+                return;
             }
+
+            handle = device.openLive(65536, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
+            final String ip = target.getIpAddresses().getFirst();
+            final String filter = "ip src " + ip + " or ip dst " + ip;
+            handle.setFilter(filter, BpfProgram.BpfCompileMode.NONOPTIMIZE);
         }
 
         public void stop() {
             if (handle != null && handle.isOpen()) {
                 handle.close();
-                System.out.println("Packet capture stopped.");
             }
             running = false;
         }

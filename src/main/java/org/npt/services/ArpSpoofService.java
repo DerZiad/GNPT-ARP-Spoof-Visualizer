@@ -9,40 +9,40 @@ import java.util.Optional;
 
 /**
  * Service interface for managing ARP spoofing processes.
- * This service allows starting and stopping ARP spoofing for target devices
- * and provides methods to retrieve the current ARP spoofing process.
+ * <p>
+ * Provides methods to start, stop, retrieve, and clear ARP spoofing operations
+ * for specified network targets and gateways.
  */
 public interface ArpSpoofService {
 
     /**
-     * Retrieves the ARP spoofing process for the given target.
+     * Retrieves the ARP spoofing process associated with the specified target.
      *
-     * @param target The target device.
-     * @return An Optional containing the ArpSpoofProcess if found, otherwise empty.
+     * @param target the target device
+     * @return an {@code Optional} containing the {@link DefaultArpSpoofService.ArpSpoofProcess} if it exists,
+     *         or an empty {@code Optional} if not found
      */
     Optional<DefaultArpSpoofService.ArpSpoofProcess> getArpSpoofProcess(Target target);
 
     /**
-     * Stops the ARP spoofing for the given target and gateway.
+     * Stops the specified ARP spoofing process.
      *
-     * @param target  The target device.
-     * @param gateway The gateway device.
-     * @throws NotFoundException if the target or gateway does not have a valid IPv4 address.
+     * @param arpSpoofProcess the spoofing process to stop
      */
-    void stop(Target target, Gateway gateway) throws NotFoundException;
+    void stop(DefaultArpSpoofService.ArpSpoofProcess arpSpoofProcess);
 
     /**
-     * Starts ARP spoofing for the given scan interface, target, and gateway.
+     * Starts an ARP spoofing process using the given interface, target, and gateway.
      *
-     * @param scanInterface The network interface to use for scanning.
-     * @param target        The target device.
-     * @param gateway       The gateway device.
-     * @throws NotFoundException if the target or gateway does not have a valid IPv4 address.
+     * @param scanInterface the network interface to use for spoofing
+     * @param target        the target device to spoof
+     * @param gateway       the gateway device to impersonate
+     * @throws NotFoundException if the target or gateway does not have a valid IPv4 address
      */
-    void spoof(final String scanInterface, final Target target, final Gateway gateway) throws NotFoundException;
+    void spoof(String scanInterface, Target target, Gateway gateway) throws NotFoundException;
 
     /**
-     * Clears all ARP spoofing processes and stops any ongoing tasks.
+     * Clears and stops all active ARP spoofing processes.
      */
     void clear();
 }

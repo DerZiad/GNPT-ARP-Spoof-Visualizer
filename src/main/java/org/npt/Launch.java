@@ -23,18 +23,7 @@ public class Launch extends Application {
     }
 
     public static void main(String[] args) {
-        boolean isHeadless = Boolean.getBoolean("headless");
-
-        if (!isHeadless) {
-            launch(args);
-            System.exit(0);
-        } else {
-            try {
-                DataService dataService = DefaultDataService.getInstance();
-                dataService.run();
-            } catch (Exception e) {
-                throw new RuntimeException("Headless data service failed", e);
-            }
-        }
+        launch(args);
+        System.exit(0);
     }
 }
