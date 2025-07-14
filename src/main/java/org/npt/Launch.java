@@ -27,6 +27,7 @@ public class Launch extends Application {
 
         if (!isHeadless) {
             launch(args);
+            System.exit(0);
         } else {
             try {
                 DataService dataService = DefaultDataService.getInstance();

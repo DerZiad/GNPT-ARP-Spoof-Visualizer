@@ -5,6 +5,7 @@ import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.image.Image;
@@ -13,14 +14,19 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
+import javafx.util.Pair;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
-import org.npt.exception.ShutdownException;
+import org.npt.exception.NotFoundException;
 import org.npt.models.DefaultPacket;
+import org.npt.models.Gateway;
 import org.npt.models.KnownHost;
 import org.npt.models.Target;
+import org.npt.models.ui.DeviceUI;
+import org.npt.models.ui.Frame;
 import org.npt.models.ui.IncomingOutgoingPacket;
 import org.npt.services.ArpSpoofService;
+import org.npt.services.GatewayService;
 import org.npt.services.GraphicalNetworkTracerFactory;
 import org.npt.services.defaults.DefaultArpSpoofService;
 
@@ -43,67 +49,66 @@ public class StatisticsController extends DataInjector {
     @FXML
     private VBox vboxPane;
 
+    @FXML
+    private Button returnToMainInterface;
+
     @Getter
     private Target target;
 
     private DefaultArpSpoofService.DeviceSniffer deviceSniffer;
-    private HashMap<String, KnownHost> knownHosts;
-
-    private GraphicalNetworkTracerFactory graphicalNetworkTracerFactory;
+    private static HashMap<String, KnownHost> knownHosts;
+    private static GraphicalNetworkTracerFactory graphicalNetworkTracerFactory;
+    private static GatewayService gatewayService;
+    private static ArpSpoofService arpSpoofService;
 
     @FXML
     public void initialize() {
         graphicalNetworkTracerFactory = GraphicalNetworkTracerFactory.getInstance();
+        gatewayService = graphicalNetworkTracerFactory.getGatewayService();
+        arpSpoofService = graphicalNetworkTracerFactory.getArpSpoofService();
         knownHosts = graphicalNetworkTracerFactory.getKnownHosts();
         this.target = (Target) super.getArgs()[0];
-        deviceSniffer = findDeviceSniffer(target);
-        if (deviceSniffer == null) {
-            // TODO handle correctly the error here
-            return;
-        } else {
-            deviceSniffer = findDeviceSniffer(target);
-        }
-
+        final DefaultArpSpoofService.ArpSpoofProcess arpSpoofProcess = findDeviceSniffer(target);
+        deviceSniffer = arpSpoofProcess.packetSnifferThreadPair().getValue();
+        returnToMainInterface.setOnAction(event -> {
+            FrameService frameService = FrameService.getInstance();
+            frameService.removeCurrentScene(Frame.createMainFrame().getKey());
+            arpSpoofProcess.packetSnifferThreadPair().getKey().interrupt();
+            try {
+                stop();
+            } catch (NotFoundException ignored) {
+            }
+        });
         startRepeatingUpdates();
     }
 
-    public DefaultArpSpoofService.DeviceSniffer findDeviceSniffer(Target target) {
+    public DefaultArpSpoofService.ArpSpoofProcess findDeviceSniffer(Target target) {
         ArpSpoofService arpSpoofService = GraphicalNetworkTracerFactory.getInstance().getArpSpoofService();
         Optional<DefaultArpSpoofService.ArpSpoofProcess> arpSpoofProcessOpt = arpSpoofService.getArpSpoofProcess(target);
-        return Objects.requireNonNull(arpSpoofProcessOpt.map(DefaultArpSpoofService.ArpSpoofProcess::packetSnifferThreadPair).orElse(null)).getValue();
+        return Objects.requireNonNull(arpSpoofProcessOpt).orElse(null);
     }
 
     private void startRepeatingUpdates() {
         Timeline refreshTimeline = new Timeline(
-                new KeyFrame(Duration.seconds(0), e -> {
-                    try {
-                        updateStatistics();
-                    } catch (ShutdownException ex) {
-                        ex.printStackTrace();
-                    }
-                }),
+                new KeyFrame(Duration.seconds(0), e -> updateStatistics()),
                 new KeyFrame(Duration.seconds(2))
         );
         refreshTimeline.setCycleCount(Timeline.INDEFINITE);
         refreshTimeline.play();
     }
 
-    private void updateStatistics() throws ShutdownException {
-        // UI updates MUST run on JavaFX Application Thread:
+    private void updateStatistics() {
         Platform.runLater(() -> {
             vboxPane.getChildren().clear();
             vboxPane1.getChildren().clear();
             vboxPane2.getChildren().clear();
-
             Map<String, IncomingOutgoingPacket> data = calculateNumberOfPackets();
-
             int counter = 0;
             int column = 0;
             for (String key : knownHosts.keySet()) {
                 IncomingOutgoingPacket incomingOutgoingPacket = data.get(key);
                 if (incomingOutgoingPacket != null) {
                     addToPane(incomingOutgoingPacket, column);
-
                     counter++;
                     if (counter >= MAX_ELEMENT_TO_DISPLAY_PER_PANE) {
                         column++;
@@ -116,11 +121,9 @@ public class StatisticsController extends DataInjector {
 
     private Map<String, IncomingOutgoingPacket> calculateNumberOfPackets() {
         Map<String, IncomingOutgoingPacket> numberDict = new HashMap<>();
-
         if (deviceSniffer == null || deviceSniffer.getDefaultPackets() == null) {
             return numberDict;
         }
-
         for (DefaultPacket defaultPacket : deviceSniffer.getDefaultPackets()) {
             for (String key : knownHosts.keySet()) {
                 KnownHost knownHost = knownHosts.get(key);
@@ -176,18 +179,25 @@ public class StatisticsController extends DataInjector {
         long totalPackets = incomingOutgoingPacket.getIncoming() + incomingOutgoingPacket.getOutgoing();
         double outgoingRatio = totalPackets > 0 ? (double) incomingOutgoingPacket.getOutgoing() / totalPackets : 0;
         double incomingRatio = totalPackets > 0 ? (double) incomingOutgoingPacket.getIncoming() / totalPackets : 0;
+        return getVBox(incomingRatio, outgoingRatio);
+    }
 
+    private static @NotNull VBox getVBox(double incomingRatio, double outgoingRatio) {
         Label incomingLabel = new Label("Incoming Packets");
         ProgressBar redProgress = new ProgressBar(incomingRatio);
         redProgress.setPrefWidth(300);
         redProgress.setStyle("-fx-accent: red;");
-
         Label outgoingLabel = new Label("Outgoing Packets");
         ProgressBar greenProgress = new ProgressBar(outgoingRatio);
         greenProgress.setPrefWidth(300);
         greenProgress.setStyle("-fx-accent: green;");
+        return new VBox(10, incomingLabel, redProgress, outgoingLabel, greenProgress);
+    }
 
-        VBox progressVBox = new VBox(10, incomingLabel, redProgress, outgoingLabel, greenProgress);
-        return progressVBox;
+    private void stop() throws NotFoundException {
+        Gateway gateway = gatewayService.findByTarget(target)
+                .orElseThrow(() -> new NotFoundException(
+                        "During search to stop spoofing, the target was not found in the gateways list, this may be due to the target not being connected to the same network as the gateway or disconnected from the network."));
+        arpSpoofService.stop(target, gateway);
     }
 }

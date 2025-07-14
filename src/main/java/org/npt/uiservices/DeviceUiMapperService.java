@@ -4,6 +4,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import lombok.Getter;
+import org.jetbrains.annotations.NotNull;
 import org.npt.controllers.FrameService;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
@@ -33,8 +34,6 @@ public class DeviceUiMapperService {
     private static final GatewayService gatewayService = graphicalNetworkTracerFactory.getGatewayService();
 
     private static final String START_SPOOFING_TEXT = "Start Spoofing";
-
-    private static final String STOP_SPOOFING_TEXT = "Stop Spoofing";
 
     private static final String SHOW_DETAILS_TEXT = "View Details";
 
@@ -99,31 +98,29 @@ public class DeviceUiMapperService {
         });
 
         if (deviceUI.getDevice() instanceof Target) {
-            MenuItem startSpoofingMenuItem = new MenuItem(START_SPOOFING_TEXT);
-            startSpoofingMenuItem.setOnAction(ignored -> {
-                try {
-                    if (startSpoofingMenuItem.getText().equals(START_SPOOFING_TEXT)) {
-                        spoof(deviceUI);
-                        startSpoofingMenuItem.setText(STOP_SPOOFING_TEXT);
-                        MenuItem menuItem = new MenuItem(SPY_TEXT);
-                        Frame statisticsFrame = Frame.createStatisticsDetails();
-                        statisticsFrame.setArgs(new Object[]{deviceUI.getDevice()});
-                        FrameService frameService = FrameService.getInstance();
-                        frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
-                        contextMenu.getItems().add(menuItem);
-                    } else {
-                        stop(deviceUI);
-                        startSpoofingMenuItem.setText(START_SPOOFING_TEXT);
-                        contextMenu.getItems().removeIf(menuItem -> menuItem.getText().equals(SPY_TEXT));
-                    }
-                    refreshAction.run();
-                } catch (NotFoundException ex) {
-                    ErrorHandler.handle(ex);
-                }
-            });
+            MenuItem startSpoofingMenuItem = getMenuItem(deviceUI, contextMenu);
             contextMenu.getItems().add(startSpoofingMenuItem);
         }
         contextMenu.getItems().addAll(detailsItem, removeItem);
+    }
+
+    private @NotNull MenuItem getMenuItem(DeviceUI deviceUI, ContextMenu contextMenu) {
+        MenuItem startSpoofingMenuItem = new MenuItem(START_SPOOFING_TEXT);
+        startSpoofingMenuItem.setOnAction(ignored -> {
+            try {
+                spoof(deviceUI);
+                MenuItem menuItem = new MenuItem(SPY_TEXT);
+                Frame statisticsFrame = Frame.createStatisticsDetails();
+                statisticsFrame.setArgs(new Object[]{deviceUI.getDevice()});
+                FrameService frameService = FrameService.getInstance();
+                frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
+                contextMenu.getItems().add(menuItem);
+                refreshAction.run();
+            } catch (NotFoundException ex) {
+                ErrorHandler.handle(ex);
+            }
+        });
+        return startSpoofingMenuItem;
     }
 
     private void spoof(DeviceUI deviceUI) throws NotFoundException {
@@ -132,14 +129,6 @@ public class DeviceUiMapperService {
                 .orElseThrow(() -> new NotFoundException("Couldn't spoof a target that it is not connected to the same Network"));
         String scanInterface = target.getNetworkInterface();
         arpSpoofService.spoof(scanInterface, target, gateway);
-    }
-
-    private void stop(DeviceUI deviceUI) throws NotFoundException {
-        Target target = (Target) deviceUI.getDevice();
-        Gateway gateway = gatewayService.findByTarget(target)
-                .orElseThrow(() -> new NotFoundException(
-                        "During search to stop spoofing, the target was not found in the gateways list, this may be due to the target not being connected to the same network as the gateway or disconnected from the network."));
-        arpSpoofService.stop(target, gateway);
     }
 
     public void showDetails(DeviceUI deviceUI) {
