@@ -1,21 +1,18 @@
 package org.npt.models;
 
-import javafx.scene.control.ContextMenu;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.jetbrains.annotations.NotNull;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
 @AllArgsConstructor
 @Data
 public abstract class Device implements Comparable<Device> {
 
     private String deviceName;
-    private double x;
-    private double y;
-    private ContextMenu contextMenu;
 
     @Override
     public int compareTo(@NotNull Device o) {

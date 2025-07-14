@@ -2,6 +2,7 @@ package org.npt.controllers;
 
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
@@ -12,63 +13,75 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
-import javafx.util.Pair;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.npt.exception.ShutdownException;
 import org.npt.models.DefaultPacket;
 import org.npt.models.KnownHost;
 import org.npt.models.Target;
-import org.npt.networkservices.ArpSpoofStarter;
-import org.npt.networkservices.PacketSniffer;
-import org.npt.services.KnownHostService;
-import org.npt.services.ResourceLoader;
+import org.npt.models.ui.IncomingOutgoingPacket;
+import org.npt.services.ArpSpoofService;
+import org.npt.services.GraphicalNetworkTracerFactory;
+import org.npt.services.defaults.DefaultArpSpoofService;
 
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-class IncomingOutgoingPacket {
+public class StatisticsController extends DataInjector {
 
-    private Long incoming;
-    private Long outgoing;
-}
+    private static final Integer MAX_ELEMENT_TO_DISPLAY_PER_PANE = 10;
 
-public class StatisticsController {
+    @FXML
+    private VBox vboxPane2;
 
-    public VBox vboxPane2;
-    public VBox vboxPane1;
+    @FXML
+    private VBox vboxPane1;
+
     @FXML
     private VBox vboxPane;
 
     @Getter
     private Target target;
 
-    private Timeline refreshTimeline;
+    private DefaultArpSpoofService.DeviceSniffer deviceSniffer;
+    private HashMap<String, KnownHost> knownHosts;
 
-    private PacketSniffer packetSniffer;
+    private GraphicalNetworkTracerFactory graphicalNetworkTracerFactory;
 
     @FXML
     public void initialize() {
-        ArpSpoofStarter arpSpoofStarter = ArpSpoofStarter.getInstance();
-        Optional<PacketSniffer> optionalPacketSniffer = arpSpoofStarter.getPacketSnifferByTarget(target);
-        packetSniffer = optionalPacketSniffer.get();
-        startRepeatingUpdates();
+        graphicalNetworkTracerFactory = GraphicalNetworkTracerFactory.getInstance();
+        knownHosts = graphicalNetworkTracerFactory.getKnownHosts();
 
+        // Initialize target from injected args, make sure it's saved to this.target
+        this.target = (Target) super.getArgs()[0];
+
+        deviceSniffer = findDeviceSniffer(target);
+        if (deviceSniffer == null) {
+            System.err.println("DeviceSniffer not found for target: " + target);
+            return;
+        } else {
+            deviceSniffer = findDeviceSniffer(target);
+        }
+
+        startRepeatingUpdates();
+    }
+
+    public DefaultArpSpoofService.DeviceSniffer findDeviceSniffer(Target target) {
+        ArpSpoofService arpSpoofService = GraphicalNetworkTracerFactory.getInstance().getArpSpoofService();
+        Optional<DefaultArpSpoofService.ArpSpoofProcess> arpSpoofProcessOpt = arpSpoofService.getArpSpoofProcess(target);
+        return Objects.requireNonNull(arpSpoofProcessOpt.map(DefaultArpSpoofService.ArpSpoofProcess::packetSnifferThreadPair).orElse(null)).getValue();
     }
 
     private void startRepeatingUpdates() {
-        refreshTimeline = new Timeline(
+        Timeline refreshTimeline = new Timeline(
                 new KeyFrame(Duration.seconds(0), e -> {
                     try {
                         updateStatistics();
                     } catch (ShutdownException ex) {
-                        throw new RuntimeException(ex);
+                        ex.printStackTrace();
                     }
                 }),
                 new KeyFrame(Duration.seconds(2))
@@ -78,73 +91,103 @@ public class StatisticsController {
     }
 
     private void updateStatistics() throws ShutdownException {
+        // UI updates MUST run on JavaFX Application Thread:
+        Platform.runLater(() -> {
+            vboxPane.getChildren().clear();
+            vboxPane1.getChildren().clear();
+            vboxPane2.getChildren().clear();
 
-        vboxPane.getChildren().clear(); // Optional: to avoid duplicate rows
+            Map<String, IncomingOutgoingPacket> data = calculateNumberOfPackets();
 
-        KnownHostService knownHostService = KnownHostService.getInstance();
-        HashMap<String, KnownHost> knownHosts = knownHostService.getKnownHosts();
-        ResourceLoader resourceLoader = ResourceLoader.getInstance();
+            int counter = 0;
+            int column = 0;
+            for (String key : knownHosts.keySet()) {
+                IncomingOutgoingPacket incomingOutgoingPacket = data.get(key);
+                if (incomingOutgoingPacket != null) {
+                    addToPane(incomingOutgoingPacket, column);
 
-        HashMap<String, IncomingOutgoingPacket> data = calculateNumberOfPackets();
-
-        for (String key:knownHosts.keySet()){
-            IncomingOutgoingPacket incomingOutgoingPacket = data.get(key);
-            if(incomingOutgoingPacket != null){
-                KnownHost knownHost = knownHosts.get(key);
-                InputStream is = resourceLoader.getResource(knownHost.getIconPath());
-                ImageView icon = new ImageView(new Image(is));
-                icon.setFitHeight(92);
-                icon.setFitWidth(93);
-                icon.setPreserveRatio(true);
-                double outgoingRatio = (double) incomingOutgoingPacket.getOutgoing() / packetSniffer.getDefaultPackets().size();
-                double incomingRatio = (double) incomingOutgoingPacket.getIncoming() / packetSniffer.getDefaultPackets().size();
-                Label incomingLabel = new Label("Incoming Packets");
-                ProgressBar redProgress = new ProgressBar(incomingRatio);
-                redProgress.setPrefWidth(300);
-                redProgress.setStyle("-fx-accent: red;");
-
-                Label outgoingLabel = new Label("Outgoing Packets");
-                ProgressBar greenProgress = new ProgressBar(outgoingRatio);
-                greenProgress.setPrefWidth(300);
-                greenProgress.setStyle("-fx-accent: green;");
-
-                VBox progressVBox = new VBox(10, incomingLabel, redProgress, outgoingLabel, greenProgress);
-                HBox.setHgrow(progressVBox, Priority.ALWAYS);
-
-                HBox rowBox = new HBox(10, icon, progressVBox);
-                rowBox.setAlignment(Pos.CENTER_LEFT);
-                rowBox.setPrefHeight(100);
-                rowBox.setPrefWidth(400);
-                rowBox.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 5; -fx-padding: 10;");
-
-                vboxPane.getChildren().add(rowBox);
+                    counter++;
+                    if (counter >= MAX_ELEMENT_TO_DISPLAY_PER_PANE) {
+                        column++;
+                        counter = 0;
+                    }
+                }
             }
-        }
+        });
     }
 
-    public HashMap<String, IncomingOutgoingPacket> calculateNumberOfPackets() throws ShutdownException {
-        KnownHostService knownHostService = KnownHostService.getInstance();
-        HashMap<String, KnownHost> knownHosts = knownHostService.getKnownHosts();
-        HashMap<String, IncomingOutgoingPacket> numberDict = new HashMap<>();
+    private Map<String, IncomingOutgoingPacket> calculateNumberOfPackets() {
+        Map<String, IncomingOutgoingPacket> numberDict = new HashMap<>();
 
-        for (DefaultPacket defaultPacket:packetSniffer.getDefaultPackets()){
-            for (String key:knownHosts.keySet()){
+        // Defensive: if deviceSniffer or packets null, return empty map
+        if (deviceSniffer == null || deviceSniffer.getDefaultPackets() == null) {
+            return numberDict;
+        }
+
+        for (DefaultPacket defaultPacket : deviceSniffer.getDefaultPackets()) {
+            for (String key : knownHosts.keySet()) {
                 KnownHost knownHost = knownHosts.get(key);
-                IncomingOutgoingPacket numbers = numberDict.getOrDefault(key,new IncomingOutgoingPacket(0L, 0L));
                 String src = defaultPacket.getSrcIp();
                 String dst = defaultPacket.getDstIp();
-                if(knownHost.containsIp(src)){
-                    numbers.setIncoming(numbers.getIncoming() + 1);
-                }
-                if(knownHost.containsIp(dst)){
-                    numbers.setOutgoing(numbers.getOutgoing() + 1);
+                if (knownHost.containsIp(src) || knownHost.containsIp(dst)) {
+                    IncomingOutgoingPacket numbers = numberDict.get(key);
+                    if (numbers == null) {
+                        numbers = new IncomingOutgoingPacket(0L, 0L, knownHost);
+                    }
+                    // increment incoming if src belongs to knownHost
+                    if (knownHost.containsIp(src)) {
+                        numbers.setIncoming(numbers.getIncoming() + 1);
+                    }
+                    // increment outgoing if dst belongs to knownHost
+                    if (knownHost.containsIp(dst)) {
+                        numbers.setOutgoing(numbers.getOutgoing() + 1);
+                    }
+                    numberDict.put(key, numbers);
                 }
             }
         }
         return numberDict;
     }
 
-    public void setData(Target target) {
-        this.target = target;
+    private void addToPane(IncomingOutgoingPacket incomingOutgoingPacket, int paneColumn) {
+        VBox vBox;
+        if (paneColumn == 0) {
+            vBox = vboxPane;
+        } else if (paneColumn == 1) {
+            vBox = vboxPane1;
+        } else {
+            vBox = vboxPane2;
+        }
+
+        InputStream is = graphicalNetworkTracerFactory.getResource(incomingOutgoingPacket.getKnownHost().getIconPath());
+        ImageView icon = new ImageView(new Image(is));
+        icon.setFitHeight(92);
+        icon.setFitWidth(93);
+        icon.setPreserveRatio(true);
+
+        int totalPackets = deviceSniffer.getDefaultPackets().size();
+        double outgoingRatio = totalPackets > 0 ? (double) incomingOutgoingPacket.getOutgoing() / totalPackets : 0;
+        double incomingRatio = totalPackets > 0 ? (double) incomingOutgoingPacket.getIncoming() / totalPackets : 0;
+
+        Label incomingLabel = new Label("Incoming Packets");
+        ProgressBar redProgress = new ProgressBar(incomingRatio);
+        redProgress.setPrefWidth(300);
+        redProgress.setStyle("-fx-accent: red;");
+
+        Label outgoingLabel = new Label("Outgoing Packets");
+        ProgressBar greenProgress = new ProgressBar(outgoingRatio);
+        greenProgress.setPrefWidth(300);
+        greenProgress.setStyle("-fx-accent: green;");
+
+        VBox progressVBox = new VBox(10, incomingLabel, redProgress, outgoingLabel, greenProgress);
+        HBox.setHgrow(progressVBox, Priority.ALWAYS);
+
+        HBox rowBox = new HBox(10, icon, progressVBox);
+        rowBox.setAlignment(Pos.CENTER_LEFT);
+        rowBox.setPrefHeight(100);
+        rowBox.setPrefWidth(400);
+        rowBox.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 5; -fx-padding: 10;");
+
+        vBox.getChildren().add(rowBox);
     }
 }

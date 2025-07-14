@@ -1,13 +1,14 @@
 package org.npt.exception;
 
-import lombok.NoArgsConstructor;
+import lombok.Getter;
 
 import java.util.HashMap;
 
-@NoArgsConstructor
+
 public class InvalidInputException extends Exception {
 
-    private HashMap<String, String> errors;
+    @Getter
+    private final HashMap<String, String> errors;
 
     public InvalidInputException(String message, HashMap<String, String> errors) {
         super(message);

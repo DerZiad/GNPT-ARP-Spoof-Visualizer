@@ -1,11 +1,10 @@
 package org.npt.models;
 
-import javafx.scene.control.ContextMenu;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.util.List;
 import java.util.Optional;
+
+import lombok.Getter;
+import lombok.Setter;
 
 public class SelfDevice extends Device {
 
@@ -21,8 +20,8 @@ public class SelfDevice extends Device {
     @Setter
     private List<IpAddress> ipAddresses;
 
-    public SelfDevice(String deviceName, List<IpAddress> ipAddresses, double x, double y, ContextMenu contextMenu, List<Gateway> nextGateways) {
-        super(deviceName, x, y, contextMenu);
+    public SelfDevice(String deviceName, List<IpAddress> ipAddresses, List<Gateway> nextGateways) {
+        super(deviceName);
         this.nextGateways = nextGateways;
         this.ipAddresses = ipAddresses;
     }

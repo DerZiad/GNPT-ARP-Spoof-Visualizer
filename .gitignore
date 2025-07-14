@@ -36,3 +36,7 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Java FX Folder ###
+javafx
+javafx-sdk.zip

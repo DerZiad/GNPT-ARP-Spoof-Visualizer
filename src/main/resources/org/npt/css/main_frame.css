@@ -1,0 +1,125 @@
+/* =========================
+   Wrapper HBox
+   ========================= */
+.form-wrapper {
+    -fx-padding: 20px;
+    -fx-background-color: #f4f7fa;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 10, 0.2, 0, 4);
+}
+
+/* =========================
+   VBox container
+   ========================= */
+.form-container {
+    -fx-spacing: 15px;
+}
+
+/* =========================
+   Each row
+   ========================= */
+.form-row {
+    -fx-spacing: 15px;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.form-row.center {
+    -fx-alignment: center;
+}
+
+/* =========================
+   Label styling
+   ========================= */
+.form-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #333333;
+    -fx-min-width: 140px;
+}
+
+/* =========================
+   TextField styling
+   ========================= */
+.form-field {
+    -fx-pref-width: 300px;
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 6px;
+}
+
+/* =========================
+   Button styling
+   ========================= */
+.form-button {
+    -fx-background-color: #4a90e2;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 8px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+}
+
+.form-button:hover {
+    -fx-background-color: #357ab8;
+}
+
+/* =========================
+   MenuBar styling
+   ========================= */
+.menu-bar {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cccccc;
+    -fx-border-width: 1px;
+    -fx-text-fill: #333333;
+}
+
+/* =========================
+   Menu items
+   ========================= */
+.menu {
+    -fx-background-color: #f0f0f0;
+    -fx-text-fill: #333333;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+.menu:hover {
+    -fx-background-color: #dcdcdc;
+}
+
+/* =========================
+   Submenus
+   ========================= */
+.menu .menu-item {
+    -fx-background-color: #f0f0f0;
+    -fx-text-fill: #333333;
+}
+
+.menu .menu-item:hover {
+    -fx-background-color: #dcdcdc;
+}
+
+/* =========================
+   Separator item
+   ========================= */
+.separator-menu-item {
+    -fx-background-color: #eeeeee;
+    -fx-pref-width: 1px;
+}
+
+/* =========================
+   Menu item font
+   ========================= */
+.menu-bar .menu-item {
+    -fx-font-family: "Arial";
+}
+
+/* =========================
+   Focused MenuBar
+   ========================= */
+.menu-bar:focused {
+    -fx-border-color: #4CAF50;
+}

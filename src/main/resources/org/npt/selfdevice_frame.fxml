@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.AnchorPane?>
+<AnchorPane prefHeight="595.0" prefWidth="730.0"
+            stylesheets="@/org/npt/css/details_frame.css"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1">
+   <Label layoutX="51.0" layoutY="54.0" prefHeight="21.0" prefWidth="224.0" styleClass="form-label" text="Device Name                     :" />
+   <TextField fx:id="deviceNameField" layoutX="339.0" layoutY="45.0" prefHeight="38.0" prefWidth="341.0" styleClass="form-textfield" />
+
+   <TableView fx:id="ipTable" layoutX="51.0" layoutY="137.0" prefHeight="127.0" prefWidth="628.0" styleClass="info-table">
+      <columns>
+         <TableColumn fx:id="ipColumn" prefWidth="300.0" text="IP" />
+         <TableColumn fx:id="typeColumn" prefWidth="316.0" text="Type" />
+         <TableColumn fx:id="networkInterface" prefWidth="316.0" text="Type" />
+      </columns>
+   </TableView>
+   <Label layoutX="51.0" layoutY="298.0" prefHeight="21.0" prefWidth="213.0" styleClass="form-label" text="Next Devices :" />
+   <TableView fx:id="nextDevicesTable" layoutX="51.0" layoutY="357.0" prefHeight="127.0" prefWidth="628.0" styleClass="info-table">
+      <columns>
+         <TableColumn fx:id="ipColumn1" prefWidth="300.0" text="IP" />
+         <TableColumn fx:id="typeColumn1" prefWidth="316.0" text="Type" />
+      </columns>
+   </TableView>
+   <Button fx:id="saveButton" layoutX="51.0" layoutY="519.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="628.0" styleClass="btn-success" text="Save" />
+</AnchorPane>
