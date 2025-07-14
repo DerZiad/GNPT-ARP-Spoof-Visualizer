@@ -1,6 +1,7 @@
 package org.npt.models.ui;
 
 import org.npt.controllers.MainController;
+import org.npt.controllers.StatisticsController;
 import org.npt.controllers.viewdetails.GatewayDetailsController;
 import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
 import org.npt.controllers.viewdetails.TargetDetailsController;
@@ -74,7 +75,7 @@ public class Frame {
                 "showDetailsFrame",
                 "Show Details",
                 PREFIX + "/showdetails_frame.fxml",
-                MainController.class,
+                StatisticsController.class,
                 new Object[]{},
                 new Size(1054,674)
         );

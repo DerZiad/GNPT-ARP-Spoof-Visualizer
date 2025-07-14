@@ -107,7 +107,10 @@ public class DeviceUiMapperService {
                         spoof(deviceUI);
                         startSpoofingMenuItem.setText(STOP_SPOOFING_TEXT);
                         MenuItem menuItem = new MenuItem(SPY_TEXT);
-                        // TODO switch to Statistic Scene menuItem.setOnAction(ignored -> Launch.StageSwitcher.switchTo(View.STATISTICS_DETAILS_VIEW.FXML_FILE, View.STATISTICS_DETAILS_VIEW.WIDTH, View.STATISTICS_DETAILS_VIEW.HEIGHT, View.STATISTICS_DETAILS_VIEW.INTERFACE_TITLE, target));
+                        Frame statisticsFrame = Frame.createStatisticsDetails();
+                        statisticsFrame.setArgs(new Object[]{deviceUI.getDevice()});
+                        FrameService frameService = FrameService.getInstance();
+                        frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
                         contextMenu.getItems().add(menuItem);
                     } else {
                         stop(deviceUI);
@@ -146,17 +149,17 @@ public class DeviceUiMapperService {
             case Target target -> {
                 Frame detailsFrame = Frame.createTargetView();
                 detailsFrame.setArgs(new Object[]{target, refreshAction});
-                frameService.createNewStage(detailsFrame, false);
+                frameService.createNewStage(detailsFrame, true);
             }
             case SelfDevice selfDevice -> {
                 Frame detailsFrame = Frame.createSelfDetails();
                 detailsFrame.setArgs(new Object[]{selfDevice, refreshAction});
-                frameService.createNewStage(detailsFrame, false);
+                frameService.createNewStage(detailsFrame, true);
             }
             case Gateway gateway -> {
                 Frame detailsFrame = Frame.createGatewayDetails();
                 detailsFrame.setArgs(new Object[]{gateway, refreshAction});
-                frameService.createNewStage(detailsFrame, false);
+                frameService.createNewStage(detailsFrame, true);
             }
             default -> {
                 // ignored

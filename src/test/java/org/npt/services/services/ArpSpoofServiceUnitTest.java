@@ -1,16 +1,17 @@
-/*package org.npt.services.defaults;
+package org.npt.services.services;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.npt.exception.NotFoundException;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
 import org.npt.services.GraphicalNetworkTracerFactory;
+import org.npt.services.defaults.DefaultArpSpoofService;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,11 +19,11 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@Disabled
 @ExtendWith(MockitoExtension.class)
-class DefaultArpSpoofServiceTest {
+class ArpSpoofServiceUnitTest {
 
     private DefaultArpSpoofService service;
     private Target mockTarget;
@@ -54,7 +55,7 @@ class DefaultArpSpoofServiceTest {
     }
 
     @Test
-    void testSpoofHappyPath() throws NotFoundException {
+    void testSpoofHappyPath() throws NotFoundException, IOException {
         // Mock target and gateway responses
         when(mockTarget.findFirstIPv4()).thenReturn(Optional.of("192.168.1.100"));
         when(mockGateway.findFirstIPv4()).thenReturn(Optional.of("192.168.1.1"));
@@ -134,7 +135,7 @@ class DefaultArpSpoofServiceTest {
     }
 
     @Test
-    void testClearAllProcesses() throws NotFoundException {
+    void testClearAllProcesses() throws NotFoundException, IOException {
         // Mock target and gateway responses
         when(mockTarget.findFirstIPv4()).thenReturn(Optional.of("192.168.1.100"));
         when(mockGateway.findFirstIPv4()).thenReturn(Optional.of("192.168.1.1"));
@@ -166,14 +167,4 @@ class DefaultArpSpoofServiceTest {
             assertTrue(service.getArpSpoofProcesses().isEmpty());
         }
     }
-
-    @Test
-    void testGenerateProcessNameFrom() {
-        DefaultArpSpoofService service = new DefaultArpSpoofService();
-        String input = "Target : 192.168.1.100 , Gateway : 192.168.1.1";
-        String result = service.generateProcessNameFrom(input);
-
-        assertNotNull(result, "Should generate a hash");
-        assertEquals(32, result.length(), "MD5 hash should be 32 characters long");
-    }
-}*/
+}
