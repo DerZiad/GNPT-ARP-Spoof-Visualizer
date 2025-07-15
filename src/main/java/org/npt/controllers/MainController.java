@@ -69,7 +69,7 @@ public class MainController extends DataInjector {
 
     @FXML
     public void initialize() {
-        deviceUiMapperService = new DeviceUiMapperService(() -> initCanvas(canvas));
+        deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices);
 
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
         images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));
@@ -80,13 +80,13 @@ public class MainController extends DataInjector {
         borderPane.setMinSize(0, 0);
 
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
-            initCanvas(canvas);
-            centerSelfDevice();
+            drawNetwork(canvas);
+            calculateRootDevicePosition();
             calculateGatewaysPosition();
         });
         canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
-            initCanvas(canvas);
-            centerSelfDevice();
+            drawNetwork(canvas);
+            calculateRootDevicePosition();
             calculateGatewaysPosition();
         });
 
@@ -99,18 +99,19 @@ public class MainController extends DataInjector {
             this.deviceName.setText("");
         });
 
-        newMenu.setOnAction(ignored -> {
-            deviceUiMapperService.clear();
-        });
-
-        scanCurrentDeviceNetworkInterfaces();
-        centerSelfDevice();
-        calculateGatewaysPosition();
+        newMenu.setOnAction(ignored -> deviceUiMapperService.clear());
         setupMouseEvents();
-        initCanvas(canvas);
+        initDevices();
     }
 
-    private void scanCurrentDeviceNetworkInterfaces() {
+    private void initDevices() {
+        initFormFieldInterfacesComboBox();
+        calculateRootDevicePosition();
+        calculateGatewaysPosition();
+        drawNetwork(canvas);
+    }
+
+    private void initFormFieldInterfacesComboBox() {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface networkInterface : Collections.list(interfaces)) {
@@ -126,31 +127,6 @@ public class MainController extends DataInjector {
             }
         } catch (SocketException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    public void initCanvas(Canvas canvas) {
-        GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
-        graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawGrid(graphicsContext);
-        graphicsContext.setStroke(Color.BLACK);
-        graphicsContext.setLineWidth(3);
-        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-        draw(graphicsContext, selfDevice, imageSize, SelfDevice.class);
-        List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
-
-        for (DeviceUI gateway : gateways) {
-            draw(graphicsContext, gateway, imageSize, Gateway.class);
-            drawConnection(graphicsContext, gateway, selfDevice);
-            Gateway gatewayData = (Gateway) gateway.getDevice();
-            List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class).stream()
-                    .filter(deviceUi -> gatewayData.getDevices().contains((Target) deviceUi.getDevice()))
-                    .toList();
-            for (DeviceUI target : targets) {
-                draw(graphicsContext, target, imageSize, Target.class);
-                drawConnection(graphicsContext, gateway, target);
-            }
         }
     }
 
@@ -177,18 +153,18 @@ public class MainController extends DataInjector {
         }
     }
 
-    private void centerSelfDevice() {
+    private void calculateRootDevicePosition() {
         DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         selfDevice.setX(canvas.getWidth() / 2);
         selfDevice.setY(canvas.getHeight() / 2);
 
         canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setX(canvas.getWidth() / 2);
-            initCanvas(canvas);
+            drawNetwork(canvas);
         });
         canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
             selfDevice.setY(newVal.doubleValue() / 2);
-            initCanvas(canvas);
+            drawNetwork(canvas);
         });
     }
 
@@ -249,9 +225,7 @@ public class MainController extends DataInjector {
                 selfDevice.setX(dx);
                 selfDevice.setY(dy);
                 PauseTransition pause = new PauseTransition(Duration.millis(10));
-                pause.setOnFinished(e -> {
-                    initCanvas(canvas);
-                });
+                pause.setOnFinished(e -> drawNetwork(canvas));
                 pause.play();
             } else if (draggedDevice != null) {
                 double dx = event.getX() - dragOffsetX;
@@ -261,9 +235,7 @@ public class MainController extends DataInjector {
                 draggedDevice.setX(dx);
                 draggedDevice.setY(dy);
                 PauseTransition pause = new PauseTransition(Duration.millis(10));
-                pause.setOnFinished(e -> {
-                    initCanvas(canvas);
-                });
+                pause.setOnFinished(e -> drawNetwork(canvas));
                 pause.play();
             }
         };
@@ -273,6 +245,31 @@ public class MainController extends DataInjector {
             draggedDevice = null;
             draggingRouter = false;
         });
+    }
+
+    public void drawNetwork(Canvas canvas) {
+        GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
+        graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawGrid(graphicsContext);
+        graphicsContext.setStroke(Color.BLACK);
+        graphicsContext.setLineWidth(3);
+        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+        draw(graphicsContext, selfDevice, imageSize, SelfDevice.class);
+        List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
+
+        for (DeviceUI gateway : gateways) {
+            draw(graphicsContext, gateway, imageSize, Gateway.class);
+            drawConnection(graphicsContext, gateway, selfDevice);
+            Gateway gatewayData = (Gateway) gateway.getDevice();
+            List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class).stream()
+                    .filter(deviceUi -> gatewayData.getDevices().contains((Target) deviceUi.getDevice()))
+                    .toList();
+            for (DeviceUI target : targets) {
+                draw(graphicsContext, target, imageSize, Target.class);
+                drawConnection(graphicsContext, gateway, target);
+            }
+        }
     }
 
     private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
@@ -323,12 +320,12 @@ public class MainController extends DataInjector {
         gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
     }
 
-    private void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class deviceClass) {
+    private <T> void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class<T> deviceClass) {
         if (deviceUi.getDevice() instanceof SelfDevice) {
             int enlargedSize = (int) (imageSize * 1.5);
             gc.drawImage(images.get(deviceClass),
-                    deviceUi.getX() - enlargedSize / 2,
-                    deviceUi.getY() - enlargedSize / 2,
+                    deviceUi.getX() - (double) enlargedSize / 2,
+                    deviceUi.getY() - (double) enlargedSize / 2,
                     enlargedSize,
                     enlargedSize);
         } else {

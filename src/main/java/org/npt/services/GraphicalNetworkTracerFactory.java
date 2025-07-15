@@ -32,7 +32,7 @@ public interface GraphicalNetworkTracerFactory {
      * Returns a map of known hosts in the network.
      *
      * @return A {@link HashMap} where the key is the host identifier (e.g., IP or MAC address),
-     *         and the value is a {@link KnownHost} instance.
+     * and the value is a {@link KnownHost} instance.
      */
     HashMap<String, KnownHost> getKnownHosts();
 
