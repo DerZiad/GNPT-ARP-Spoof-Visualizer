@@ -38,16 +38,6 @@ public class DefaultGraphicalNetworkTracerFactory implements GraphicalNetworkTra
     }
 
     @Override
-    public TargetService getTargetService() {
-        return DefaultTargetService.getInstance();
-    }
-
-    @Override
-    public GatewayService getGatewayService() {
-        return DefaultGatewayService.getInstance();
-    }
-
-    @Override
     public InputStream getResource(String name) {
         String resourcePath = String.format(PATH, name);
         return this.getClass().getResourceAsStream(resourcePath);

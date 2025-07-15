@@ -172,7 +172,7 @@ public class DefaultArpSpoofService implements ArpSpoofService {
                 srcIp = ipv4.getHeader().getSrcAddr().getHostAddress();
                 dstIp = ipv4.getHeader().getDstAddr().getHostAddress();
                 Packet payload = ipv4.getPayload();
-                type = getPayloadType(payload, dstIp);
+                type = getPayloadType(payload);
             }
 
             IpV6Packet ipv6 = packet.get(IpV6Packet.class);
@@ -180,7 +180,7 @@ public class DefaultArpSpoofService implements ArpSpoofService {
                 srcIp = ipv6.getHeader().getSrcAddr().getHostAddress();
                 dstIp = ipv6.getHeader().getDstAddr().getHostAddress();
                 Packet payload = ipv6.getPayload();
-                type = getPayloadType(payload, dstIp);
+                type = getPayloadType(payload);
             }
 
             // Fallback to Ethernet
@@ -204,7 +204,7 @@ public class DefaultArpSpoofService implements ArpSpoofService {
             defaultPackets.add(defaultPacket);
         }
 
-        private String getPayloadType(Packet payload, String dstIp) {
+        private String getPayloadType(Packet payload) {
             switch (payload) {
                 case null -> {
                     return "UNKNOWN";
