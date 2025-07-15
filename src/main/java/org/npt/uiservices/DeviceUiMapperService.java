@@ -13,7 +13,9 @@ import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 import org.npt.models.ui.DeviceUI;
 import org.npt.models.ui.Frame;
-import org.npt.services.*;
+import org.npt.services.ArpSpoofService;
+import org.npt.services.DataService;
+import org.npt.services.GraphicalNetworkTracerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,15 +40,17 @@ public class DeviceUiMapperService {
     private static final String SPY_TEXT = "Spy";
 
     private final Runnable refreshAction;
+    private final Runnable hardRefreshAction;
 
     @Getter
-    private final DeviceUI selfDevice;
+    private DeviceUI selfDevice;
 
     @Getter
     private final List<DeviceUI> devices = new ArrayList<>();
 
-    public DeviceUiMapperService(Runnable refreshAction) {
+    public DeviceUiMapperService(Runnable refreshAction, Runnable hardRefreshAction) {
         this.refreshAction = refreshAction;
+        this.hardRefreshAction = hardRefreshAction;
         selfDevice = new DeviceUI(dataService.getSelfDevice());
         initMenu(selfDevice);
         dataService.getDevices().forEach(device -> {
@@ -85,10 +89,18 @@ public class DeviceUiMapperService {
     @SneakyThrows
     public void clear() {
         devices.clear();
+        selfDevice = null;
         dataService.clear();
         arpSpoofService.clear();
         dataService.run();
-        refreshAction.run();
+        selfDevice = new DeviceUI(dataService.getSelfDevice());
+        initMenu(selfDevice);
+        dataService.getDevices().forEach(device -> {
+            DeviceUI deviceUI = new DeviceUI(device);
+            initMenu(deviceUI);
+            devices.add(deviceUI);
+        });
+        hardRefreshAction.run();
     }
 
     // Privates functions
