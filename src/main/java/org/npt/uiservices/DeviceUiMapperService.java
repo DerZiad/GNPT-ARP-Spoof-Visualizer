@@ -2,7 +2,9 @@ package org.npt.uiservices;
 
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.npt.controllers.FrameService;
@@ -48,9 +50,19 @@ public class DeviceUiMapperService {
     @Getter
     private final List<DeviceUI> devices = new ArrayList<>();
 
-    public DeviceUiMapperService(Runnable refreshAction, Runnable hardRefreshAction) {
+    @Getter
+    @Setter
+    private double actualWidth;
+
+    @Getter
+    @Setter
+    private double actualHeight;
+
+    public DeviceUiMapperService(Runnable refreshAction, Runnable hardRefreshAction, double actualWidth, double actualHeight) {
         this.refreshAction = refreshAction;
         this.hardRefreshAction = hardRefreshAction;
+        this.actualHeight = actualHeight;
+        this.actualWidth = actualWidth;
         selfDevice = new DeviceUI(dataService.getSelfDevice());
         initMenu(selfDevice);
         dataService.getDevices().forEach(device -> {

@@ -53,23 +53,26 @@ public class MainController extends DataInjector {
     public VBox vboxPane;
 
     @FXML
-    private Canvas canvas;
+    public Canvas canvas;
 
     @FXML
-    private MenuButton menuButton;
+    public MenuButton menuButton;
 
     @FXML
-    private BorderPane borderPane;
+    public BorderPane borderPane;
 
     @FXML
     public MenuItem newMenu;
+
+    @FXML
+    public MenuItem refresh;
 
     @FXML
     public MenuItem aboutGnptMenu;
 
     @FXML
     public void initialize() {
-        deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices);
+        deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices, canvas.getWidth(), canvas.getHeight());
         deviceUiMapperService.addTarget("192.168.178.46", "eth0", "My Test Device");
 
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
@@ -81,14 +84,16 @@ public class MainController extends DataInjector {
         borderPane.setMinSize(0, 0);
 
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
-            drawNetwork(canvas);
+            resizeTargetsPositionAfterChangeEvent();
             calculateRootDevicePosition();
             calculateGatewaysPosition();
+            drawNetwork(canvas);
         });
         canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
-            drawNetwork(canvas);
+            resizeTargetsPositionAfterChangeEvent();
             calculateRootDevicePosition();
             calculateGatewaysPosition();
+            drawNetwork(canvas);
         });
 
         addDevice.setOnAction(ignored -> {
@@ -100,7 +105,16 @@ public class MainController extends DataInjector {
             this.deviceName.setText("");
         });
 
-        newMenu.setOnAction(ignored -> deviceUiMapperService.clear());
+        newMenu.setOnAction(ignored -> {
+            menuButton.getItems().clear();
+            deviceUiMapperService.clear();
+        });
+
+        refresh.setOnAction(e -> {
+            menuButton.getItems().clear();
+            initDevices();
+            // TODO must be fixed after removing of the IPV6 addresses
+        });
         setupMouseEvents();
         initDevices();
     }
@@ -127,11 +141,12 @@ public class MainController extends DataInjector {
                 menuButton.setText(interfaceFound);
             }
         } catch (SocketException e) {
+            // TODO Exception handling
             throw new RuntimeException(e);
         }
     }
 
-    public void calculateGatewaysPosition() {
+    private void calculateGatewaysPosition() {
 
         final List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
         int gatewaysSize = gateways.size();
@@ -167,6 +182,20 @@ public class MainController extends DataInjector {
             selfDevice.setY(newVal.doubleValue() / 2);
             drawNetwork(canvas);
         });
+    }
+
+    private void resizeTargetsPositionAfterChangeEvent(){
+        double newWidth = canvas.getWidth();
+        double newHeight = canvas.getHeight();
+        final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
+        for(DeviceUI target : targets) {
+            double xPercentage = target.getX() / deviceUiMapperService.getActualWidth();
+            double yPercentage = target.getY() / deviceUiMapperService.getActualHeight();
+            target.setX(xPercentage * newWidth);
+            target.setY(yPercentage * newHeight);
+        }
+        deviceUiMapperService.setActualHeight(newHeight);
+        deviceUiMapperService.setActualWidth(newWidth);
     }
 
     private void setupMouseEvents() {
@@ -317,7 +346,7 @@ public class MainController extends DataInjector {
         Double[] p1 = calculateSolution.apply(new Double[]{x1, y1}, false);
         Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
 
-        gc.setStroke(Color.RED);
+        gc.setStroke(Color.BLACK);
         gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
     }
 
