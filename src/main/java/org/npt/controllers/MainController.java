@@ -53,16 +53,19 @@ public class MainController extends DataInjector {
     public VBox vboxPane;
 
     @FXML
-    private Canvas canvas;
+    public Canvas canvas;
 
     @FXML
-    private MenuButton menuButton;
+    public MenuButton menuButton;
 
     @FXML
-    private BorderPane borderPane;
+    public BorderPane borderPane;
 
     @FXML
     public MenuItem newMenu;
+
+    @FXML
+    public MenuItem refresh;
 
     @FXML
     public MenuItem aboutGnptMenu;
@@ -102,7 +105,16 @@ public class MainController extends DataInjector {
             this.deviceName.setText("");
         });
 
-        newMenu.setOnAction(ignored -> deviceUiMapperService.clear());
+        newMenu.setOnAction(ignored -> {
+            menuButton.getItems().clear();
+            deviceUiMapperService.clear();
+        });
+
+        refresh.setOnAction(e -> {
+            menuButton.getItems().clear();
+            initDevices();
+            // TODO must be fixed after removing of the IPV6 addresses
+        });
         setupMouseEvents();
         initDevices();
     }
@@ -129,11 +141,12 @@ public class MainController extends DataInjector {
                 menuButton.setText(interfaceFound);
             }
         } catch (SocketException e) {
+            // TODO Exception handling
             throw new RuntimeException(e);
         }
     }
 
-    public void calculateGatewaysPosition() {
+    private void calculateGatewaysPosition() {
 
         final List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
         int gatewaysSize = gateways.size();
@@ -333,7 +346,7 @@ public class MainController extends DataInjector {
         Double[] p1 = calculateSolution.apply(new Double[]{x1, y1}, false);
         Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
 
-        gc.setStroke(Color.RED);
+        gc.setStroke(Color.BLACK);
         gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
     }
 
