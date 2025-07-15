@@ -27,11 +27,7 @@ public class DeviceUiMapperService {
 
     private static final DataService dataService = graphicalNetworkTracerFactory.getDataService();
 
-    private static final TargetService targetService = graphicalNetworkTracerFactory.getTargetService();
-
     private static final ArpSpoofService arpSpoofService = graphicalNetworkTracerFactory.getArpSpoofService();
-
-    private static final GatewayService gatewayService = graphicalNetworkTracerFactory.getGatewayService();
 
     private static final String START_SPOOFING_TEXT = "Start Spoofing";
 
@@ -69,8 +65,11 @@ public class DeviceUiMapperService {
 
     public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) {
         try {
-            Target target = targetService.create(deviceName, deviceInterface, new String[]{ipAddress});
-            Optional<Gateway> gatewayOptional = gatewayService.find().stream()
+            Target target = dataService.createTarget(deviceName, deviceInterface, new String[]{ipAddress});
+            Optional<Gateway> gatewayOptional = dataService
+                    .getDevices(Gateway.class)
+                    .values()
+                    .stream()
                     .filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
                     .findAny();
             gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
@@ -133,7 +132,7 @@ public class DeviceUiMapperService {
 
     private void spoof(DeviceUI deviceUI) throws NotFoundException {
         Target target = (Target) deviceUI.getDevice();
-        Gateway gateway = gatewayService.findByTarget(target)
+        Gateway gateway = dataService.findGatewayByTarget(target)
                 .orElseThrow(() -> new NotFoundException("Couldn't spoof a target that it is not connected to the same Network"));
         String scanInterface = target.getNetworkInterface();
         arpSpoofService.spoof(scanInterface, target, gateway);

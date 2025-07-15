@@ -5,20 +5,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
-import org.npt.models.Device;
-import org.npt.models.Gateway;
-import org.npt.models.IpAddress;
-import org.npt.models.SelfDevice;
+import org.npt.exception.InvalidInputException;
+import org.npt.models.*;
 import org.npt.services.DataService;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -91,6 +86,27 @@ public class DefaultDataService implements DataService {
         devices.clear();
     }
 
+    @Override
+    public Target createTarget(String deviceName, String deviceInterface, String[] ipAddresses) throws InvalidInputException {
+        Target target = new Target(deviceName, deviceInterface, new ArrayList<>(List.of(ipAddresses)));
+        validateTarget(target);
+        this.addDevice(target);
+        return target;
+    }
+
+    @Override
+    public Gateway createGateway(String deviceName, String deviceInterface, String[] ipAddresses, Target[] nextDevices) throws InvalidInputException {
+        Gateway gateway = new Gateway(deviceName, deviceInterface, new ArrayList<>(List.of(ipAddresses)), Arrays.asList(nextDevices));
+        validateGateway(gateway);
+        this.addDevice(gateway);
+        return gateway;
+    }
+
+    @Override
+    public Optional<Gateway> findGatewayByTarget(Target target) {
+        return Optional.empty();
+    }
+
     public static DataService getInstance() {
         if (instance == null) {
             synchronized (DefaultDataService.class) {
@@ -105,6 +121,53 @@ public class DefaultDataService implements DataService {
     // ======================
     // Private Helper Methods
     // ======================
+
+    private void validateTarget(Target target) throws InvalidInputException {
+        HashMap<String, String> errors = new HashMap<>();
+
+        String deviceName = target.getDeviceName();
+        if (deviceName == null || deviceName.isEmpty()) {
+            errors.put("Device Name", "Device name is empty and blank.");
+        }
+
+        String networkInterface = target.getNetworkInterface();
+        if (networkInterface == null || networkInterface.isEmpty()) {
+            errors.put("Network Interface", "Network Interface is empty and blank.");
+        }
+
+        List<String> ipAddresses = target.getIpAddresses();
+        if (ipAddresses == null || ipAddresses.isEmpty()) {
+            errors.put("IP Addresses", "IP Addresses list is empty.");
+        } else if (target.findFirstIPv4().isEmpty()) {
+            errors.put("IP Addresses", "In order to perform ARP spoofing, an IPv4 address must be present.");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new InvalidInputException("Error while validating input data", errors);
+        }
+    }
+
+    private void validateGateway(Gateway gateway) throws InvalidInputException {
+        HashMap<String, String> errors = new HashMap<>();
+
+        String deviceName = gateway.getDeviceName();
+        if (deviceName == null || deviceName.isEmpty()) {
+            errors.put("Device Name", "Device name is empty or null.");
+        }
+
+        String networkInterface = gateway.getNetworkInterface();
+        if (networkInterface == null || networkInterface.isEmpty()) {
+            errors.put("Network Interface", "Network Interface is empty or null.");
+        }
+
+        if (gateway.getIpAddresses() == null || gateway.getIpAddresses().isEmpty()) {
+            errors.put("IP Addresses", "IP Addresses list is empty or null.");
+        }
+
+        if (!errors.isEmpty()) {
+            throw new InvalidInputException("Error while validating Gateway input data", errors);
+        }
+    }
 
     private List<Gateway> discoverGateways() throws SocketException, UnknownHostException {
         List<IpAddress> interfaces = listLocalInterfaces();

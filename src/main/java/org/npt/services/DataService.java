@@ -2,11 +2,15 @@ package org.npt.services;
 
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
+import org.npt.exception.InvalidInputException;
 import org.npt.models.Device;
+import org.npt.models.Gateway;
 import org.npt.models.SelfDevice;
+import org.npt.models.Target;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service interface for managing and interacting with network device data.
@@ -24,21 +28,21 @@ public interface DataService {
     /**
      * Adds a new device to the internal list.
      *
-     * @param device The device to add.
+     * @param device The {@link Device} object to be added.
      */
     void addDevice(@NotNull final Device device);
 
     /**
-     * Removes a device from the list using its index.
+     * Removes a device from the list by its index.
      *
-     * @param index The index of the device to remove.
+     * @param index The index of the {@link Device} to remove.
      */
     void removeByIndex(@NotNull final Integer index);
 
     /**
-     * Removes a specific device from the list.
+     * Removes a specific device object from the list.
      *
-     * @param device The device instance to remove.
+     * @param device The {@link Device} instance to remove.
      */
     void removeByObject(@NotNull final Device device);
 
@@ -46,43 +50,74 @@ public interface DataService {
      * Retrieves a device from the list by index.
      *
      * @param index The index of the device to retrieve.
-     * @return The device at the specified index.
+     * @return The {@link Device} at the specified index.
      */
     Device getDevice(@NotNull final Integer index);
 
     /**
-     * Runs the initial network scan and initializes internal state,
-     * including self device and gateway discovery.
+     * Initiates a network scan to detect and initialize internal state,
+     * including the self device and connected gateways.
      *
-     * @throws DrawNetworkException If the network scanning fails.
+     * @throws DrawNetworkException If an error occurs during network scanning.
      */
     void run() throws DrawNetworkException;
 
     /**
-     * Retrieves a map of all devices of a specific type.
+     * Retrieves all devices of a specific type.
      *
      * @param tClass The class type to filter devices by.
-     * @param <T>    The generic type of devices.
-     * @return A map of index-to-device entries for the matching type.
+     * @param <T>    The type parameter representing the device type.
+     * @return A {@link HashMap} mapping index to devices of type {@code T}.
      */
     <T> HashMap<Integer, T> getDevices(@NotNull final Class<T> tClass);
 
     /**
-     * Clears all internal device data.
+     * Clears all devices and internal data.
      */
     void clear();
 
     /**
-     * Gets the self device (i.e., the current machine running this service).
+     * Gets the self-representing device (usually the host running this service).
      *
-     * @return The local self device.
+     * @return The {@link SelfDevice} instance.
      */
     SelfDevice getSelfDevice();
 
     /**
-     * Retrieves the list of all known devices.
+     * Retrieves a list of all known devices.
      *
-     * @return A list of all devices.
+     * @return A {@link List} of all {@link Device} instances.
      */
     List<Device> getDevices();
+
+    /**
+     * Creates a {@link Target} device based on input parameters.
+     *
+     * @param deviceName      The name of the device.
+     * @param deviceInterface The network interface used by the device.
+     * @param ipAddresses     An array of IP addresses associated with the device.
+     * @return A new {@link Target} instance.
+     * @throws InvalidInputException If input parameters are invalid.
+     */
+    Target createTarget(final String deviceName, final String deviceInterface, final String[] ipAddresses) throws InvalidInputException;
+
+    /**
+     * Creates a {@link Gateway} device using provided input data.
+     *
+     * @param deviceName      The name of the gateway device.
+     * @param deviceInterface The network interface used by the gateway.
+     * @param ipAddresses     An array of IP addresses for the gateway.
+     * @param nextDevices     The downstream devices (targets) connected to the gateway.
+     * @return A new {@link Gateway} instance.
+     * @throws InvalidInputException If input parameters are invalid.
+     */
+    Gateway createGateway(final String deviceName, final String deviceInterface, final String[] ipAddresses, final Target[] nextDevices) throws InvalidInputException;
+
+    /**
+     * Searches for a gateway that contains the specified target.
+     *
+     * @param target The {@link Target} to search for.
+     * @return An {@link Optional} containing the matching {@link Gateway}, if found.
+     */
+    Optional<Gateway> findGatewayByTarget(final Target target);
 }
