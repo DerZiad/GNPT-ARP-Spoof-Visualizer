@@ -9,10 +9,11 @@
       xmlns:fx="http://javafx.com/fxml/1">
     <MenuBar>
         <Menu text="New">
-            <MenuItem fx:id="newMenu" text="Clear All Devices" />
+            <MenuItem fx:id="refresh" text="Refresh" />
+            <MenuItem fx:id="newMenu" text="Clear network" />
         </Menu>
 
-        <Menu text="About GNPT">
+        <Menu text="About">
             <MenuItem fx:id="aboutGnptMenu" text="Version Info"/>
         </Menu>
     </MenuBar>

@@ -69,7 +69,7 @@ public class MainController extends DataInjector {
 
     @FXML
     public void initialize() {
-        deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices);
+        deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices, canvas.getWidth(), canvas.getHeight());
         deviceUiMapperService.addTarget("192.168.178.46", "eth0", "My Test Device");
 
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
@@ -81,14 +81,16 @@ public class MainController extends DataInjector {
         borderPane.setMinSize(0, 0);
 
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
-            drawNetwork(canvas);
+            resizeTargetsPositionAfterChangeEvent();
             calculateRootDevicePosition();
             calculateGatewaysPosition();
+            drawNetwork(canvas);
         });
         canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
-            drawNetwork(canvas);
+            resizeTargetsPositionAfterChangeEvent();
             calculateRootDevicePosition();
             calculateGatewaysPosition();
+            drawNetwork(canvas);
         });
 
         addDevice.setOnAction(ignored -> {
@@ -167,6 +169,20 @@ public class MainController extends DataInjector {
             selfDevice.setY(newVal.doubleValue() / 2);
             drawNetwork(canvas);
         });
+    }
+
+    private void resizeTargetsPositionAfterChangeEvent(){
+        double newWidth = canvas.getWidth();
+        double newHeight = canvas.getHeight();
+        final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
+        for(DeviceUI target : targets) {
+            double xPercentage = target.getX() / deviceUiMapperService.getActualWidth();
+            double yPercentage = target.getY() / deviceUiMapperService.getActualHeight();
+            target.setX(xPercentage * newWidth);
+            target.setY(yPercentage * newHeight);
+        }
+        deviceUiMapperService.setActualHeight(newHeight);
+        deviceUiMapperService.setActualWidth(newWidth);
     }
 
     private void setupMouseEvents() {
