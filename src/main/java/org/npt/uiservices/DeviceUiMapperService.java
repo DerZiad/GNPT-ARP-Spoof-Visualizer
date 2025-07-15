@@ -31,13 +31,13 @@ public class DeviceUiMapperService {
 
     private static final ArpSpoofService arpSpoofService = graphicalNetworkTracerFactory.getArpSpoofService();
 
+    private static final FrameService frameService = FrameService.getInstance();
+
     private static final String START_SPOOFING_TEXT = "Start Spoofing";
 
     private static final String SHOW_DETAILS_TEXT = "View Details";
 
     private static final String REMOVE_DEVICE_TEXT = "Remove Device";
-
-    private static final String SPY_TEXT = "Spy";
 
     private final Runnable refreshAction;
     private final Runnable hardRefreshAction;
@@ -117,23 +117,20 @@ public class DeviceUiMapperService {
         });
 
         if (deviceUI.getDevice() instanceof Target) {
-            MenuItem startSpoofingMenuItem = getMenuItem(deviceUI, contextMenu);
+            MenuItem startSpoofingMenuItem = getMenuItem(deviceUI);
             contextMenu.getItems().add(startSpoofingMenuItem);
         }
         contextMenu.getItems().addAll(detailsItem, removeItem);
     }
 
-    private @NotNull MenuItem getMenuItem(DeviceUI deviceUI, ContextMenu contextMenu) {
+    private @NotNull MenuItem getMenuItem(DeviceUI deviceUI) {
         MenuItem startSpoofingMenuItem = new MenuItem(START_SPOOFING_TEXT);
         startSpoofingMenuItem.setOnAction(ignored -> {
             try {
                 spoof(deviceUI);
-                MenuItem menuItem = new MenuItem(SPY_TEXT);
                 Frame statisticsFrame = Frame.createStatisticsDetails();
                 statisticsFrame.setArgs(new Object[]{deviceUI.getDevice()});
-                FrameService frameService = FrameService.getInstance();
                 frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
-                contextMenu.getItems().add(menuItem);
                 refreshAction.run();
             } catch (NotFoundException ex) {
                 ErrorHandler.handle(ex);
@@ -151,7 +148,6 @@ public class DeviceUiMapperService {
     }
 
     public void showDetails(DeviceUI deviceUI) {
-        FrameService frameService = FrameService.getInstance();
         switch (deviceUI.getDevice()) {
             case Target target -> {
                 Frame detailsFrame = Frame.createTargetView();

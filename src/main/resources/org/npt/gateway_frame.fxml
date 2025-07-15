@@ -5,7 +5,7 @@
 <AnchorPane prefHeight="767.0" prefWidth="722.0"
             stylesheets="@/org/npt/css/details_frame.css"
             xmlns="http://javafx.com/javafx/21"
-			xmlns:fx="http://javafx.com/fxml/1">
+            xmlns:fx="http://javafx.com/fxml/1">
 	<Label layoutX="24.0" layoutY="54.0" prefHeight="21.0" prefWidth="224.0" styleClass="form-label" text="Device Name                     :"/>
 	<TextField fx:id="deviceNameField" layoutX="339.0" layoutY="45.0" prefHeight="38.0" prefWidth="341.0" styleClass="form-textfield"/>
 
