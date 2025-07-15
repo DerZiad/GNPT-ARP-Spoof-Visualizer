@@ -1,25 +1,29 @@
 package org.npt;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
+import org.npt.controllers.FrameService;
+import org.npt.services.DataService;
+import org.npt.services.defaults.DefaultDataService;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class Launch extends Application {
+
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(Launch.class.getResource("Interface.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1314, 699);
-        scene.getStylesheets().add(Objects.requireNonNull(getClass().getResource("/org/npt/style/mainInterface.css")).toExternalForm());
-        stage.setTitle("NetworkPacketTracer");
-        stage.setScene(scene);
-        stage.show();
+        try {
+            DataService dataService = DefaultDataService.getInstance();
+            dataService.run();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start data service", e);
+        }
+        FrameService frameService = FrameService.getInstance();
+        frameService.runMainFrame(stage);
     }
 
     public static void main(String[] args) {
-        launch();
+        launch(args);
+        System.exit(0);
     }
 }

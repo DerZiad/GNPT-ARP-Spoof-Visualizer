@@ -1,89 +1,39 @@
 package org.npt.models;
 
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.npt.beans.implementation.ArpSpoofStarter;
-import static org.npt.configuration.Configuration.*;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@AllArgsConstructor
 @Data
-public class Device {
+public abstract class Device implements Comparable<Device> {
 
-    private final String name;
-    private final String ipAddress;
-    private final ContextMenu contextMenu;
+    private String deviceName;
 
-    private Type type = Type.GATEWAY;
-    private double x;
-    private double y;
-    private MenuItem startStopSniffing;
-
-    public Device(String name, String ipAddress, double x, double y) {
-        this.name = name;
-        this.ipAddress = ipAddress;
-        this.x = x;
-        this.y = y;
-
-        // Initialize the context menu with options for each device
-        this.contextMenu = new ContextMenu();
-
-        startStopSniffing = new MenuItem("Start Sniffing");
-        startStopSniffing.setOnAction(e -> spoof());
-
-        MenuItem detailsItem = new MenuItem("View Details");
-        detailsItem.setOnAction(e -> showDeviceDetails());
-
-        MenuItem editIpItem = new MenuItem("Edit IP Address");
-        editIpItem.setOnAction(e -> editIpAddress());
-
-        MenuItem removeItem = new MenuItem("Remove Device");
-        removeItem.setOnAction(e -> removeDevice());
-
-        contextMenu.getItems().addAll(startStopSniffing, detailsItem, editIpItem, removeItem);
+    @Override
+    public int compareTo(@NotNull Device o) {
+        return 0;
     }
 
-    public Device(String name, String ipAddress, double x, double y,Type type){
-        this(name,ipAddress,x,y);
-        this.type = type;
-    }
+    public boolean isValidIPv4(String ip) {
+        String ipv4Pattern = "^([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})$";
+        Pattern pattern = Pattern.compile(ipv4Pattern);
+        Matcher matcher = pattern.matcher(ip);
 
-
-
-    private void spoof(){
-        ArpSpoofStarter arpSpoofStarter = new ArpSpoofStarter();
-        arpSpoofStarter.startSpoofing(this);
-        Device attacker = devices.stream().filter(device -> device.getType().equals(Type.SELF)).findFirst().get();
-        Connection connectionz = connections.stream().filter((Connection connection)->connection.getFirstDevice().equals(this) || connection.getSecondDevice().equals(this)).findFirst().get();
-        if(connectionz.getFirstDevice().equals(this)){
-            connectionz.setSecondDevice(attacker);
-        }else{
-            connectionz.setFirstDevice(attacker);
+        if (matcher.matches()) {
+            for (int i = 1; i <= 4; i++) {
+                int part = Integer.parseInt(matcher.group(i));
+                if (part < 0 || part > 255) {
+                    return false;
+                }
+            }
+            return true;
         }
-
+        return false;
     }
-
-    private void stopSpoofing(){
-        ArpSpoofStarter arpSpoofStarter = new ArpSpoofStarter();
-        arpSpoofStarter.stopSpoofing(this);
-        Connection connection = connections.stream().filter((Connection c)->c.getFirstDevice().equals(this) || c.getSecondDevice().equals(this)).findFirst().get();
-        if(connection.getFirstDevice().equals(this)){
-            connection.setSecondDevice(gateway);
-        }else{
-            connection.setFirstDevice(gateway);
-        }
-    }
-
-    private void showDeviceDetails() {
-        System.out.println("Showing details for " + name + " (" + ipAddress + ")");
-    }
-
-    private void editIpAddress() {
-        System.out.println("Editing IP address of " + name);
-    }
-
-    private void removeDevice() {
-        System.out.println("Removing device " + name);
-    }
-
 }
+
 

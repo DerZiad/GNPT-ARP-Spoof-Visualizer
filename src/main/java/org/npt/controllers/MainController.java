@@ -1,297 +1,373 @@
 package org.npt.controllers;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.animation.PauseTransition;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.text.Font;
 import javafx.util.Duration;
-import org.npt.beans.implementation.GatewayFinder;
-import org.npt.configuration.Configuration;
-import org.npt.exception.GatewayNotFoundException;
-import org.npt.exception.ProcessFailureException;
-import org.npt.models.Connection;
-import org.npt.models.Device;
-import org.npt.models.Type;
+import lombok.extern.slf4j.Slf4j;
+import org.npt.models.*;
+import org.npt.models.ui.DeviceUI;
+import org.npt.uiservices.DeviceUiMapperService;
 
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.util.Collections;
-import java.util.Enumeration;
+import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 
-import static org.npt.configuration.Configuration.*;
+@Slf4j
+public class MainController extends DataInjector {
 
-public class MainController {
+    private static DeviceUiMapperService deviceUiMapperService;
+    private static final HashMap<Class<? extends Device>, Image> images = new HashMap<>();
 
-    private double animationProgress = 0.0;
-
-    private Device draggedDevice = null;
+    private DeviceUI draggedDevice = null;
     private double dragOffsetX;
     private double dragOffsetY;
     private boolean draggingRouter = false;
 
     @FXML
+    public TextField ipAddress;
+
+    @FXML
+    public Button addDevice;
+
+    @FXML
+    public TextField deviceName;
+
+    @FXML
+    public VBox vboxPane;
+
+    @FXML
     private Canvas canvas;
-
-    @FXML
-    private AnchorPane settingButton;
-
-    @FXML
-    private AnchorPane rootAnchorPane;
-
-    @FXML
-    private Button scanButton;
-
-    @FXML
-    private Button plusButton;
 
     @FXML
     private MenuButton menuButton;
 
-    private Image computerImage;
-    private Image routerImage;
-    private Image hackerComputerImage;
+    @FXML
+    private BorderPane borderPane;
+
+    @FXML
+    public MenuItem newMenu;
+
+    @FXML
+    public MenuItem aboutGnptMenu;
 
     @FXML
     public void initialize() {
-        // Load images
-        computerImage = new Image(getClass().getResourceAsStream("/org/npt/images/computer.png"));
-        routerImage = new Image(getClass().getResourceAsStream("/org/npt/images/router.png"));
-        hackerComputerImage = new Image(getClass().getResourceAsStream("/org/npt/images/hacker.png"));
-        Image sniperImage = new Image(getClass().getResourceAsStream("/org/npt/images/sniper.png"));
-        Image plusImage = new Image(getClass().getResourceAsStream("/org/npt/images/plus.png"));
+        deviceUiMapperService = new DeviceUiMapperService(() -> initCanvas(canvas));
 
-        ImageView sniperImageView = new ImageView(sniperImage);
-        scanButton.getStyleClass().add("hoverImage");
-        sniperImageView.setFitWidth(86);
-        sniperImageView.setFitHeight(76);
-        scanButton.setGraphic(sniperImageView);
-        scanButton.setStyle("-fx-background-radius: 50; -fx-background-color: transparent;");
+        images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
+        images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));
+        images.put(SelfDevice.class, new Image(graphicalNetworkTracerFactory.getResource("images/hacker.png")));
 
-        ImageView plusImageView = new ImageView(plusImage);
-        plusButton.getStyleClass().add("hoverImage");
-        plusImageView.setFitWidth(86);
-        plusImageView.setFitHeight(76);
-        plusButton.setGraphic(sniperImageView);
-        plusButton.setStyle("-fx-background-radius: 50; -fx-background-color: transparent;");
+        canvas.widthProperty().bind(borderPane.widthProperty());
+        canvas.heightProperty().bind(borderPane.heightProperty());
+        borderPane.setMinSize(0, 0);
 
-        // Bind Canvas size to AnchorPane size
-        canvas.widthProperty().bind(rootAnchorPane.widthProperty());
-        canvas.heightProperty().bind(rootAnchorPane.heightProperty());
+        canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
+            initCanvas(canvas);
+            centerSelfDevice();
+            calculateGatewaysPosition();
+        });
+        canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
+            initCanvas(canvas);
+            centerSelfDevice();
+            calculateGatewaysPosition();
+        });
 
-        // Set up listeners for drawing
-        canvas.widthProperty().addListener((obs, oldVal, newVal) -> drawNetwork());
-        canvas.heightProperty().addListener((obs, oldVal, newVal) -> drawNetwork());
+        addDevice.setOnAction(ignored -> {
+            final String ipAddress = this.ipAddress.getText();
+            final String deviceInterface = this.menuButton.getText();
+            final String deviceName = this.deviceName.getText();
+            deviceUiMapperService.addTarget(ipAddress, deviceInterface, deviceName);
+            this.ipAddress.setText("");
+            this.deviceName.setText("");
+        });
 
-        settingButton.getStyleClass().add("anchor-pane-border");
+        newMenu.setOnAction(ignored -> {
+            deviceUiMapperService.clear();
+        });
 
-        // Initialize the network configuration
-        initializeInterfaces();
-        scan();
-
-        // Center router and initialize device layout
-        centerRouter();
-        initializeDevices();
+        scanCurrentDeviceNetworkInterfaces();
+        centerSelfDevice();
+        calculateGatewaysPosition();
         setupMouseEvents();
-        startConnectionAnimation();
-        drawNetwork();
+        initCanvas(canvas);
     }
 
-    private void initializeInterfaces(){
+    private void scanCurrentDeviceNetworkInterfaces() {
         try {
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             for (NetworkInterface networkInterface : Collections.list(interfaces)) {
                 MenuItem menuItem = new MenuItem(networkInterface.getName());
-                menuItem.setOnAction(event -> {
-                    scanInterface = menuItem.getText();
-                    menuButton.setText(menuItem.getText());
-                });
-              menuButton.getItems().add(menuItem);
+                menuItem.setOnAction(ignored -> menuButton.setText(menuItem.getText()));
+                menuButton.getItems().add(menuItem);
             }
-            if(menuButton.getItems().size() == 0){
+            if (menuButton.getItems().isEmpty()) {
                 menuButton.setText("No network");
-            }else {
+            } else {
                 String interfaceFound = menuButton.getItems().getFirst().getText();
                 menuButton.setText(interfaceFound);
-                scanInterface = interfaceFound;
             }
         } catch (SocketException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void centerRouter() {
-        gateway.setX(canvas.getWidth() / 2);
-        gateway.setY(canvas.getHeight() / 2);
+    public void initCanvas(Canvas canvas) {
+        GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
+        graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawGrid(graphicsContext);
+        graphicsContext.setStroke(Color.BLACK);
+        graphicsContext.setLineWidth(3);
+        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+        draw(graphicsContext, selfDevice, imageSize, SelfDevice.class);
+        List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
 
-        canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
-            gateway.setX(canvas.getWidth() / 2);
-            drawNetwork();
-        });
-        canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
-            gateway.setY(newVal.doubleValue() / 2);
-            drawNetwork();
-        });
+        for (DeviceUI gateway : gateways) {
+            draw(graphicsContext, gateway, imageSize, Gateway.class);
+            drawConnection(graphicsContext, gateway, selfDevice);
+            Gateway gatewayData = (Gateway) gateway.getDevice();
+            List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class).stream()
+                    .filter(deviceUi -> gatewayData.getDevices().contains((Target) deviceUi.getDevice()))
+                    .toList();
+            for (DeviceUI target : targets) {
+                draw(graphicsContext, target, imageSize, Target.class);
+                drawConnection(graphicsContext, gateway, target);
+            }
+        }
     }
 
-    private void initializeDevices() {
-        int numberOfDevices = devices.size();
-        double radius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3; // Distance from router
-        double centerX = gateway.getX();
-        double centerY = gateway.getY();
+    public void calculateGatewaysPosition() {
 
-        for (int i = 0; i < numberOfDevices; i++) {
-            double angle = 2 * Math.PI * i / numberOfDevices;
-            double x = centerX + radius * Math.cos(angle);
-            double y = centerY + radius * Math.sin(angle);
-            devices.get(i).setX(x);
-            devices.get(i).setY(y);
+        final List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
+        int gatewaysSize = gateways.size();
+        if (gatewaysSize == 0) return;
+        double xCenter = deviceUiMapperService.getSelfDevice().getX();
+        double yCenter = deviceUiMapperService.getSelfDevice().getY();
+        double R = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
+        double step = 2 * Math.PI / gatewaysSize;
+
+        Iterator<DeviceUI> iterator = gateways.iterator();
+        int i = 0;
+        while (iterator.hasNext()) {
+            double angle = step * i;
+            double x = xCenter + R * Math.cos(angle);
+            double y = yCenter + R * Math.sin(angle);
+            DeviceUI gateway = iterator.next();
+            gateway.setX(x);
+            gateway.setY(y);
+            i++;
         }
+    }
+
+    private void centerSelfDevice() {
+        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+        selfDevice.setX(canvas.getWidth() / 2);
+        selfDevice.setY(canvas.getHeight() / 2);
+
+        canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
+            selfDevice.setX(canvas.getWidth() / 2);
+            initCanvas(canvas);
+        });
+        canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
+            selfDevice.setY(newVal.doubleValue() / 2);
+            initCanvas(canvas);
+        });
     }
 
     private void setupMouseEvents() {
-        canvas.setOnMousePressed(this::onMousePressed);
-        canvas.setOnMouseDragged(this::onMouseDragged);
-        canvas.setOnMouseReleased(event -> onMouseReleased());
-    }
+        EventHandler<MouseEvent> onMousePressed = event -> {
+            double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+            if (event.getButton() == MouseButton.SECONDARY) {
+                BiPredicate<DeviceUI, MouseEvent> verifyClickInsideImage = (device, event1) -> {
+                    double xLeftBorder = device.getX() - imageSize / 2;
+                    double xRightBorder = device.getX() + imageSize / 2;
+                    double yTopBorder = device.getY() - imageSize / 2;
+                    double yBottomBorder = device.getY() + imageSize / 2;
+                    double x = event1.getX();
+                    double y = event1.getY();
+                    return x <= xRightBorder && x >= xLeftBorder && y <= yBottomBorder && y >= yTopBorder;
+                };
 
-    private void onMousePressed(MouseEvent event) {
-        if (event.getButton() == MouseButton.SECONDARY) {
-            for (Device device : devices) {
-                double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-                if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
-                        event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
-                    device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+                if (verifyClickInsideImage.test(selfDevice, event)) {
+                    selfDevice.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                     return;
                 }
-            }
-        } else {
-            double routerSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-            if (event.getX() >= gateway.getX() - routerSize / 2 && event.getX() <= gateway.getX() + routerSize / 2 &&
-                    event.getY() >= gateway.getY() - routerSize / 2 && event.getY() <= gateway.getY() + routerSize / 2) {
-                draggingRouter = true;
-                dragOffsetX = event.getX() - gateway.getX();
-                dragOffsetY = event.getY() - gateway.getY();
-                return;
-            }
 
-            for (Device device : devices) {
-                double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-                if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
-                        event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
-                    draggedDevice = device;
-                    dragOffsetX = event.getX() - device.getX();
-                    dragOffsetY = event.getY() - device.getY();
-                    break;
+                for (DeviceUI device : deviceUiMapperService.getDevices()) {
+                    if (verifyClickInsideImage.test(device, event)) {
+                        device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                        return;
+                    }
+                }
+            } else {
+                DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+                if (event.getX() >= selfDevice.getX() - imageSize / 2 && event.getX() <= selfDevice.getX() + imageSize / 2 &&
+                        event.getY() >= selfDevice.getY() - imageSize / 2 && event.getY() <= selfDevice.getY() + imageSize / 2) {
+                    draggingRouter = true;
+                    dragOffsetX = event.getX() - selfDevice.getX();
+                    dragOffsetY = event.getY() - selfDevice.getY();
+                    return;
+                }
+
+                for (DeviceUI device : deviceUiMapperService.getDevices()) {
+                    if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
+                            event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
+                        draggedDevice = device;
+                        dragOffsetX = event.getX() - device.getX();
+                        dragOffsetY = event.getY() - device.getY();
+                        break;
+                    }
                 }
             }
-        }
-    }
-
-    private void onMouseDragged(MouseEvent event) {
-        if (draggingRouter) {
-            gateway.setX(event.getX() - dragOffsetX);
-            gateway.setY(event.getY() - dragOffsetY);
-            drawNetwork();
-        } else if (draggedDevice != null) {
-            draggedDevice.setX(event.getX() - dragOffsetX);
-            draggedDevice.setY(event.getY() - dragOffsetY);
-            drawNetwork();
-        }
-    }
-
-    private void onMouseReleased() {
-        draggedDevice = null;
-        draggingRouter = false;
-    }
-
-    private void drawNetwork() {
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawRouter(gc);
-
-        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        gc.setStroke(Color.GRAY);
-        gc.setLineWidth(1.5);
-
-        for (Device device : devices) {
-            Image selectedComputerImage = computerImage;
-            if(device.getType().equals(Type.SELF)){
-                selectedComputerImage = hackerComputerImage;
+        };
+        EventHandler<MouseEvent> onMouseDragged = event -> {
+            DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+            if (draggingRouter) {
+                double dx = event.getX() - dragOffsetX;
+                double dy = event.getY() - dragOffsetY;
+                if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
+                    return;
+                selfDevice.setX(dx);
+                selfDevice.setY(dy);
+                PauseTransition pause = new PauseTransition(Duration.millis(10));
+                pause.setOnFinished(e -> {
+                    initCanvas(canvas);
+                });
+                pause.play();
+            } else if (draggedDevice != null) {
+                double dx = event.getX() - dragOffsetX;
+                double dy = event.getY() - dragOffsetY;
+                if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
+                    return;
+                draggedDevice.setX(dx);
+                draggedDevice.setY(dy);
+                PauseTransition pause = new PauseTransition(Duration.millis(10));
+                pause.setOnFinished(e -> {
+                    initCanvas(canvas);
+                });
+                pause.play();
             }
-            gc.drawImage(selectedComputerImage, device.getX() - imageSize / 2, device.getY() - imageSize / 2, imageSize, imageSize);
-
-            gc.setFill(Color.BLACK);
-            gc.setFont(gc.getFont().font(12));
-            gc.fillText(device.getName(), device.getX() - 20, device.getY() + imageSize / 2 + 15);
-            gc.fillText(device.getIpAddress(), device.getX() - 20, device.getY() + imageSize / 2 + 30);
-        }
-
-        for (Connection connection:connections){
-            Device first = connection.getFirstDevice();
-            Device second = connection.getSecondDevice();
-            drawMovingDot(gc, first.getX(), first.getY(), second.getX(), second.getY());
-        }
-        drawConnections(gc);
-    }
-
-    private void drawRouter(GraphicsContext gc) {
-        double routerSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        gc.drawImage(routerImage, gateway.getX() - routerSize / 2, gateway.getY() - routerSize / 2, routerSize, routerSize);
-        gc.setFill(Color.BLACK);
-        gc.setFont(gc.getFont().font(14));
-        gc.fillText(gateway.getName(), gateway.getX() - 25, gateway.getY() + routerSize / 2 + 20);
-        gc.fillText(gateway.getIpAddress(), gateway.getX() - 30, gateway.getY() + routerSize / 2 + 35);
-    }
-
-    private void startConnectionAnimation() {
-        Timeline timeline = new Timeline(new KeyFrame(Duration.millis(50), e -> {
-            animationProgress += 0.05;
-            if (animationProgress > 1.0) {
-                animationProgress = 0.0;
-            }
-            drawNetwork();
-        }));
-        timeline.setCycleCount(Timeline.INDEFINITE);
-        timeline.play();
-    }
-
-    private void drawMovingDot(GraphicsContext gc, double startX, double startY, double endX, double endY) {
-        double dotX = startX + (endX - startX) * animationProgress;
-        double dotY = startY + (endY - startY) * animationProgress;
-        gc.setFill(Color.CYAN);
-        gc.fillOval(dotX - 3, dotY - 3, 6, 6); // Dot size of 6x6 pixels
-    }
-
-    private void drawConnections(GraphicsContext gc){
-        connections.stream().forEach((Connection connection)->{
-            gc.strokeLine(connection.getFirstDevice().getX(), connection.getFirstDevice().getY(), connection.getSecondDevice().getX(), connection.getSecondDevice().getY());
+        };
+        canvas.setOnMousePressed(onMousePressed);
+        canvas.setOnMouseDragged(onMouseDragged);
+        canvas.setOnMouseReleased(ignored -> {
+            draggedDevice = null;
+            draggingRouter = false;
         });
     }
 
-    public void scan() {
-        try {
-            GatewayFinder gatewayFinder = GatewayFinder.getInstance();
-            Configuration.gateway = gatewayFinder.getGateway();
-            Device device1 = new Device("Device1", "192.168.178.30", 0, 0, Type.TARGET);
-            Configuration.devices.add(device1);
-            Device device2 = new Device("Device2", "192.168.178.32", 0, 0, Type.TARGET);
-            Configuration.devices.add(device2);
-            Device device3 = new Device("Device3", "192.168.178.33", 0, 0, Type.SELF);
-            Configuration.devices.add(device3);
-            devices.stream().forEach((Device device) -> connections.add(new Connection(gateway,device)));
+    private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
+        double r = 35;
+        double x1 = startLine.getX();
+        double y1 = startLine.getY();
+        double x2 = endLine.getX();
+        double y2 = endLine.getY();
 
-        } catch (ProcessFailureException | GatewayNotFoundException e) {
-            e.printStackTrace();
+        if (x1 == x2) {
+            double dy = (y2 > y1 ? 1 : -1) * r;
+            gc.strokeLine(x1, y1 + dy, x2, y2);
+            return;
+        }
+
+        double a = (y2 - y1) / (x2 - x1);
+        double b = y2 - a * x2;
+
+        Function<Double, Double> lineEquation = x -> a * x + b;
+
+        BiFunction<Double[], Boolean, Double[]> calculateSolution = (center, inverse) -> {
+            double xc = center[0];
+            double yc = center[1];
+            double a1 = 1 + a * a;
+            double b1 = -2 * xc + 2 * a * (b - yc);
+            double c = xc * xc + Math.pow(b - yc, 2) - r * r;
+
+            double delta = b1 * b1 - 4 * a1 * c;
+            if (delta < 0) {
+                return new Double[]{xc, yc};
+            }
+
+            final double sqrtDelta = Math.sqrt(delta);
+            double solX;
+            if (!inverse) {
+                solX = x1 < x2 ? (-b1 + sqrtDelta) / (2 * a1) : (-b1 - sqrtDelta) / (2 * a1);
+            } else {
+                solX = x1 < x2 ? (-b1 - sqrtDelta) / (2 * a1) : (-b1 + sqrtDelta) / (2 * a1);
+            }
+            double solY = lineEquation.apply(solX);
+            return new Double[]{solX, solY};
+        };
+
+        Double[] p1 = calculateSolution.apply(new Double[]{x1, y1}, false);
+        Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
+
+        gc.setStroke(Color.RED);
+        gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
+    }
+
+    private void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class deviceClass) {
+        if (deviceUi.getDevice() instanceof SelfDevice) {
+            int enlargedSize = (int) (imageSize * 1.5);
+            gc.drawImage(images.get(deviceClass),
+                    deviceUi.getX() - enlargedSize / 2,
+                    deviceUi.getY() - enlargedSize / 2,
+                    enlargedSize,
+                    enlargedSize);
+        } else {
+            gc.drawImage(images.get(deviceClass),
+                    deviceUi.getX() - imageSize / 2,
+                    deviceUi.getY() - imageSize / 2,
+                    imageSize,
+                    imageSize);
+        }
+        gc.setFill(Color.BLACK);
+        gc.setFont(Font.font(14));
+        gc.fillText(deviceUi.getDevice().getDeviceName(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 20);
+
+        if (deviceClass.equals(SelfDevice.class)) {
+            Optional<IpAddress> ipAddress = ((SelfDevice) deviceUi.getDevice()).findFirstIPv4();
+            ipAddress.ifPresent(ipString -> {
+                gc.fillText(ipString.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
+                gc.fillText(ipString.getIp(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60);
+            });
+        } else if (deviceClass.equals(Target.class)) {
+            Target target = (Target) deviceUi.getDevice();
+            gc.fillText(target.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
+            target.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60));
+        } else {
+            Gateway gateway = (Gateway) deviceUi.getDevice();
+            gc.fillText(gateway.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
+            gateway.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60));
         }
     }
+
+    private void drawGrid(GraphicsContext gc) {
+        for (double percentage = 0.1; percentage <= 1.0; percentage += 0.1) {
+            double x = canvas.getWidth() * percentage;
+            double y = canvas.getHeight() * percentage;
+            gc.setStroke(Color.LIGHTGRAY);
+            gc.setLineWidth(1);
+            gc.strokeLine(x, 0, x, canvas.getHeight());
+            gc.strokeLine(0, y, canvas.getWidth(), y);
+        }
+    }
+
 }
