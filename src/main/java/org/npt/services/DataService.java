@@ -13,111 +13,99 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Service interface for managing and interacting with network device data.
+ * Defines operations for managing network devices and interactions within a network environment.
  * <p>
- * This service provides methods for:
+ * Provides functionality for:
  * <ul>
- *     <li>Running a scan and collecting data</li>
- *     <li>Adding and removing devices</li>
- *     <li>Querying devices and device types</li>
- *     <li>Retrieving local/self device information</li>
+ *     <li>Scanning the network and initializing internal state</li>
+ *     <li>Adding, removing, and querying devices</li>
+ *     <li>Retrieving devices by type</li>
+ *     <li>Accessing the local (self) device information</li>
  * </ul>
  */
 public interface DataService {
 
     /**
-     * Adds a new device to the internal list.
+     * Adds a device to the internal collection.
      *
-     * @param device The {@link Device} object to be added.
+     * @param device the {@link Device} to be added
      */
     void addDevice(@NotNull final Device device);
 
     /**
-     * Removes a device from the list by its index.
+     * Removes a device from the collection by its index.
      *
-     * @param index The index of the {@link Device} to remove.
+     * @param index the index of the {@link Device} to remove
      */
     void removeByIndex(@NotNull final Integer index);
 
     /**
-     * Removes a specific device object from the list.
+     * Removes the specified device instance from the collection.
      *
-     * @param device The {@link Device} instance to remove.
+     * @param device the {@link Device} to remove
      */
     void removeByObject(@NotNull final Device device);
 
     /**
-     * Retrieves a device from the list by index.
+     * Retrieves a device by its index.
      *
-     * @param index The index of the device to retrieve.
-     * @return The {@link Device} at the specified index.
+     * @param index the index of the device
+     * @return the {@link Device} at the given index
      */
     Device getDevice(@NotNull final Integer index);
 
     /**
-     * Initiates a network scan to detect and initialize internal state,
-     * including the self device and connected gateways.
+     * Performs a network scan and initializes internal state,
+     * including available interfaces, self device, and discovered gateways.
      *
-     * @throws DrawNetworkException If an error occurs during network scanning.
+     * @throws DrawNetworkException if the scan fails due to a network error
      */
     void run() throws DrawNetworkException;
 
     /**
-     * Retrieves all devices of a specific type.
+     * Retrieves all devices that are instances of the specified type.
      *
-     * @param tClass The class type to filter devices by.
-     * @param <T>    The type parameter representing the device type.
-     * @return A {@link HashMap} mapping index to devices of type {@code T}.
+     * @param tClass the class type to filter by
+     * @param <T>    the specific device subtype
+     * @return a {@link HashMap} mapping indices to matching device instances
      */
     <T> HashMap<Integer, T> getDevices(@NotNull final Class<T> tClass);
 
     /**
-     * Clears all devices and internal data.
+     * Clears all tracked devices and resets internal state.
      */
     void clear();
 
     /**
-     * Gets the self-representing device (usually the host running this service).
+     * Returns the self (local) device representing the current host.
      *
-     * @return The {@link SelfDevice} instance.
+     * @return the {@link SelfDevice} instance
      */
     SelfDevice getSelfDevice();
 
     /**
-     * Retrieves a list of all known devices.
+     * Returns a list of all registered devices.
      *
-     * @return A {@link List} of all {@link Device} instances.
+     * @return a {@link List} of {@link Device} objects
      */
     List<Device> getDevices();
 
     /**
-     * Creates a {@link Target} device based on input parameters.
+     * Creates a new {@link Target} device from the provided input.
      *
-     * @param deviceName      The name of the device.
-     * @param deviceInterface The network interface used by the device.
-     * @param ipAddresses     An array of IP addresses associated with the device.
-     * @return A new {@link Target} instance.
-     * @throws InvalidInputException If input parameters are invalid.
+     * @param deviceName      the name to assign to the target device
+     * @param networkInterface the name of the interface the target is associated with
+     * @param ip              the IP address of the target
+     * @return a new {@link Target} instance
+     * @throws InvalidInputException if input validation fails
      */
-    Target createTarget(final String deviceName, final String deviceInterface, final String[] ipAddresses) throws InvalidInputException;
+    Target createTarget(String deviceName, String networkInterface, String ip) throws InvalidInputException;
 
     /**
-     * Creates a {@link Gateway} device using provided input data.
+     * Searches for a {@link Gateway} that contains the specified target device.
      *
-     * @param deviceName      The name of the gateway device.
-     * @param deviceInterface The network interface used by the gateway.
-     * @param ipAddresses     An array of IP addresses for the gateway.
-     * @param nextDevices     The downstream devices (targets) connected to the gateway.
-     * @return A new {@link Gateway} instance.
-     * @throws InvalidInputException If input parameters are invalid.
-     */
-    Gateway createGateway(final String deviceName, final String deviceInterface, final String[] ipAddresses, final Target[] nextDevices) throws InvalidInputException;
-
-    /**
-     * Searches for a gateway that contains the specified target.
-     *
-     * @param target The {@link Target} to search for.
-     * @return An {@link Optional} containing the matching {@link Gateway}, if found.
+     * @param target the {@link Target} to locate
+     * @return an {@link Optional} containing the gateway if found, otherwise empty
      */
     Optional<Gateway> findGatewayByTarget(final Target target);
 }

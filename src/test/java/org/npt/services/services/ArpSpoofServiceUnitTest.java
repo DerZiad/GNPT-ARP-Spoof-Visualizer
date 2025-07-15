@@ -1,9 +1,6 @@
 package org.npt.services.services;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -17,12 +14,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@Disabled
 @ExtendWith(MockitoExtension.class)
+@Disabled
 class ArpSpoofServiceUnitTest {
 
     private DefaultArpSpoofService service;
@@ -43,128 +40,79 @@ class ArpSpoofServiceUnitTest {
 
     @Test
     void testSingletonInstance() {
-        DefaultArpSpoofService anotherInstance = (DefaultArpSpoofService) GraphicalNetworkTracerFactory.getInstance().getArpSpoofService();
-        assertSame(service, anotherInstance, "Should return the same instance");
+        DefaultArpSpoofService another = (DefaultArpSpoofService) GraphicalNetworkTracerFactory.getInstance().getArpSpoofService();
+        assertThat(another).isSameAs(service);
     }
 
     @Test
-    void testGetArpSpoofProcessWhenNotExists() {
-        when(mockTarget.getIpAddresses()).thenReturn(List.of("192.168.1.100"));
+    void testGetArpSpoofProcessNotExists() {
+        when(mockTarget.getIp()).thenReturn("192.168.0.100");
         Optional<DefaultArpSpoofService.ArpSpoofProcess> result = service.getArpSpoofProcess(mockTarget);
-        assertFalse(result.isPresent(), "Should return empty optional when process doesn't exist");
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void testSpoofHappyPath() throws NotFoundException, IOException {
-        // Mock target and gateway responses
-        when(mockTarget.findFirstIPv4()).thenReturn(Optional.of("192.168.1.100"));
-        when(mockGateway.findFirstIPv4()).thenReturn(Optional.of("192.168.1.1"));
+    void testSpoofSuccess() throws Exception {
+        when(mockTarget.getIp()).thenReturn("192.168.0.100");
+        when(mockGateway.getIp()).thenReturn("192.168.0.1");
 
-        try (MockedStatic<Runtime> mockedRuntime = mockStatic(Runtime.class)) {
-            // Mock runtime execution
-            Process mockProcess = mock(Process.class);
-            Runtime mockRuntime = mock(Runtime.class);
-            when(Runtime.getRuntime()).thenReturn(mockRuntime);
-            when(mockRuntime.exec(any(String[].class))).thenReturn(mockProcess);
+        try (MockedStatic<Runtime> mocked = mockStatic(Runtime.class)) {
+            Process process = mock(Process.class);
+            Runtime runtime = mock(Runtime.class);
+            mocked.when(Runtime::getRuntime).thenReturn(runtime);
+            when(runtime.exec(any(String[].class))).thenReturn(process);
 
-            // Execute the test
             service.spoof("eth0", mockTarget, mockGateway);
 
-            // Verify results
-            assertEquals(1, service.getArpSpoofProcesses().size(), "Should have one process");
-            DefaultArpSpoofService.ArpSpoofProcess process = service.getArpSpoofProcesses().get(0);
-            assertEquals(mockTarget, process.target());
-            assertEquals(mockGateway, process.gateway());
-            assertEquals(2, process.tasksThreads().size(), "Should have two tasks (bidirectional spoofing)");
-            assertNotNull(process.packetSnifferThreadPair(), "Should have packet sniffer thread");
+            assertThat(service.getArpSpoofProcesses()).hasSize(1);
+            var spoof = service.getArpSpoofProcesses().get(0);
+            assertThat(spoof.target()).isEqualTo(mockTarget);
+            assertThat(spoof.gateway()).isEqualTo(mockGateway);
+            assertThat(spoof.tasksThreads()).hasSize(2);
+            assertThat(spoof.packetSnifferThreadPair()).isNotNull();
         }
     }
 
     @Test
-    void testSpoofWhenTargetHasNoIPv4() {
-        when(mockTarget.findFirstIPv4()).thenReturn(Optional.empty());
-
-        assertThrows(NotFoundException.class, () -> {
-            service.spoof("eth0", mockTarget, mockGateway);
-        }, "Should throw when target has no IPv4");
+    void testSpoofTargetMissingIp() {
+        when(mockTarget.getIp()).thenReturn(null);
+        assertThatThrownBy(() -> service.spoof("eth0", mockTarget, mockGateway))
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void testSpoofWhenGatewayHasNoIPv4() {
-        when(mockTarget.findFirstIPv4()).thenReturn(Optional.of("192.168.1.100"));
-        when(mockGateway.findFirstIPv4()).thenReturn(Optional.empty());
-
-        assertThrows(NotFoundException.class, () -> {
-            service.spoof("eth0", mockTarget, mockGateway);
-        }, "Should throw when gateway has no IPv4");
+    void testSpoofGatewayMissingIp() {
+        when(mockTarget.getIp()).thenReturn("192.168.0.100");
+        when(mockGateway.getIp()).thenReturn(null);
+        assertThatThrownBy(() -> service.spoof("eth0", mockTarget, mockGateway))
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void testStopProcess() throws NotFoundException, IOException {
-        // Mock target and gateway responses
-        when(mockTarget.findFirstIPv4()).thenReturn(Optional.of("192.168.1.100"));
-        when(mockGateway.findFirstIPv4()).thenReturn(Optional.of("192.168.1.1"));
+    void testClearAllProcesses() throws Exception {
+        when(mockTarget.getIp()).thenReturn("192.168.0.100");
+        when(mockGateway.getIp()).thenReturn("192.168.0.1");
 
-        try (MockedStatic<Runtime> mockedRuntime = mockStatic(Runtime.class)) {
-            // Mock runtime execution
-            Process mockProcess = mock(Process.class);
-            Runtime mockRuntime = mock(Runtime.class);
-            when(Runtime.getRuntime()).thenReturn(mockRuntime);
-            when(mockRuntime.exec(any(String[].class))).thenReturn(mockProcess);
+        Target mockTarget2 = mock(Target.class);
+        Gateway mockGateway2 = mock(Gateway.class);
+        when(mockTarget2.getIp()).thenReturn("192.168.0.101");
+        when(mockGateway2.getIp()).thenReturn("192.168.0.1");
 
-            // Start the spoofing
-            service.spoof("eth0", mockTarget, mockGateway);
-
-            // Now stop it
-            //service.stop(mockTarget, mockGateway);
-
-            // Verify process was stopped
-            verify(mockProcess, times(2)).destroy(); // Called for each direction
-            assertTrue(service.getArpSpoofProcesses().isEmpty(), "Process list should be empty after stop");
-        }
-    }
-
-    @Test
-    void testStopNonExistentProcess() {
-        when(mockTarget.findFirstIPv4()).thenReturn(Optional.of("192.168.1.100"));
-        when(mockGateway.findFirstIPv4()).thenReturn(Optional.of("192.168.1.1"));
-
-        assertThrows(NotFoundException.class, () -> {
-            //service.stop(mockTarget, mockGateway);
-        }, "Should throw when trying to stop non-existent process");
-    }
-
-    @Test
-    void testClearAllProcesses() throws NotFoundException, IOException {
-        // Mock target and gateway responses
-        when(mockTarget.findFirstIPv4()).thenReturn(Optional.of("192.168.1.100"));
-        when(mockGateway.findFirstIPv4()).thenReturn(Optional.of("192.168.1.1"));
-
-        try (MockedStatic<Runtime> mockedRuntime = mockStatic(Runtime.class)) {
-            // Mock runtime execution
-            Process mockProcess = mock(Process.class);
-            Runtime mockRuntime = mock(Runtime.class);
-            when(Runtime.getRuntime()).thenReturn(mockRuntime);
-            when(mockRuntime.exec(any(String[].class))).thenReturn(mockProcess);
-
-            // Start multiple spoofing processes
-            Target mockTarget2 = mock(Target.class);
-            Gateway mockGateway2 = mock(Gateway.class);
-            when(mockTarget2.findFirstIPv4()).thenReturn(Optional.of("192.168.1.101"));
-            when(mockGateway2.findFirstIPv4()).thenReturn(Optional.of("192.168.1.1"));
+        try (MockedStatic<Runtime> mocked = mockStatic(Runtime.class)) {
+            Process process = mock(Process.class);
+            Runtime runtime = mock(Runtime.class);
+            mocked.when(Runtime::getRuntime).thenReturn(runtime);
+            when(runtime.exec(any(String[].class))).thenReturn(process);
 
             service.spoof("eth0", mockTarget, mockGateway);
             service.spoof("eth0", mockTarget2, mockGateway2);
 
-            // Verify we have 2 processes
-            assertEquals(2, service.getArpSpoofProcesses().size());
+            assertThat(service.getArpSpoofProcesses()).hasSize(2);
 
-            // Clear all
             service.clear();
 
-            // Verify all processes were stopped and cleared
-            verify(mockProcess, times(4)).destroy(); // 2 processes × 2 directions each
-            assertTrue(service.getArpSpoofProcesses().isEmpty());
+            verify(process, times(4)).destroy();
+            assertThat(service.getArpSpoofProcesses()).isEmpty();
         }
     }
 }

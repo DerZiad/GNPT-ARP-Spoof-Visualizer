@@ -6,7 +6,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import org.npt.controllers.DataInjector;
-import org.npt.models.Target;
 import org.npt.models.ui.IpEntry;
 
 public class TargetDetailsController extends DataInjector {
@@ -29,6 +28,7 @@ public class TargetDetailsController extends DataInjector {
     @FXML
     private TableColumn<IpEntry, String> typeColumn;
 
+    /*
     @FXML
     public void initialize() {
         Target target = (Target) getArgs()[0];
@@ -51,5 +51,5 @@ public class TargetDetailsController extends DataInjector {
         for (String ip : target.getIpAddresses()) {
             ipTable.getItems().add(new IpEntry(ip, target.isValidIPv4(ip) ? "IPv4" : "IPv6"));
         }
-    }
+    }*/
 }

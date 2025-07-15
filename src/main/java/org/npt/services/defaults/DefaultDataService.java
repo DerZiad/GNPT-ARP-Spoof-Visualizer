@@ -9,12 +9,16 @@ import org.npt.exception.InvalidInputException;
 import org.npt.models.*;
 import org.npt.services.DataService;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
@@ -23,7 +27,7 @@ public class DefaultDataService implements DataService {
     private static final int EXPECTED_CAPACITY = 3000;
 
     @Getter
-    private List<Device> devices;
+    private List<Device> devices = new ArrayList<>();
 
     @Getter
     private SelfDevice selfDevice;
@@ -31,14 +35,16 @@ public class DefaultDataService implements DataService {
     private static volatile DataService instance;
 
     public void run() throws DrawNetworkException {
-
         try {
-            devices = new ArrayList<>(EXPECTED_CAPACITY);
-            List<Gateway> gateways = discoverGateways();
-            devices.addAll(gateways);
-            selfDevice = discoverSelfDevice(gateways);
-        } catch (SocketException | UnknownHostException e) {
-            throw new DrawNetworkException("Error by drawing network.");
+            final List<Interface> interfaces = scanNetwork();
+            selfDevice = new SelfDevice("Self Device", interfaces);
+            devices.addAll(interfaces);
+            devices.addAll(interfaces
+                            .stream()
+                            .map(Interface::getGateway)
+                            .collect(Collectors.toCollection(ArrayList::new)));
+        } catch (SocketException e) {
+            throw new DrawNetworkException("Failed to initialize network interfaces: unable to retrieve local network data.");
         }
     }
 
@@ -87,19 +93,18 @@ public class DefaultDataService implements DataService {
     }
 
     @Override
-    public Target createTarget(String deviceName, String deviceInterface, String[] ipAddresses) throws InvalidInputException {
-        Target target = new Target(deviceName, deviceInterface, new ArrayList<>(List.of(ipAddresses)));
+    public Target createTarget(String deviceName, String networkInterface, String ip) throws InvalidInputException {
+        Target target = new Target(deviceName, ip);
         validateTarget(target);
+        Optional<Interface> selfDeviceInterfaceOpt = selfDevice.getAnInterfaces()
+                .stream()
+                .filter(anInterface -> anInterface.getDeviceName().equals(networkInterface))
+                .findFirst();
+        selfDeviceInterfaceOpt.ifPresent(selfDeviceInterface -> {
+            selfDeviceInterface.getGateway().getDevices().add(target);
+        });
         this.addDevice(target);
         return target;
-    }
-
-    @Override
-    public Gateway createGateway(String deviceName, String deviceInterface, String[] ipAddresses, Target[] nextDevices) throws InvalidInputException {
-        Gateway gateway = new Gateway(deviceName, deviceInterface, new ArrayList<>(List.of(ipAddresses)), Arrays.asList(nextDevices));
-        validateGateway(gateway);
-        this.addDevice(gateway);
-        return gateway;
     }
 
     @Override
@@ -129,109 +134,92 @@ public class DefaultDataService implements DataService {
         HashMap<String, String> errors = new HashMap<>();
 
         final String deviceName = target.getDeviceName();
-        if (deviceName == null || deviceName.isEmpty()) {
-            errors.put("Device Name", "Device name is empty and blank.");
+        if (deviceName == null || deviceName.trim().isEmpty()) {
+            errors.put("Device Name", "Device name cannot be empty.");
         }
 
         devices.stream()
                 .filter(device -> device.getDeviceName().equals(deviceName))
                 .findFirst()
-                .ifPresent(device -> errors.put("Device Name", "Device with this name (" + device.getDeviceName() + ") already exists."));
+                .ifPresent(device -> errors.put("Device Name", "A device named '" + device.getDeviceName() + "' already exists."));
 
-        final String networkInterface = target.getNetworkInterface();
-        if (networkInterface == null || networkInterface.isEmpty()) {
-            errors.put("Network Interface", "Network Interface is empty and blank.");
-        }
-
-        final List<String> ipAddresses = target.getIpAddresses();
-        if (ipAddresses == null || ipAddresses.isEmpty()) {
-            errors.put("IP Addresses", "IP Addresses list is empty.");
-        } else if (target.findFirstIPv4().isEmpty()) {
-            errors.put("IP Addresses", "In order to perform ARP spoofing, an IPv4 address must be present.");
+        final String ip = target.getIp();
+        if (ip == null || ip.trim().isEmpty()) {
+            errors.put("IP Address", "An IP address is required.");
+        } else if (!isValidIPv4(ip)) {
+            errors.put("IP Address", "Invalid IPv4 format. Please enter a valid IPv4 address (e.g., 192.168.1.1).");
         }
 
         if (!errors.isEmpty()) {
-            throw new InvalidInputException("Error while validating input data", errors);
+            throw new InvalidInputException("Input validation failed for device creation.", errors);
         }
     }
 
-    private void validateGateway(Gateway gateway) throws InvalidInputException {
-        HashMap<String, String> errors = new HashMap<>();
-
-        String deviceName = gateway.getDeviceName();
-        if (deviceName == null || deviceName.isEmpty()) {
-            errors.put("Device Name", "Device name is empty or null.");
-        }
-
-        String networkInterface = gateway.getNetworkInterface();
-        if (networkInterface == null || networkInterface.isEmpty()) {
-            errors.put("Network Interface", "Network Interface is empty or null.");
-        }
-
-        if (gateway.getIpAddresses() == null || gateway.getIpAddresses().isEmpty()) {
-            errors.put("IP Addresses", "IP Addresses list is empty or null.");
-        }
-
-        if (!errors.isEmpty()) {
-            throw new InvalidInputException("Error while validating Gateway input data", errors);
-        }
-    }
-
-    private List<Gateway> discoverGateways() throws SocketException, UnknownHostException {
-        List<IpAddress> interfaces = listLocalInterfaces();
-        List<Gateway> gateways = new ArrayList<>();
-
-        for (IpAddress ipAddress : interfaces) {
-            String interfaceName = ipAddress.getNetworkInterface();
-            String ip = ipAddress.getIp();
-            InetAddress localAddress = InetAddress.getByName(ip);
-            byte[] addressBytes = localAddress.getAddress();
-
-            addressBytes[3] = 1; // Assume .1 is gateway
-            String gatewayIp = InetAddress.getByAddress(addressBytes).getHostAddress();
-
-            Gateway existing = findGatewayByInterface(gateways, interfaceName);
-            if (existing != null) {
-                existing.getIpAddresses().add(gatewayIp);
-            } else {
-                List<String> ipList = new ArrayList<>();
-                ipList.add(gatewayIp);
-                gateways.add(new Gateway("Router", interfaceName, ipList, new ArrayList<>()));
-            }
-        }
-
-        return gateways;
-    }
-
-    private Gateway findGatewayByInterface(List<Gateway> gateways, String ifaceName) {
-        for (Gateway g : gateways) {
-            if (g.getNetworkInterface().equals(ifaceName)) {
-                return g;
-            }
-        }
-        return null;
-    }
-
-    private SelfDevice discoverSelfDevice(List<Gateway> gateways) throws SocketException {
-        List<IpAddress> interfaces = listLocalInterfaces();
-        return new SelfDevice("My Device", interfaces, gateways);
-    }
-
-    private List<IpAddress> listLocalInterfaces() throws SocketException {
-        List<IpAddress> addresses = new ArrayList<>();
+    private List<Interface> scanNetwork() throws SocketException {
+        List<Interface> interfacesObj = new ArrayList<>();
         Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 
         while (interfaces.hasMoreElements()) {
-            NetworkInterface ni = interfaces.nextElement();
-            String ifaceName = ni.getDisplayName();
-
-            Enumeration<InetAddress> inetAddresses = ni.getInetAddresses();
-            while (inetAddresses.hasMoreElements()) {
-                InetAddress addr = inetAddresses.nextElement();
-                addresses.add(new IpAddress(addr.getHostAddress(), ifaceName));
-            }
+            final NetworkInterface ni = interfaces.nextElement();
+            final String interfaceName = ni.getDisplayName();
+            final Optional<String> ipAddressOptional = findFirstIPv4(ni.getInetAddresses());
+            ipAddressOptional.ifPresent(ip -> {
+                discoverGatewayForInterface(interfaceName).ifPresent(gw -> {
+                    interfacesObj.add(new Interface(interfaceName, ip, gw));
+                });
+            });
         }
 
-        return addresses;
+        return interfacesObj;
+    }
+
+    public Optional<Gateway> discoverGatewayForInterface(String interfaceName) {
+        try {
+            Process process = new ProcessBuilder("sh", "-c", "ip route show dev " + interfaceName).start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("default")) {
+                    String[] parts = line.split("\\s+");
+                    int viaIndex = Arrays.asList(parts).indexOf("via");
+                    if (viaIndex != -1 && viaIndex + 1 < parts.length) {
+                        String gatewayIp = parts[viaIndex + 1];
+                        return Optional.of(new Gateway("Router", gatewayIp, new ArrayList<>()));
+                    }
+                }
+            }
+            return Optional.empty();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+
+
+    private Optional<String> findFirstIPv4(Enumeration<InetAddress> ipAddresses) {
+        while (ipAddresses.hasMoreElements()) {
+            InetAddress address = ipAddresses.nextElement();
+            if (address instanceof java.net.Inet4Address) {
+                return Optional.of(address.getHostAddress());
+            }
+        }
+        return Optional.empty();
+    }
+
+    private boolean isValidIPv4(String ip) {
+        String ipv4Pattern = "^([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})$";
+        Pattern pattern = Pattern.compile(ipv4Pattern);
+        Matcher matcher = pattern.matcher(ip);
+
+        if (matcher.matches()) {
+            for (int i = 1; i <= 4; i++) {
+                int part = Integer.parseInt(matcher.group(i));
+                if (part < 0 || part > 255) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 }

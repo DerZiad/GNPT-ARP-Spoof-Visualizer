@@ -22,9 +22,8 @@ import org.npt.models.*;
 import org.npt.models.ui.DeviceUI;
 import org.npt.uiservices.DeviceUiMapperService;
 
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -78,6 +77,7 @@ public class MainController extends DataInjector {
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
         images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));
         images.put(SelfDevice.class, new Image(graphicalNetworkTracerFactory.getResource("images/hacker.png")));
+        images.put(Interface.class, new Image(graphicalNetworkTracerFactory.getResource("images/interface.png")));
 
         canvas.widthProperty().bind(borderPane.widthProperty());
         canvas.heightProperty().bind(borderPane.heightProperty());
@@ -85,12 +85,14 @@ public class MainController extends DataInjector {
 
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             resizeTargetsPositionAfterChangeEvent();
+            calculateInterfacesPosition();
             calculateRootDevicePosition();
             calculateGatewaysPosition();
             drawNetwork(canvas);
         });
         canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
             resizeTargetsPositionAfterChangeEvent();
+            calculateInterfacesPosition();
             calculateRootDevicePosition();
             calculateGatewaysPosition();
             drawNetwork(canvas);
@@ -121,51 +123,50 @@ public class MainController extends DataInjector {
 
     private void initDevices() {
         initFormFieldInterfacesComboBox();
+        calculateInterfacesPosition();
         calculateRootDevicePosition();
         calculateGatewaysPosition();
         drawNetwork(canvas);
     }
 
     private void initFormFieldInterfacesComboBox() {
-        try {
-            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-            for (NetworkInterface networkInterface : Collections.list(interfaces)) {
-                MenuItem menuItem = new MenuItem(networkInterface.getName());
-                menuItem.setOnAction(ignored -> menuButton.setText(menuItem.getText()));
-                menuButton.getItems().add(menuItem);
-            }
-            if (menuButton.getItems().isEmpty()) {
-                menuButton.setText("No network");
-            } else {
-                String interfaceFound = menuButton.getItems().getFirst().getText();
-                menuButton.setText(interfaceFound);
-            }
-        } catch (SocketException e) {
-            // TODO Exception handling
-            throw new RuntimeException(e);
+        final List<Interface> interfaces = deviceUiMapperService.findAll(Interface.class)
+                .stream()
+                .map(DeviceUI::getDevice)
+                .map(Interface.class::cast)
+                .toList();
+        for (Interface interfaceDevice : interfaces) {
+            final MenuItem menuItem = new MenuItem(interfaceDevice.getDeviceName());
+            menuItem.setOnAction(ignored -> menuButton.setText(menuItem.getText()));
+            menuButton.getItems().add(menuItem);
         }
     }
 
+    private void calculateInterfacesPosition() {
+        List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
+        double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
+        positionDevicesAroundCenter(interfaces, baseRadius);
+    }
+
     private void calculateGatewaysPosition() {
+        List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
+        double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3 * 2;
+        positionDevicesAroundCenter(gateways, baseRadius);
+    }
 
-        final List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
-        int gatewaysSize = gateways.size();
-        if (gatewaysSize == 0) return;
-        double xCenter = deviceUiMapperService.getSelfDevice().getX();
-        double yCenter = deviceUiMapperService.getSelfDevice().getY();
-        double R = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
-        double step = 2 * Math.PI / gatewaysSize;
+    private void positionDevicesAroundCenter(List<DeviceUI> devices, double radius) {
+        if (devices.isEmpty()) return;
 
-        Iterator<DeviceUI> iterator = gateways.iterator();
-        int i = 0;
-        while (iterator.hasNext()) {
-            double angle = step * i;
-            double x = xCenter + R * Math.cos(angle);
-            double y = yCenter + R * Math.sin(angle);
-            DeviceUI gateway = iterator.next();
-            gateway.setX(x);
-            gateway.setY(y);
-            i++;
+        double centerX = deviceUiMapperService.getSelfDevice().getX();
+        double centerY = deviceUiMapperService.getSelfDevice().getY();
+        double angleStep = 2 * Math.PI / devices.size();
+
+        for (int i = 0; i < devices.size(); i++) {
+            double angle = i * angleStep;
+            double x = centerX + radius * Math.cos(angle);
+            double y = centerY + radius * Math.sin(angle);
+            devices.get(i).setX(x);
+            devices.get(i).setY(y);
         }
     }
 
@@ -184,11 +185,11 @@ public class MainController extends DataInjector {
         });
     }
 
-    private void resizeTargetsPositionAfterChangeEvent(){
+    private void resizeTargetsPositionAfterChangeEvent() {
         double newWidth = canvas.getWidth();
         double newHeight = canvas.getHeight();
         final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
-        for(DeviceUI target : targets) {
+        for (DeviceUI target : targets) {
             double xPercentage = target.getX() / deviceUiMapperService.getActualWidth();
             double yPercentage = target.getY() / deviceUiMapperService.getActualHeight();
             target.setX(xPercentage * newWidth);
@@ -278,36 +279,45 @@ public class MainController extends DataInjector {
     }
 
     public void drawNetwork(Canvas canvas) {
-        GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
+        final GraphicsContext graphicsContext = canvas.getGraphicsContext2D();
         graphicsContext.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         drawGrid(graphicsContext);
         graphicsContext.setStroke(Color.BLACK);
         graphicsContext.setLineWidth(3);
-        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+        final double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         draw(graphicsContext, selfDevice, imageSize, SelfDevice.class);
-        List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
-
-        for (DeviceUI gateway : gateways) {
-            draw(graphicsContext, gateway, imageSize, Gateway.class);
-            drawConnection(graphicsContext, gateway, selfDevice);
-            Gateway gatewayData = (Gateway) gateway.getDevice();
-            List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class).stream()
+        final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
+        for (final DeviceUI interfaceUI : interfaces) {
+            draw(graphicsContext, interfaceUI, imageSize, Interface.class);
+            drawConnection(graphicsContext, interfaceUI, selfDevice);
+            final Interface interfaceData = (Interface) interfaceUI.getDevice();
+            final Gateway gatewayData = interfaceData.getGateway();
+            final DeviceUI gatewayUI = deviceUiMapperService
+                    .getDevices()
+                    .stream()
+                    .filter(deviceUi -> deviceUi.getDevice().equals(gatewayData))
+                    .findFirst()
+                    .get();
+            draw(graphicsContext, gatewayUI, imageSize, Gateway.class);
+            drawConnection(graphicsContext, gatewayUI, interfaceUI);
+            final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class).stream()
                     .filter(deviceUi -> gatewayData.getDevices().contains((Target) deviceUi.getDevice()))
                     .toList();
             for (DeviceUI target : targets) {
                 draw(graphicsContext, target, imageSize, Target.class);
-                drawConnection(graphicsContext, gateway, target);
+                drawConnection(graphicsContext, gatewayUI, target);
             }
+
         }
     }
 
     private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
-        double r = 35;
-        double x1 = startLine.getX();
-        double y1 = startLine.getY();
-        double x2 = endLine.getX();
-        double y2 = endLine.getY();
+        final double r = 35;
+        final double x1 = startLine.getX();
+        final double y1 = startLine.getY();
+        final double x2 = endLine.getX();
+        final double y2 = endLine.getY();
 
         if (x1 == x2) {
             double dy = (y2 > y1 ? 1 : -1) * r;
@@ -315,8 +325,8 @@ public class MainController extends DataInjector {
             return;
         }
 
-        double a = (y2 - y1) / (x2 - x1);
-        double b = y2 - a * x2;
+        final double a = (y2 - y1) / (x2 - x1);
+        final double b = y2 - a * x2;
 
         Function<Double, Double> lineEquation = x -> a * x + b;
 
@@ -350,41 +360,41 @@ public class MainController extends DataInjector {
         gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
     }
 
+    private static final double TEXT_LINE_HEIGHT = 18;
+    private static final double TEXT_OFFSET_Y = 10;
+    private static final double LABEL_WIDTH = 100;
+
     private <T> void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class<T> deviceClass) {
-        if (deviceUi.getDevice() instanceof SelfDevice) {
-            int enlargedSize = (int) (imageSize * 1.5);
-            gc.drawImage(images.get(deviceClass),
-                    deviceUi.getX() - (double) enlargedSize / 2,
-                    deviceUi.getY() - (double) enlargedSize / 2,
-                    enlargedSize,
-                    enlargedSize);
-        } else {
-            gc.drawImage(images.get(deviceClass),
-                    deviceUi.getX() - imageSize / 2,
-                    deviceUi.getY() - imageSize / 2,
-                    imageSize,
-                    imageSize);
-        }
+        double x = deviceUi.getX() - imageSize / 2;
+        double y = deviceUi.getY() - imageSize / 2;
+
+        // Draw only the device image (no border)
+        gc.drawImage(images.get(deviceClass), x, y, imageSize, imageSize);
+
+        // Prepare to draw text
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
-        gc.fillText(deviceUi.getDevice().getDeviceName(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 20);
 
-        if (deviceClass.equals(SelfDevice.class)) {
-            Optional<IpAddress> ipAddress = ((SelfDevice) deviceUi.getDevice()).findFirstIPv4();
-            ipAddress.ifPresent(ipString -> {
-                gc.fillText(ipString.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
-                gc.fillText(ipString.getIp(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60);
-            });
-        } else if (deviceClass.equals(Target.class)) {
-            Target target = (Target) deviceUi.getDevice();
-            gc.fillText(target.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
-            target.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60));
-        } else {
-            Gateway gateway = (Gateway) deviceUi.getDevice();
-            gc.fillText(gateway.getNetworkInterface(), deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 40);
-            gateway.findFirstIPv4().ifPresent(ipString -> gc.fillText(ipString, deviceUi.getX() - 25, deviceUi.getY() + imageSize / 2 + 60));
+        // Display lines of text below the icon
+        double textX = deviceUi.getX() - LABEL_WIDTH / 2;
+        double baseY = y + imageSize + TEXT_OFFSET_Y;
+        int line = 0;
+
+        gc.fillText(deviceUi.getDevice().getDeviceName(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+
+        if (deviceClass.equals(Target.class)) {
+            final Target target = (Target) deviceUi.getDevice();
+            gc.fillText(target.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+        } else if (deviceClass.equals(Interface.class)) {
+            final Interface intf = (Interface) deviceUi.getDevice();
+            gc.fillText(intf.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+        } else if (deviceClass.equals(Gateway.class)) {
+            final Gateway gateway = (Gateway) deviceUi.getDevice();
+            gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         }
     }
+
+
 
     private void drawGrid(GraphicsContext gc) {
         for (double percentage = 0.1; percentage <= 1.0; percentage += 0.1) {

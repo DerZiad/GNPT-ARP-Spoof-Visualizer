@@ -1,6 +1,5 @@
 package org.npt.services;
 
-import org.npt.exception.NotFoundException;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
 import org.npt.services.defaults.DefaultArpSpoofService;
@@ -37,9 +36,8 @@ public interface ArpSpoofService {
      * @param scanInterface the network interface to use for spoofing
      * @param target        the target device to spoof
      * @param gateway       the gateway device to impersonate
-     * @throws NotFoundException if the target or gateway does not have a valid IPv4 address
      */
-    void spoof(String scanInterface, Target target, Gateway gateway) throws NotFoundException;
+    void spoof(String scanInterface, Target target, Gateway gateway);
 
     /**
      * Clears and stops all active ARP spoofing processes.

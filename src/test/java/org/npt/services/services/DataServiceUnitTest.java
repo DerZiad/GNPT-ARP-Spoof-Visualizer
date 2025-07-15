@@ -1,12 +1,11 @@
 package org.npt.services.services;
 
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.Assume;
+import org.junit.jupiter.api.*;
 import org.npt.exception.InvalidInputException;
 import org.npt.models.Gateway;
+import org.npt.models.Interface;
 import org.npt.models.Target;
 import org.npt.services.DataService;
 import org.npt.services.GraphicalNetworkTracerFactory;
@@ -41,7 +40,7 @@ public class DataServiceUnitTest {
     @Test
     @DisplayName("Should add a Target device")
     public void testAddDeviceForTarget() {
-        Target target = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
+        Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
 
         assertThat(dataService.getDevices()).contains(target);
@@ -50,7 +49,7 @@ public class DataServiceUnitTest {
     @Test
     @DisplayName("Should remove device by object")
     public void testRemoveByObject() {
-        Target target = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
+        Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
         dataService.removeByObject(target);
 
@@ -60,7 +59,7 @@ public class DataServiceUnitTest {
     @Test
     @DisplayName("Should remove device by index")
     public void testRemoveByIndex() {
-        Target target = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
+        Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
         dataService.removeByIndex(0);
 
@@ -70,7 +69,7 @@ public class DataServiceUnitTest {
     @Test
     @DisplayName("Should get device by index")
     public void testGetDevice() {
-        Target target = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
+        Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
 
         assertThat(dataService.getDevice(0)).isEqualTo(target);
@@ -79,9 +78,9 @@ public class DataServiceUnitTest {
     @Test
     @DisplayName("Should filter devices by type")
     public void testGetDevicesByClass() {
-        Target t1 = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
-        Target t2 = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
-        Gateway g1 = new Gateway(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP), List.of(t1));
+        Target t1 = new Target(TEST_DEVICE_NAME, TEST_IP);
+        Target t2 = new Target(TEST_DEVICE_NAME + "2", TEST_IP);
+        Gateway g1 = new Gateway("Router", "192.168.0.1", List.of(t1));
 
         dataService.addDevice(t1);
         dataService.addDevice(t2);
@@ -97,7 +96,7 @@ public class DataServiceUnitTest {
     @Test
     @DisplayName("Should clear all devices")
     public void testClear() {
-        dataService.addDevice(new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP)));
+        dataService.addDevice(new Target(TEST_DEVICE_NAME, TEST_IP));
         dataService.clear();
 
         assertThat(dataService.getDevices()).isEmpty();
@@ -106,7 +105,12 @@ public class DataServiceUnitTest {
     @Test
     @DisplayName("Should create target with valid input")
     public void testCreateTargetValid() throws InvalidInputException {
-        Target target = dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{TEST_IP});
+        Optional<Interface> networkInterface = dataService.getSelfDevice().getAnInterfaces().stream().findFirst();
+        Assumptions.assumeTrue(networkInterface.isPresent());
+
+        String iface = networkInterface.get().getDeviceName();
+        Target target = dataService.createTarget(TEST_DEVICE_NAME, iface, TEST_IP);
+
         assertThat(target).isNotNull();
         assertThat(dataService.getDevices()).contains(target);
     }
@@ -115,19 +119,23 @@ public class DataServiceUnitTest {
     @DisplayName("Should throw exception when creating invalid target (missing IP)")
     public void testCreateTargetInvalidMissingIp() {
         InvalidInputException thrown = catchThrowableOfType(() ->
-                dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{}), InvalidInputException.class);
+                dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, null), InvalidInputException.class);
 
         assertThat(thrown).isNotNull();
-        assertThat(thrown.getErrors()).containsKey("IP Addresses");
+        assertThat(thrown.getErrors()).containsKey("IP Address");
     }
 
     @Test
     @DisplayName("Should throw exception when creating invalid target (duplicate name)")
     public void testCreateTargetInvalidDuplicateName() throws InvalidInputException {
-        dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{TEST_IP});
+        Optional<Interface> networkInterface = dataService.getSelfDevice().getAnInterfaces().stream().findFirst();
+        Assumptions.assumeTrue(networkInterface.isPresent());
+
+        String iface = networkInterface.get().getDeviceName();
+        dataService.createTarget(TEST_DEVICE_NAME, iface, "192.168.0.101");
 
         InvalidInputException thrown = catchThrowableOfType(() ->
-                dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{"192.168.0.101"}), InvalidInputException.class);
+                dataService.createTarget(TEST_DEVICE_NAME, iface, "192.168.0.102"), InvalidInputException.class);
 
         assertThat(thrown).isNotNull();
         assertThat(thrown.getErrors()).containsKey("Device Name");
@@ -137,35 +145,16 @@ public class DataServiceUnitTest {
     @DisplayName("Should throw exception when creating invalid target (blank name)")
     public void testCreateTargetInvalidBlankName() {
         InvalidInputException thrown = catchThrowableOfType(() ->
-                dataService.createTarget("", TEST_DEVICE_INTERFACE, new String[]{TEST_IP}), InvalidInputException.class);
+                dataService.createTarget("", TEST_DEVICE_INTERFACE, TEST_IP), InvalidInputException.class);
 
         assertThat(thrown).isNotNull();
         assertThat(thrown.getErrors()).containsKey("Device Name");
     }
 
     @Test
-    @DisplayName("Should create gateway with valid input")
-    public void testCreateGatewayValid() throws InvalidInputException {
-        Target t1 = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
-        Gateway gateway = dataService.createGateway("Router", TEST_DEVICE_INTERFACE, new String[]{TEST_IP}, new Target[]{t1});
-        assertThat(gateway).isNotNull();
-        assertThat(dataService.getDevices()).contains(gateway);
-    }
-
-    @Test
-    @DisplayName("Should throw exception when creating invalid gateway (missing fields)")
-    public void testCreateGatewayInvalidMissingFields() {
-        InvalidInputException thrown = Assertions.catchThrowableOfType(() ->
-                dataService.createGateway("", "", new String[]{}, new Target[]{}), InvalidInputException.class);
-
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getErrors()).containsKeys("Device Name", "Network Interface", "IP Addresses");
-    }
-
-    @Test
     @DisplayName("Should return empty Optional from findGatewayByTarget")
     public void testFindGatewayByTarget() {
-        Target target = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
+        Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         Optional<Gateway> result = dataService.findGatewayByTarget(target);
 
         assertThat(result).isEmpty();

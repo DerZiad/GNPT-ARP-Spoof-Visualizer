@@ -2,7 +2,6 @@ package org.npt.uiservices;
 
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -22,7 +21,6 @@ import org.npt.services.GraphicalNetworkTracerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class DeviceUiMapperService {
@@ -81,14 +79,7 @@ public class DeviceUiMapperService {
 
     public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) {
         try {
-            Target target = dataService.createTarget(deviceName, deviceInterface, new String[]{ipAddress});
-            Optional<Gateway> gatewayOptional = dataService
-                    .getDevices(Gateway.class)
-                    .values()
-                    .stream()
-                    .filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
-                    .findAny();
-            gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
+            Target target = dataService.createTarget(deviceName, deviceInterface, ipAddress);
             DeviceUI deviceUI = new DeviceUI(target);
             initMenu(deviceUI);
             devices.add(deviceUI);
@@ -155,7 +146,13 @@ public class DeviceUiMapperService {
         Target target = (Target) deviceUI.getDevice();
         Gateway gateway = dataService.findGatewayByTarget(target)
                 .orElseThrow(() -> new NotFoundException("Couldn't spoof a target that it is not connected to the same Network"));
-        String scanInterface = target.getNetworkInterface();
+        String scanInterface = dataService.getSelfDevice()
+                .getAnInterfaces()
+                .stream()
+                .filter(anInterface -> anInterface.getGateway().equals(gateway))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("No interface found for the gateway"))
+                .getDeviceName();
         arpSpoofService.spoof(scanInterface, target, gateway);
     }
 

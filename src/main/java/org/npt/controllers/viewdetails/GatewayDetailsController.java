@@ -6,8 +6,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import org.npt.controllers.DataInjector;
-import org.npt.models.Gateway;
-import org.npt.models.Target;
 import org.npt.models.ui.IpEntry;
 
 public class GatewayDetailsController extends DataInjector {
@@ -39,6 +37,7 @@ public class GatewayDetailsController extends DataInjector {
     @FXML
     public Button saveButton;
 
+    /*
     @FXML
     public void initialize() {
         Gateway gateway = (Gateway) super.getArgs()[0];
@@ -64,5 +63,5 @@ public class GatewayDetailsController extends DataInjector {
             gateway.setDeviceName(deviceName);
             refresh.run();
         });
-    }
+    }*/
 }
