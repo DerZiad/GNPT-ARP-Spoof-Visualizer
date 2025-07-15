@@ -1,13 +1,18 @@
 package org.npt.controllers.viewdetails;
 
+import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import org.npt.controllers.DataInjector;
+import org.npt.models.Gateway;
+import org.npt.models.Interface;
+import org.npt.models.SelfDevice;
 import org.npt.models.ui.IpEntry;
 import org.npt.models.ui.IpEntryWithNetworkInterface;
+import org.npt.services.GraphicalNetworkTracerFactory;
 
 public class SelfDeviceDetailsController extends DataInjector {
 
@@ -38,31 +43,30 @@ public class SelfDeviceDetailsController extends DataInjector {
     @FXML
     public Button saveButton;
 
-    /*
+
     @FXML
     public void initialize() {
-        SelfDevice selfDevice = (SelfDevice) getArgs()[0];
-        Runnable refresh = (Runnable) getArgs()[1];
+        SelfDevice selfDevice = GraphicalNetworkTracerFactory.getInstance().getDataService().getSelfDevice();
+        Runnable refresh = (Runnable) getArgs()[0];
         deviceNameField.setText(selfDevice.getDeviceName());
         ipColumn.setCellValueFactory(data -> data.getValue().getIp());
         typeColumn.setCellValueFactory(data -> data.getValue().getType());
+        ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
+        typeColumn1.setCellValueFactory(data -> data.getValue().getType());
         networkInterface.setCellValueFactory(data -> data.getValue().getNetworkInterface());
         for (Interface anInterface : selfDevice.getAnInterfaces()) {
             IpEntryWithNetworkInterface ipEntryWithNetworkInterface = new IpEntryWithNetworkInterface(new SimpleStringProperty(anInterface.getIp()),
-                    new SimpleStringProperty(selfDevice.isValidIPv4(anInterface.getIp()) ? "IPv4" : "IPv6"),
-                    new SimpleStringProperty(anInterface.getNetworkInterface()));
+                    new SimpleStringProperty("IPv4"),
+                    new SimpleStringProperty(anInterface.getDeviceName()));
             ipTable.getItems().add(ipEntryWithNetworkInterface);
+            final Gateway gateway = anInterface.getGateway();
+            nextDevicesTable.getItems().add(new IpEntry(gateway.getIp(), "IPv4"));
         }
 
-        ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
-        typeColumn1.setCellValueFactory(data -> data.getValue().getType());
-        for (Gateway target : selfDevice.getNextGateways()) {
-            target.findFirstIPv4().ifPresent(ip -> nextDevicesTable.getItems().add(new IpEntry(ip, selfDevice.isValidIPv4(ip) ? "IPv4" : "IPv6")));
-        }
         saveButton.setOnAction(ignored -> {
             String deviceName = deviceNameField.getText();
             selfDevice.setDeviceName(deviceName);
             refresh.run();
         });
-    }*/
+    }
 }

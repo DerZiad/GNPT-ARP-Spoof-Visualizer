@@ -1,7 +1,5 @@
 package org.npt.services.services;
 
-import org.assertj.core.api.Assertions;
-import org.junit.Assume;
 import org.junit.jupiter.api.*;
 import org.npt.exception.InvalidInputException;
 import org.npt.models.Gateway;

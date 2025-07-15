@@ -165,7 +165,7 @@ public class DeviceUiMapperService {
             }
             case SelfDevice selfDeviceObj -> {
                 Frame detailsFrame = Frame.createSelfDetails();
-                detailsFrame.setArgs(new Object[]{selfDeviceObj, refreshAction});
+                detailsFrame.setArgs(new Object[]{refreshAction});
                 frameService.createNewStage(detailsFrame, true);
             }
             case Gateway gateway -> {
