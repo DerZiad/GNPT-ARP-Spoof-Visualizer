@@ -70,6 +70,7 @@ public class MainController extends DataInjector {
     @FXML
     public void initialize() {
         deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices);
+        deviceUiMapperService.addTarget("192.168.178.46", "eth0", "My Test Device");
 
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
         images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));

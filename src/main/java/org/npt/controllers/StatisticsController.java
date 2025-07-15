@@ -38,6 +38,8 @@ public class StatisticsController extends DataInjector {
     private static HashMap<String, KnownHost> knownHosts;
     private static GraphicalNetworkTracerFactory graphicalNetworkTracerFactory;
     private static ArpSpoofService arpSpoofService;
+    private Timeline refreshTimeline;
+    private boolean isRunning = true;
 
     @FXML
     private VBox vboxPane2;
@@ -63,6 +65,7 @@ public class StatisticsController extends DataInjector {
         final DefaultArpSpoofService.ArpSpoofProcess arpSpoofProcess = findDeviceSniffer(target);
         deviceSniffer = arpSpoofProcess.packetSnifferThreadPair().getValue();
         returnToMainInterface.setOnAction(event -> {
+            stopRepeatingUpdates();
             FrameService frameService = FrameService.getInstance();
             frameService.removeCurrentScene(Frame.createMainFrame().getKey());
             arpSpoofService.stop(arpSpoofProcess);
@@ -77,12 +80,22 @@ public class StatisticsController extends DataInjector {
     }
 
     private void startRepeatingUpdates() {
-        Timeline refreshTimeline = new Timeline(
-                new KeyFrame(Duration.seconds(0), e -> updateStatistics()),
+        refreshTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(0), e -> {
+                    if (!isRunning) {
+                        refreshTimeline.stop();
+                    } else {
+                        updateStatistics();
+                    }
+                }),
                 new KeyFrame(Duration.seconds(2))
         );
         refreshTimeline.setCycleCount(Timeline.INDEFINITE);
         refreshTimeline.play();
+    }
+
+    private void stopRepeatingUpdates() {
+        isRunning = false;
     }
 
     private void updateStatistics() {

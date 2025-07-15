@@ -14,7 +14,11 @@ import org.pcap4j.packet.*;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DefaultArpSpoofService implements ArpSpoofService {
 
@@ -40,12 +44,17 @@ public class DefaultArpSpoofService implements ArpSpoofService {
 
     @Override
     public void stop(ArpSpoofProcess arpSpoofProcess) {
-        arpSpoofProcess.tasksThreads().forEach(pair -> {
-            pair.getValue().destroy();
-            pair.getKey().interrupt();
+        Thread thread = new Thread(() -> {
+            arpSpoofProcess.tasksThreads().forEach(pair -> {
+                pair.getValue().destroy();
+                pair.getKey().interrupt();
+            });
+            arpSpoofProcess.packetSnifferThreadPair.getValue().stop();
+            arpSpoofProcess.packetSnifferThreadPair.getKey().interrupt();
+            arpSpoofProcesses.remove(arpSpoofProcess);
         });
-        arpSpoofProcess.packetSnifferThreadPair.getValue().stop();
-        arpSpoofProcess.packetSnifferThreadPair.getKey().interrupt();
+        thread.setPriority(Thread.MAX_PRIORITY);
+        thread.start();
     }
 
     @Override
@@ -128,7 +137,7 @@ public class DefaultArpSpoofService implements ArpSpoofService {
         private PcapHandle handle;
 
         @Getter
-        private final List<DefaultPacket> defaultPackets = Collections.synchronizedList(new ArrayList<>(40000));
+        private final List<DefaultPacket> defaultPackets = new CopyOnWriteArrayList<>();
 
         private boolean running = true;
 
@@ -148,7 +157,6 @@ public class DefaultArpSpoofService implements ArpSpoofService {
                     }
                 }
             } catch (NotOpenException | PcapNativeException e) {
-                e.printStackTrace();
                 stop();
             }
         }
