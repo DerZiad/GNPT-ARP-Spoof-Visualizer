@@ -128,17 +128,22 @@ public class DefaultDataService implements DataService {
     private void validateTarget(Target target) throws InvalidInputException {
         HashMap<String, String> errors = new HashMap<>();
 
-        String deviceName = target.getDeviceName();
+        final String deviceName = target.getDeviceName();
         if (deviceName == null || deviceName.isEmpty()) {
             errors.put("Device Name", "Device name is empty and blank.");
         }
 
-        String networkInterface = target.getNetworkInterface();
+        devices.stream()
+                .filter(device -> device.getDeviceName().equals(deviceName))
+                .findFirst()
+                .ifPresent(device -> errors.put("Device Name", "Device with this name (" + device.getDeviceName() + ") already exists."));
+
+        final String networkInterface = target.getNetworkInterface();
         if (networkInterface == null || networkInterface.isEmpty()) {
             errors.put("Network Interface", "Network Interface is empty and blank.");
         }
 
-        List<String> ipAddresses = target.getIpAddresses();
+        final List<String> ipAddresses = target.getIpAddresses();
         if (ipAddresses == null || ipAddresses.isEmpty()) {
             errors.put("IP Addresses", "IP Addresses list is empty.");
         } else if (target.findFirstIPv4().isEmpty()) {

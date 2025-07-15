@@ -1,8 +1,13 @@
 package org.npt.services.services;
 
-import org.junit.jupiter.api.*;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.npt.exception.InvalidInputException;
-import org.npt.models.*;
+import org.npt.models.Gateway;
+import org.npt.models.Target;
 import org.npt.services.DataService;
 import org.npt.services.GraphicalNetworkTracerFactory;
 
@@ -10,7 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 @DisplayName("DataService Behavior Tests")
 public class DataServiceUnitTest {
@@ -107,27 +113,53 @@ public class DataServiceUnitTest {
 
     @Test
     @DisplayName("Should throw exception when creating invalid target (missing IP)")
-    public void testCreateTargetInvalid() {
-        assertThatThrownBy(() ->
-                dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{}))
-                .isInstanceOf(InvalidInputException.class);
+    public void testCreateTargetInvalidMissingIp() {
+        InvalidInputException thrown = catchThrowableOfType(() ->
+                dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{}), InvalidInputException.class);
+
+        assertThat(thrown).isNotNull();
+        assertThat(thrown.getErrors()).containsKey("IP Addresses");
+    }
+
+    @Test
+    @DisplayName("Should throw exception when creating invalid target (duplicate name)")
+    public void testCreateTargetInvalidDuplicateName() throws InvalidInputException {
+        dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{TEST_IP});
+
+        InvalidInputException thrown = catchThrowableOfType(() ->
+                dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{"192.168.0.101"}), InvalidInputException.class);
+
+        assertThat(thrown).isNotNull();
+        assertThat(thrown.getErrors()).containsKey("Device Name");
+    }
+
+    @Test
+    @DisplayName("Should throw exception when creating invalid target (blank name)")
+    public void testCreateTargetInvalidBlankName() {
+        InvalidInputException thrown = catchThrowableOfType(() ->
+                dataService.createTarget("", TEST_DEVICE_INTERFACE, new String[]{TEST_IP}), InvalidInputException.class);
+
+        assertThat(thrown).isNotNull();
+        assertThat(thrown.getErrors()).containsKey("Device Name");
     }
 
     @Test
     @DisplayName("Should create gateway with valid input")
     public void testCreateGatewayValid() throws InvalidInputException {
         Target t1 = new Target(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, List.of(TEST_IP));
-        Gateway gateway = dataService.createGateway(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, new String[]{TEST_IP}, new Target[]{t1});
+        Gateway gateway = dataService.createGateway("Router", TEST_DEVICE_INTERFACE, new String[]{TEST_IP}, new Target[]{t1});
         assertThat(gateway).isNotNull();
         assertThat(dataService.getDevices()).contains(gateway);
     }
 
     @Test
-    @DisplayName("Should throw exception when creating invalid gateway")
-    public void testCreateGatewayInvalid() {
-        assertThatThrownBy(() ->
-                dataService.createGateway("", TEST_DEVICE_INTERFACE, new String[]{}, new Target[]{}))
-                .isInstanceOf(InvalidInputException.class);
+    @DisplayName("Should throw exception when creating invalid gateway (missing fields)")
+    public void testCreateGatewayInvalidMissingFields() {
+        InvalidInputException thrown = Assertions.catchThrowableOfType(() ->
+                dataService.createGateway("", "", new String[]{}, new Target[]{}), InvalidInputException.class);
+
+        assertThat(thrown).isNotNull();
+        assertThat(thrown.getErrors()).containsKeys("Device Name", "Network Interface", "IP Addresses");
     }
 
     @Test
