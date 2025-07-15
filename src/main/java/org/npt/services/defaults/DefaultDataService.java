@@ -104,7 +104,10 @@ public class DefaultDataService implements DataService {
 
     @Override
     public Optional<Gateway> findGatewayByTarget(Target target) {
-        return Optional.empty();
+        return this.getDevices(Gateway.class).values()
+                .stream()
+                .filter(gateway -> gateway.getDevices().contains(target))
+                .findFirst();
     }
 
     public static DataService getInstance() {
