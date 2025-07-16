@@ -24,8 +24,12 @@ jobs:
         with:
           maven-version: '3.9.6'
 
+      - name: List files for debug
+        run: ls -l
+
       - name: Build and package
         run: |
+          cd /home/smookerzz/Documents/GraphicalNetworkPacketTracer
           chmod +x release.sh
           ./release.sh
 
