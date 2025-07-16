@@ -1,33 +1,32 @@
-name: Release Build
+name: Release
 
 on:
-  workflow_dispatch:
   push:
-    tags:
-      - "v*.*.*"  # Triggers on tags like v1.0.0
+    tags: [ '*' ]
 
 jobs:
-  build-release:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Source Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Setup Java 21
+        uses: actions/setup-java@v3
         with:
+          java-version: '21'
           distribution: 'temurin'
-          java-version: 21
+          cache: 'maven'
 
-      - name: Make release.sh Executable
+      - name: Execute Permission Script
         run: chmod +x release.sh
 
-      - name: Run Release Script
-        run: ./release.sh
+      - name: Build Project
+        run: sh release.sh
 
-      - name: Upload Release ZIP
-        uses: actions/upload-artifact@v4
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: gnpt-release
-          path: gnpt.zip
+          files: gnpt.zip
