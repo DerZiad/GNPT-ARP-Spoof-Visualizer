@@ -17,19 +17,29 @@ public class AddTargetFrameController extends DataInjector {
 
     private DeviceUiMapperService deviceUiMapperService;
 
-    @FXML private TextField ipTextField;
-    @FXML private TextField deviceNameTextField;
-    @FXML private MenuButton menuButton;
+    @FXML
+    private TextField ipTextField;
+    @FXML
+    private TextField deviceNameTextField;
+    @FXML
+    private MenuButton menuButton;
 
-    @FXML private VBox errorAlertBox;
-    @FXML private Label errorTitle;
-    @FXML private VBox errorMessages;
+    @FXML
+    private VBox errorAlertBox;
+    @FXML
+    private Label errorTitle;
+    @FXML
+    private VBox errorMessages;
 
-    @FXML private VBox successAlertBox;
-    @FXML private Label successTitle;
-    @FXML private VBox successMessages;
+    @FXML
+    private VBox successAlertBox;
+    @FXML
+    private Label successTitle;
+    @FXML
+    private VBox successMessages;
 
-    @FXML private Button saveButton;
+    @FXML
+    private Button saveButton;
 
     @FXML
     public void initialize() {

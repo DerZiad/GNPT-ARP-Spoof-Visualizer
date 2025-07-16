@@ -5,10 +5,7 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
@@ -17,7 +14,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.npt.models.*;
@@ -29,10 +25,7 @@ import org.npt.uiservices.FrameService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.Stack;
-import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
-import java.util.function.Function;
 
 @Slf4j
 public class MainController extends DataInjector {
@@ -108,7 +101,7 @@ public class MainController extends DataInjector {
             final FrameService frameService = FrameService.getInstance();
             final Frame targetFrame = Frame.createAddTargetFrame();
             targetFrame.setArgs(new Object[]{deviceUiMapperService});
-            final Stage stage = frameService.createNewStage(targetFrame, false,false);
+            final Stage stage = frameService.createNewStage(targetFrame, false, false);
             stage.setOnCloseRequest(ignored -> frameService.stopStage(targetFrame.getKey()));
         });
         setupMouseEvents();
@@ -183,36 +176,37 @@ public class MainController extends DataInjector {
         deviceUiMapperService.setActualWidth(newWidth);
     }
 
+    private static final double MIN_DISTANCE_BETWEEN_DEVICES = 70;
+
     private void setupMouseEvents() {
         EventHandler<MouseEvent> onMousePressed = event -> {
             double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-            if (event.getButton() == MouseButton.SECONDARY) {
-                BiPredicate<DeviceUI, MouseEvent> verifyClickInsideImage = (device, event1) -> {
-                    double xLeftBorder = device.getX() - imageSize / 2;
-                    double xRightBorder = device.getX() + imageSize / 2;
-                    double yTopBorder = device.getY() - imageSize / 2;
-                    double yBottomBorder = device.getY() + imageSize / 2;
-                    double x = event1.getX();
-                    double y = event1.getY();
-                    return x <= xRightBorder && x >= xLeftBorder && y <= yBottomBorder && y >= yTopBorder;
-                };
 
+            BiPredicate<DeviceUI, MouseEvent> isInsideImage = (device, evt) -> {
+                double x = evt.getX(), y = evt.getY();
+                double left = device.getX() - imageSize / 2;
+                double right = device.getX() + imageSize / 2;
+                double top = device.getY() - imageSize / 2;
+                double bottom = device.getY() + imageSize / 2;
+                return x >= left && x <= right && y >= top && y <= bottom;
+            };
+
+            if (event.getButton() == MouseButton.SECONDARY) {
                 DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-                if (verifyClickInsideImage.test(selfDevice, event)) {
+                if (isInsideImage.test(selfDevice, event)) {
                     selfDevice.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                     return;
                 }
 
                 for (DeviceUI device : deviceUiMapperService.getDevices()) {
-                    if (verifyClickInsideImage.test(device, event)) {
+                    if (isInsideImage.test(device, event)) {
                         device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
                         return;
                     }
                 }
             } else {
                 DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-                if (event.getX() >= selfDevice.getX() - imageSize / 2 && event.getX() <= selfDevice.getX() + imageSize / 2 &&
-                        event.getY() >= selfDevice.getY() - imageSize / 2 && event.getY() <= selfDevice.getY() + imageSize / 2) {
+                if (isInsideImage.test(selfDevice, event)) {
                     draggingRouter = true;
                     dragOffsetX = event.getX() - selfDevice.getX();
                     dragOffsetY = event.getY() - selfDevice.getY();
@@ -220,8 +214,7 @@ public class MainController extends DataInjector {
                 }
 
                 for (DeviceUI device : deviceUiMapperService.getDevices()) {
-                    if (event.getX() >= device.getX() - imageSize / 2 && event.getX() <= device.getX() + imageSize / 2 &&
-                            event.getY() >= device.getY() - imageSize / 2 && event.getY() <= device.getY() + imageSize / 2) {
+                    if (isInsideImage.test(device, event)) {
                         draggedDevice = device;
                         dragOffsetX = event.getX() - device.getX();
                         dragOffsetY = event.getY() - device.getY();
@@ -230,33 +223,47 @@ public class MainController extends DataInjector {
                 }
             }
         };
+
         EventHandler<MouseEvent> onMouseDragged = event -> {
+            DeviceUI movingDevice = draggingRouter ? deviceUiMapperService.getSelfDevice() : draggedDevice;
+            if (movingDevice == null) return;
+
+            double newX = event.getX() - dragOffsetX;
+            double newY = event.getY() - dragOffsetY;
+
+            if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
+
             DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-            if (draggingRouter) {
-                double dx = event.getX() - dragOffsetX;
-                double dy = event.getY() - dragOffsetY;
-                if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
-                    return;
-                selfDevice.setX(dx);
-                selfDevice.setY(dy);
-                PauseTransition pause = new PauseTransition(Duration.millis(10));
-                pause.setOnFinished(e -> drawNetwork(canvas));
-                pause.play();
-            } else if (draggedDevice != null) {
-                double dx = event.getX() - dragOffsetX;
-                double dy = event.getY() - dragOffsetY;
-                if (dx < 0 || dx > canvas.getWidth() || dy > canvas.getHeight() || dy < 0)
-                    return;
-                draggedDevice.setX(dx);
-                draggedDevice.setY(dy);
-                PauseTransition pause = new PauseTransition(Duration.millis(10));
-                pause.setOnFinished(e -> drawNetwork(canvas));
-                pause.play();
+
+            boolean tooClose = deviceUiMapperService.getDevices().stream()
+                    .filter(other -> other != movingDevice)
+                    .anyMatch(other -> {
+                        double dx = newX - other.getX();
+                        double dy = newY - other.getY();
+                        return Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE_BETWEEN_DEVICES;
+                    });
+
+            if (!draggingRouter && selfDevice != movingDevice) {
+                double dx = newX - selfDevice.getX();
+                double dy = newY - selfDevice.getY();
+                if (Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE_BETWEEN_DEVICES) {
+                    tooClose = true;
+                }
             }
+
+            if (tooClose) return;
+
+            movingDevice.setX(newX);
+            movingDevice.setY(newY);
+
+            PauseTransition pause = new PauseTransition(Duration.millis(10));
+            pause.setOnFinished(e -> drawNetwork(canvas));
+            pause.play();
         };
+
         canvas.setOnMousePressed(onMousePressed);
         canvas.setOnMouseDragged(onMouseDragged);
-        canvas.setOnMouseReleased(ignored -> {
+        canvas.setOnMouseReleased(event -> {
             draggedDevice = null;
             draggingRouter = false;
         });
@@ -305,45 +312,22 @@ public class MainController extends DataInjector {
         final double x2 = endLine.getX();
         final double y2 = endLine.getY();
 
-        if (x1 == x2) {
-            double dy = (y2 > y1 ? 1 : -1) * r;
-            gc.strokeLine(x1, y1 + dy, x2, y2);
-            return;
-        }
+        double dx = x2 - x1;
+        double dy = y2 - y1;
 
-        final double a = (y2 - y1) / (x2 - x1);
-        final double b = y2 - a * x2;
+        double length = Math.sqrt(dx * dx + dy * dy);
+        if (length == 0) return;
 
-        Function<Double, Double> lineEquation = x -> a * x + b;
+        double ux = dx / length;
+        double uy = dy / length;
 
-        BiFunction<Double[], Boolean, Double[]> calculateSolution = (center, inverse) -> {
-            double xc = center[0];
-            double yc = center[1];
-            double a1 = 1 + a * a;
-            double b1 = -2 * xc + 2 * a * (b - yc);
-            double c = xc * xc + Math.pow(b - yc, 2) - r * r;
-
-            double delta = b1 * b1 - 4 * a1 * c;
-            if (delta < 0) {
-                return new Double[]{xc, yc};
-            }
-
-            final double sqrtDelta = Math.sqrt(delta);
-            double solX;
-            if (!inverse) {
-                solX = x1 < x2 ? (-b1 + sqrtDelta) / (2 * a1) : (-b1 - sqrtDelta) / (2 * a1);
-            } else {
-                solX = x1 < x2 ? (-b1 - sqrtDelta) / (2 * a1) : (-b1 + sqrtDelta) / (2 * a1);
-            }
-            double solY = lineEquation.apply(solX);
-            return new Double[]{solX, solY};
-        };
-
-        Double[] p1 = calculateSolution.apply(new Double[]{x1, y1}, false);
-        Double[] p2 = calculateSolution.apply(new Double[]{x2, y2}, true);
+        double newX1 = x1 + ux * r;
+        double newY1 = y1 + uy * r;
+        double newX2 = x2 - ux * r;
+        double newY2 = y2 - uy * r;
 
         gc.setStroke(Color.BLACK);
-        gc.strokeLine(p1[0], p1[1], p2[0], p2[1]);
+        gc.strokeLine(newX1, newY1, newX2, newY2);
     }
 
     private static final double TEXT_LINE_HEIGHT = 18;
@@ -354,14 +338,11 @@ public class MainController extends DataInjector {
         double x = deviceUi.getX() - imageSize / 2;
         double y = deviceUi.getY() - imageSize / 2;
 
-        // Draw only the device image (no border)
         gc.drawImage(images.get(deviceClass), x, y, imageSize, imageSize);
 
-        // Prepare to draw text
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
 
-        // Display lines of text below the icon
         double textX = deviceUi.getX() - LABEL_WIDTH / 2;
         double baseY = y + imageSize + TEXT_OFFSET_Y;
         int line = 0;
@@ -379,7 +360,6 @@ public class MainController extends DataInjector {
             gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         }
     }
-
 
     private void drawGrid(GraphicsContext gc) {
         for (double percentage = 0.1; percentage <= 1.0; percentage += 0.1) {
