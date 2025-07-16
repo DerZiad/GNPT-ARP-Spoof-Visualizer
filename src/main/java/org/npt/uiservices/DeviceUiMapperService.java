@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
-import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
 import org.npt.models.Gateway;
@@ -66,7 +65,7 @@ public class DeviceUiMapperService {
         selfDevice = new DeviceUI(dataService.getSelfDevice());
         initMenu(selfDevice);
         dataService.getDevices().forEach(device -> {
-            DeviceUI deviceUI = new DeviceUI(device);
+            final DeviceUI deviceUI = new DeviceUI(device);
             if (!(deviceUI.getDevice() instanceof Interface))
                 initMenu(deviceUI);
             devices.add(deviceUI);
@@ -98,19 +97,11 @@ public class DeviceUiMapperService {
         selfDevice = new DeviceUI(dataService.getSelfDevice());
         initMenu(selfDevice);
         dataService.getDevices().forEach(device -> {
-            DeviceUI deviceUI = new DeviceUI(device);
+            final DeviceUI deviceUI = new DeviceUI(device);
             initMenu(deviceUI);
             devices.add(deviceUI);
         });
         hardRefreshAction.run();
-    }
-
-    public void refresh() {
-        try {
-            dataService.run();
-        } catch (DrawNetworkException e) {
-            ErrorHandler.handle(e);
-        }
     }
 
     // Privates functions

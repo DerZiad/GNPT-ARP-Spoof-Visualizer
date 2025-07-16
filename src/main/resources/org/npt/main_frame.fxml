@@ -10,8 +10,7 @@
     <MenuBar>
         <Menu text="Actions">
             <MenuItem fx:id="addTargetMenu" text="Add Target" />
-            <MenuItem fx:id="refresh" text="Refresh" />
-            <MenuItem fx:id="newMenu" text="Clear network" />
+            <MenuItem fx:id="newMenu" text="Rescan Network" />
         </Menu>
 
         <Menu text="About">
