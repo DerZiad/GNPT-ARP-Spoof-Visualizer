@@ -4,7 +4,6 @@ import javafx.util.Pair;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import org.npt.exception.NotFoundException;
 import org.npt.models.DefaultPacket;
 import org.npt.models.Gateway;
 import org.npt.models.Target;
@@ -58,12 +57,10 @@ public class DefaultArpSpoofService implements ArpSpoofService {
     }
 
     @Override
-    public void spoof(final String scanInterface, final Target target, final Gateway gateway) throws NotFoundException {
+    public void spoof(final String scanInterface, final Target target, final Gateway gateway) {
 
-        final String targetIp = target.findFirstIPv4()
-                .orElseThrow(() -> new NotFoundException("Target does not have a valid IPv4 address"));
-        final String gatewayIp = gateway.findFirstIPv4()
-                .orElseThrow(() -> new NotFoundException("Gateway does not have a valid IPv4 address"));
+        final String targetIp = target.getIp();
+        final String gatewayIp = gateway.getIp();
         final String commandFirst = String.format(COMMAND, scanInterface, targetIp, gatewayIp);
         final String commandSecond = String.format(COMMAND, scanInterface, gatewayIp, targetIp);
         final String processName = generateProcessNameFrom(String.format(KEY_BUILDER, targetIp, gatewayIp));
@@ -252,7 +249,7 @@ public class DefaultArpSpoofService implements ArpSpoofService {
             }
 
             handle = device.openLive(65536, PcapNetworkInterface.PromiscuousMode.PROMISCUOUS, 10);
-            final String ip = target.getIpAddresses().getFirst();
+            final String ip = target.getIp();
             final String filter = "ip src " + ip + " or ip dst " + ip;
             handle.setFilter(filter, BpfProgram.BpfCompileMode.NONOPTIMIZE);
         }

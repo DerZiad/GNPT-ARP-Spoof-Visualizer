@@ -7,11 +7,10 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import org.npt.controllers.DataInjector;
-import org.npt.models.Gateway;
-import org.npt.models.IpAddress;
+import org.npt.models.Interface;
 import org.npt.models.SelfDevice;
-import org.npt.models.ui.IpEntry;
-import org.npt.models.ui.IpEntryWithNetworkInterface;
+import org.npt.models.ui.SelfDeviceIpEntry;
+import org.npt.services.GraphicalNetworkTracerFactory;
 
 public class SelfDeviceDetailsController extends DataInjector {
 
@@ -19,52 +18,39 @@ public class SelfDeviceDetailsController extends DataInjector {
     public TextField deviceNameField;
 
     @FXML
-    private TableView<IpEntry> ipTable;
+    public TableView<SelfDeviceIpEntry> ipTable;
 
     @FXML
-    private TableColumn<IpEntryWithNetworkInterface, String> ipColumn;
+    public TableColumn<SelfDeviceIpEntry, String> networkInterface;
 
     @FXML
-    private TableColumn<IpEntryWithNetworkInterface, String> typeColumn;
+    public TableColumn<SelfDeviceIpEntry, String> ipColumn;
 
     @FXML
-    public TableColumn<IpEntryWithNetworkInterface, String> networkInterface;
-
-    @FXML
-    public TableView<IpEntry> nextDevicesTable;
-
-    @FXML
-    private TableColumn<IpEntry, String> ipColumn1;
-
-    @FXML
-    private TableColumn<IpEntry, String> typeColumn1;
+    public TableColumn<SelfDeviceIpEntry, String> gatewayIp;
 
     @FXML
     public Button saveButton;
 
+
     @FXML
     public void initialize() {
-        SelfDevice selfDevice = (SelfDevice) getArgs()[0];
-        Runnable refresh = (Runnable) getArgs()[1];
+        final SelfDevice selfDevice = GraphicalNetworkTracerFactory.getInstance().getDataService().getSelfDevice();
+        final Runnable refresh = (Runnable) getArgs()[0];
         deviceNameField.setText(selfDevice.getDeviceName());
-        ipColumn.setCellValueFactory(data -> data.getValue().getIp());
-        typeColumn.setCellValueFactory(data -> data.getValue().getType());
-        networkInterface.setCellValueFactory(data -> data.getValue().getNetworkInterface());
-        for (IpAddress ipAddress : selfDevice.getIpAddresses()) {
-            IpEntryWithNetworkInterface ipEntryWithNetworkInterface = new IpEntryWithNetworkInterface(new SimpleStringProperty(ipAddress.getIp()),
-                    new SimpleStringProperty(selfDevice.isValidIPv4(ipAddress.getIp()) ? "IPv4" : "IPv6"),
-                    new SimpleStringProperty(ipAddress.getNetworkInterface()));
-            ipTable.getItems().add(ipEntryWithNetworkInterface);
+        networkInterface.setCellValueFactory(data -> data.getValue().networkInterface());
+        ipColumn.setCellValueFactory(data -> data.getValue().ip());
+        gatewayIp.setCellValueFactory(data -> data.getValue().gatewayIp());
+        for (Interface anInterface : selfDevice.getAnInterfaces()) {
+            final String networkInterfaceName = anInterface.getDeviceName();
+            final String interfaceIp = anInterface.getIp();
+            final String gatewayIpValue = anInterface.getGatewayOptional().isPresent() ? anInterface.getGatewayOptional().get().getIp() : "UNKNOWN";
+            final SelfDeviceIpEntry selfDeviceIpEntry = new SelfDeviceIpEntry(new SimpleStringProperty(networkInterfaceName), new SimpleStringProperty(interfaceIp), new SimpleStringProperty(gatewayIpValue));
+            ipTable.getItems().add(selfDeviceIpEntry);
         }
 
-        ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
-        typeColumn1.setCellValueFactory(data -> data.getValue().getType());
-        for (Gateway target : selfDevice.getNextGateways()) {
-            target.findFirstIPv4().ifPresent(ip -> nextDevicesTable.getItems().add(new IpEntry(ip, selfDevice.isValidIPv4(ip) ? "IPv4" : "IPv6")));
-        }
         saveButton.setOnAction(ignored -> {
-            String deviceName = deviceNameField.getText();
-            selfDevice.setDeviceName(deviceName);
+            selfDevice.setDeviceName(deviceNameField.getText());
             refresh.run();
         });
     }

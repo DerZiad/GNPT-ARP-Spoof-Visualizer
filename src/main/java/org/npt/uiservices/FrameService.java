@@ -1,13 +1,15 @@
-package org.npt.controllers;
+package org.npt.uiservices;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.Region;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import kotlin.Pair;
 import lombok.*;
+import org.npt.controllers.DataInjector;
 import org.npt.models.ui.Frame;
 
 import java.net.URL;
@@ -45,11 +47,14 @@ public class FrameService {
         primaryStage.show();
     }
 
-    public void createNewStage(Frame frame, boolean resizable) {
+    public Stage createNewStage(Frame frame, boolean maximized, boolean resizable) {
         Stage popupStage = new Stage();
-        popupStage.setMaximized(resizable);
+        popupStage.setTitle(frame.getTitle());
+        popupStage.setResizable(resizable);
+        popupStage.setMaximized(maximized);
         popupStage.initModality(Modality.WINDOW_MODAL);
         startStage(popupStage, frame);
+        return popupStage;
     }
 
     public void stopStage(String key) {
@@ -102,21 +107,34 @@ public class FrameService {
         stage.setTitle(frame.getTitle());
         URL fxmlResource = readFileResource(frame.getFxmlLocation());
         FXMLLoader loader = new FXMLLoader(fxmlResource);
+
         DataInjector controllerInstance = (DataInjector) frame.getControllerClass()
                 .getDeclaredConstructor()
                 .newInstance();
         controllerInstance.setArgs(frame.getArgs());
         loader.setController(controllerInstance);
+
         Parent root = loader.load();
         double prefWidth = frame.getSize().width();
         double prefHeight = frame.getSize().height();
-        Scene scene = new Scene(root, prefWidth, prefHeight);
+
+        Scene scene = new Scene(root);
         stage.setScene(scene);
+
         stage.show();
+
         double decorationWidth = stage.getWidth() - scene.getWidth();
         double decorationHeight = stage.getHeight() - scene.getHeight();
+
         stage.setWidth(prefWidth + decorationWidth);
         stage.setHeight(prefHeight + decorationHeight);
+
+        if (root instanceof Region region) {
+            region.setMinSize(prefWidth, prefHeight);
+            region.setPrefSize(prefWidth, prefHeight);
+            region.setMaxSize(prefWidth, prefHeight);
+        }
+
         StageMap stageMap = new StageMap(stage);
         stageMap.getSceneInfos().push(SceneInfo.builder()
                 .scene(scene)
@@ -125,7 +143,6 @@ public class FrameService {
                 .build());
         stages.put(frame.getKey(), stageMap);
     }
-
 
     private URL readFileResource(String resourcePath) {
         return FrameService.class.getClassLoader().getResource(resourcePath);

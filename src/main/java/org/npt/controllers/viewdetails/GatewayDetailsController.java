@@ -13,28 +13,19 @@ import org.npt.models.ui.IpEntry;
 public class GatewayDetailsController extends DataInjector {
 
     @FXML
-    public TextField deviceNameField;
+    public TextField deviceNameTextField;
 
     @FXML
-    public TextField interfaceField;
+    public TextField ipTextField;
 
     @FXML
-    private TableView<IpEntry> ipTable;
+    public TableColumn<IpEntry, String> ipColumn;
 
     @FXML
-    private TableColumn<IpEntry, String> ipColumn;
-
-    @FXML
-    private TableColumn<IpEntry, String> typeColumn;
+    public TableColumn<IpEntry, String> typeColumn;
 
     @FXML
     public TableView<IpEntry> nextDevicesTable;
-
-    @FXML
-    private TableColumn<IpEntry, String> ipColumn1;
-
-    @FXML
-    private TableColumn<IpEntry, String> typeColumn1;
 
     @FXML
     public Button saveButton;
@@ -43,24 +34,17 @@ public class GatewayDetailsController extends DataInjector {
     public void initialize() {
         Gateway gateway = (Gateway) super.getArgs()[0];
         Runnable refresh = (Runnable) super.getArgs()[1];
-        deviceNameField.setText(gateway.getDeviceName());
-        interfaceField.setText(gateway.getNetworkInterface());
+        deviceNameTextField.setText(gateway.getDeviceName());
+        ipTextField.setText(gateway.getIp());
         ipColumn.setCellValueFactory(data -> data.getValue().getIp());
         typeColumn.setCellValueFactory(data -> data.getValue().getType());
-        for (String ip : gateway.getIpAddresses()) {
-            ipTable.getItems().add(new IpEntry(ip, gateway.isValidIPv4(ip) ? "IPv4" : "IPv6"));
-        }
 
-        ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
-        typeColumn1.setCellValueFactory(data -> data.getValue().getType());
         for (Target target : gateway.getDevices()) {
-            String ip = target.findFirstIPv4().get();
-            nextDevicesTable.getItems().add(new IpEntry(ip, gateway.isValidIPv4(ip) ? "IPv4" : "IPv6"));
+            final IpEntry ipEntry = new IpEntry(target.getIp(), "IPv4");
+            nextDevicesTable.getItems().add(ipEntry);
         }
         saveButton.setOnAction(ignored -> {
-            String deviceName = deviceNameField.getText();
-            String networkInterface = interfaceField.getText();
-            gateway.setNetworkInterface(networkInterface);
+            String deviceName = deviceNameTextField.getText();
             gateway.setDeviceName(deviceName);
             refresh.run();
         });

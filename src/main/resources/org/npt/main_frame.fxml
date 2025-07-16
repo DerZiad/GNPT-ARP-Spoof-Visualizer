@@ -3,12 +3,13 @@
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox fx:id="vboxPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="674.0" prefWidth="1054.0"
+<VBox fx:id="vboxPane" prefHeight="1117.0" prefWidth="1054.0"
       stylesheets="@/org/npt/css/main_frame.css"
       xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1">
     <MenuBar>
         <Menu text="Actions">
+            <MenuItem fx:id="addTargetMenu" text="Add Target" />
             <MenuItem fx:id="refresh" text="Refresh" />
             <MenuItem fx:id="newMenu" text="Clear network" />
         </Menu>
@@ -17,33 +18,9 @@
             <MenuItem fx:id="aboutGnptMenu" text="Version Info"/>
         </Menu>
     </MenuBar>
-
-    <HBox alignment="CENTER" prefHeight="380.0" prefWidth="1054.0" styleClass="form-wrapper">
-        <VBox prefHeight="159.0" prefWidth="1058.0" styleClass="form-container">
-            <HBox styleClass="form-row">
-                <Label styleClass="form-label" text="Device Name" />
-                <TextField fx:id="deviceName" styleClass="form-field" />
-            </HBox>
-            <HBox styleClass="form-row">
-                <Label styleClass="form-label" text="Network Interface" />
-                <MenuButton fx:id="menuButton" styleClass="form-field" />
-            </HBox>
-            <HBox styleClass="form-row">
-                <Label styleClass="form-label" text="IP Address" />
-                <TextField fx:id="ipAddress" styleClass="form-field" />
-            </HBox>
-            <HBox styleClass="form-row">
-                <Button fx:id="addDevice" styleClass="form-button" text="Add Device" />
-            </HBox>
-        </VBox>
-        <AnchorPane prefHeight="200.0" prefWidth="350.0">
-            <Canvas fx:id="canvas1" height="200.0" width="350.0"/>
-        </AnchorPane>
-    </HBox>
-
-    <BorderPane fx:id="borderPane" prefHeight="737.0" prefWidth="1054.0" styleClass="canvas-border-wrapper" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
+    <BorderPane fx:id="borderPane" prefHeight="1117.0" prefWidth="1054.0" styleClass="canvas-border-wrapper" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
         <center>
-            <Canvas fx:id="canvas" height="737.0" width="1054.0" />
+            <Canvas fx:id="canvas" height="1117.0" width="1054.0" />
         </center>
     </BorderPane>
 </VBox>

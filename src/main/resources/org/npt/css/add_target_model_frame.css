@@ -1,0 +1,79 @@
+.root {
+    -fx-background-color: #f4f6f9;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.form-label {
+    -fx-font-size: 15px;
+    -fx-text-fill: #34495e;
+    -fx-font-weight: 600;
+}
+
+.form-textfield {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dcdfe3;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 8 10 8 10;
+    -fx-font-size: 14px;
+    -fx-text-fill: #2c3e50;
+}
+
+.form-textfield:focused {
+    -fx-border-color: #3498db;
+    -fx-effect: dropshadow(three-pass-box, #3498db, 4, 0.2, 0, 0);
+}
+
+.btn-primary {
+    -fx-background-color: #0d6efd;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5px;
+    -fx-padding: 8 16;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #0b5ed7;
+}
+
+.alert-danger {
+    -fx-background-color: #f8d7da;
+    -fx-border-color: #f5c6cb;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 12;
+    -fx-spacing: 8;
+}
+
+.alert-success {
+    -fx-background-color: #d4edda;
+    -fx-border-color: #c3e6cb;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 12;
+    -fx-spacing: 8;
+}
+
+/* Shared styles */
+.alert-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+}
+
+.alert-item {
+    -fx-font-size: 13px;
+}
+
+/* Specific coloring */
+.alert-danger .alert-title,
+.alert-danger .alert-item {
+    -fx-text-fill: #721c24;
+}
+
+.alert-success .alert-title,
+.alert-success .alert-item {
+    -fx-text-fill: #155724;
+}

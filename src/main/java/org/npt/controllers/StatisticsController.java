@@ -24,6 +24,7 @@ import org.npt.models.ui.IncomingOutgoingPacket;
 import org.npt.services.ArpSpoofService;
 import org.npt.services.GraphicalNetworkTracerFactory;
 import org.npt.services.defaults.DefaultArpSpoofService;
+import org.npt.uiservices.FrameService;
 
 import java.io.InputStream;
 import java.util.HashMap;

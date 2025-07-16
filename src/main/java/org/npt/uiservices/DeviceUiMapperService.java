@@ -2,15 +2,16 @@ package org.npt.uiservices;
 
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
-import lombok.Data;
+import javafx.stage.Stage;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
-import org.npt.controllers.FrameService;
+import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
 import org.npt.models.Gateway;
+import org.npt.models.Interface;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 import org.npt.models.ui.DeviceUI;
@@ -22,7 +23,6 @@ import org.npt.services.GraphicalNetworkTracerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class DeviceUiMapperService {
@@ -67,7 +67,8 @@ public class DeviceUiMapperService {
         initMenu(selfDevice);
         dataService.getDevices().forEach(device -> {
             DeviceUI deviceUI = new DeviceUI(device);
-            initMenu(deviceUI);
+            if (!(deviceUI.getDevice() instanceof Interface))
+                initMenu(deviceUI);
             devices.add(deviceUI);
         });
     }
@@ -79,23 +80,12 @@ public class DeviceUiMapperService {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) {
-        try {
-            Target target = dataService.createTarget(deviceName, deviceInterface, new String[]{ipAddress});
-            Optional<Gateway> gatewayOptional = dataService
-                    .getDevices(Gateway.class)
-                    .values()
-                    .stream()
-                    .filter(gateway -> gateway.getNetworkInterface().equals(deviceInterface))
-                    .findAny();
-            gatewayOptional.ifPresent(associatedGateway -> associatedGateway.getDevices().add(target));
-            DeviceUI deviceUI = new DeviceUI(target);
-            initMenu(deviceUI);
-            devices.add(deviceUI);
-            refreshAction.run();
-        } catch (InvalidInputException e) {
-            ErrorHandler.handle(e);
-        }
+    public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) throws InvalidInputException {
+        final Target target = dataService.createTarget(deviceName, deviceInterface, ipAddress);
+        final DeviceUI deviceUI = new DeviceUI(target);
+        initMenu(deviceUI);
+        devices.add(deviceUI);
+        refreshAction.run();
     }
 
     @SneakyThrows
@@ -113,6 +103,14 @@ public class DeviceUiMapperService {
             devices.add(deviceUI);
         });
         hardRefreshAction.run();
+    }
+
+    public void refresh() {
+        try {
+            dataService.run();
+        } catch (DrawNetworkException e) {
+            ErrorHandler.handle(e);
+        }
     }
 
     // Privates functions
@@ -155,30 +153,44 @@ public class DeviceUiMapperService {
         Target target = (Target) deviceUI.getDevice();
         Gateway gateway = dataService.findGatewayByTarget(target)
                 .orElseThrow(() -> new NotFoundException("Couldn't spoof a target that it is not connected to the same Network"));
-        String scanInterface = target.getNetworkInterface();
+        String scanInterface = dataService.getSelfDevice()
+                .getAnInterfaces()
+                .stream()
+                .filter(anInterface -> anInterface.getGatewayOptional().isPresent())
+                .filter(anInterface -> anInterface.getGatewayOptional().get().equals(gateway))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("No interface found for the gateway"))
+                .getDeviceName();
         arpSpoofService.spoof(scanInterface, target, gateway);
     }
 
-    public void showDetails(DeviceUI deviceUI) {
+    private void showDetails(DeviceUI deviceUI) {
         switch (deviceUI.getDevice()) {
             case Target target -> {
                 Frame detailsFrame = Frame.createTargetView();
                 detailsFrame.setArgs(new Object[]{target, refreshAction});
-                frameService.createNewStage(detailsFrame, true);
+                final Stage stage = frameService.createNewStage(detailsFrame, false, false);
+                handlePopupClose(stage, detailsFrame);
             }
-            case SelfDevice selfDeviceObj -> {
+            case SelfDevice ignored -> {
                 Frame detailsFrame = Frame.createSelfDetails();
-                detailsFrame.setArgs(new Object[]{selfDeviceObj, refreshAction});
-                frameService.createNewStage(detailsFrame, true);
+                detailsFrame.setArgs(new Object[]{refreshAction});
+                final Stage stage = frameService.createNewStage(detailsFrame, false, false);
+                handlePopupClose(stage, detailsFrame);
             }
             case Gateway gateway -> {
-                Frame detailsFrame = Frame.createGatewayDetails();
+                final Frame detailsFrame = Frame.createGatewayDetails();
                 detailsFrame.setArgs(new Object[]{gateway, refreshAction});
-                frameService.createNewStage(detailsFrame, true);
+                final Stage stage = frameService.createNewStage(detailsFrame, false, false);
+                handlePopupClose(stage, detailsFrame);
             }
             default -> {
                 // ignored
             }
         }
+    }
+
+    private void handlePopupClose(final Stage stage, Frame frame) {
+        stage.setOnCloseRequest(ignored -> frameService.stopStage(frame.getKey()));
     }
 }

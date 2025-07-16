@@ -2,9 +2,9 @@ package org.npt;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
-import org.npt.controllers.FrameService;
 import org.npt.services.DataService;
 import org.npt.services.defaults.DefaultDataService;
+import org.npt.uiservices.FrameService;
 
 import java.io.IOException;
 

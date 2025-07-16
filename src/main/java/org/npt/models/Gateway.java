@@ -4,33 +4,20 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.Optional;
 
 public class Gateway extends Device {
 
     @Getter
     @Setter
-    private List<Target> devices;
-    @Getter
-    @Setter
-    private String networkInterface;
-    @Getter
-    @Setter
-    private List<String> ipAddresses;
+    private String ip;
 
-    public Gateway(String deviceName, String networkInterface, List<String> ipAddresses, List<Target> devices) {
+    @Getter
+    @Setter
+    private List<Target> devices;
+
+    public Gateway(String deviceName, String ip, List<Target> devices) {
         super(deviceName);
         this.devices = devices;
-        this.networkInterface = networkInterface;
-        this.ipAddresses = ipAddresses;
-    }
-
-    public Optional<String> findFirstIPv4() {
-        for (String ip : this.ipAddresses) {
-            if (isValidIPv4(ip)) {
-                return Optional.ofNullable(ip);
-            }
-        }
-        return Optional.empty();
+        this.ip = ip;
     }
 }
