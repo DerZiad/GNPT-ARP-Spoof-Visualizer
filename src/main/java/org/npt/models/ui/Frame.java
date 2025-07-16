@@ -43,7 +43,7 @@ public class Frame {
                 PREFIX + "/target_frame.fxml",
                 TargetDetailsController.class,
                 new Object[]{},
-                new Size(722, 640)
+                new Size(689, 323)
         );
     }
 
@@ -54,7 +54,7 @@ public class Frame {
                 PREFIX + "/gateway_frame.fxml",
                 GatewayDetailsController.class,
                 new Object[]{},
-                new Size(722, 800)
+                new Size(722.0, 490.0)
         );
     }
 
@@ -65,7 +65,7 @@ public class Frame {
                 PREFIX + "/selfdevice_frame.fxml",
                 SelfDeviceDetailsController.class,
                 new Object[]{},
-                new Size(730, 630)
+                new Size(689, 433)
         );
     }
 

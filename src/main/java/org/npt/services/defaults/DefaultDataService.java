@@ -95,14 +95,16 @@ public class DefaultDataService implements DataService {
 
     @Override
     public Target createTarget(String deviceName, String networkInterface, String ip) throws InvalidInputException {
-        Target target = new Target(deviceName, ip);
-        validateTarget(target);
-        Optional<Interface> selfDeviceInterfaceOpt = selfDevice.getAnInterfaces()
+        final Target target = new Target(deviceName, ip);
+        validateTarget(target, networkInterface);
+        final Optional<Interface> selfDeviceInterfaceOpt = selfDevice.getAnInterfaces()
                 .stream()
                 .filter(anInterface -> anInterface.getDeviceName().equals(networkInterface))
                 .findFirst();
-        selfDeviceInterfaceOpt.flatMap(Interface::getGatewayOptional).ifPresent(gateway -> gateway.getDevices().add(target));
-        this.addDevice(target);
+        selfDeviceInterfaceOpt.flatMap(Interface::getGatewayOptional).ifPresent(gateway -> {
+            gateway.getDevices().add(target);
+            this.addDevice(target);
+        });
         return target;
     }
 
@@ -129,12 +131,29 @@ public class DefaultDataService implements DataService {
     // Private Helper Methods
     // ======================
 
-    private void validateTarget(Target target) throws InvalidInputException {
+    private void validateTarget(Target target, String networkInterface) throws InvalidInputException {
         HashMap<String, String> errors = new HashMap<>();
 
         final String deviceName = target.getDeviceName();
         if (deviceName == null || deviceName.trim().isEmpty()) {
             errors.put("Device Name", "Device name cannot be empty.");
+        }
+
+        // check if network interface exist and the gateway associated with it is present
+        if (networkInterface == null || networkInterface.trim().isEmpty()) {
+            errors.put("Network Interface", "Network interface cannot be empty.");
+        } else {
+            final Optional<Interface> interfaceOpt= selfDevice.getAnInterfaces()
+                    .stream()
+                    .filter(anInterface -> anInterface.getDeviceName().equals(networkInterface))
+                    .findFirst();
+            if (interfaceOpt.isEmpty()) {
+                errors.put("Network Interface", "The specified network interface does not exist.");
+            }
+
+            if(interfaceOpt.isPresent() && interfaceOpt.get().getGatewayOptional().isEmpty()) {
+                errors.put("Network Interface", "The specified network interface does not have an associated gateway.");
+            }
         }
 
         devices.stream()
@@ -163,7 +182,8 @@ public class DefaultDataService implements DataService {
             final String interfaceName = ni.getDisplayName();
             final Optional<String> ipAddressOptional = findFirstIPv4(ni.getInetAddresses());
             ipAddressOptional.ifPresent(ip -> {
-                discoverGatewayForInterface(interfaceName).ifPresent(gw -> interfacesObj.add(new Interface(interfaceName, ip, Optional.of(gw))));
+                final Optional<Gateway> gwOpt = discoverGatewayForInterface(interfaceName);
+                interfacesObj.add(new Interface(interfaceName, ip, gwOpt));
             });
         }
 

@@ -13,25 +13,19 @@ import org.npt.models.ui.IpEntry;
 public class GatewayDetailsController extends DataInjector {
 
     @FXML
-    public TextField deviceNameField;
+    public TextField deviceNameTextField;
 
     @FXML
-    private TableView<IpEntry> ipTable;
+    public TextField ipTextField;
 
     @FXML
-    private TableColumn<IpEntry, String> ipColumn;
+    public TableColumn<IpEntry, String> ipColumn;
 
     @FXML
-    private TableColumn<IpEntry, String> typeColumn;
+    public TableColumn<IpEntry, String> typeColumn;
 
     @FXML
     public TableView<IpEntry> nextDevicesTable;
-
-    @FXML
-    private TableColumn<IpEntry, String> ipColumn1;
-
-    @FXML
-    private TableColumn<IpEntry, String> typeColumn1;
 
     @FXML
     public Button saveButton;
@@ -40,19 +34,17 @@ public class GatewayDetailsController extends DataInjector {
     public void initialize() {
         Gateway gateway = (Gateway) super.getArgs()[0];
         Runnable refresh = (Runnable) super.getArgs()[1];
-        deviceNameField.setText(gateway.getDeviceName());
+        deviceNameTextField.setText(gateway.getDeviceName());
+        ipTextField.setText(gateway.getIp());
         ipColumn.setCellValueFactory(data -> data.getValue().getIp());
         typeColumn.setCellValueFactory(data -> data.getValue().getType());
-        ipTable.getItems().add(new IpEntry(gateway.getIp(), "IPv4"));
 
-        ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
-        typeColumn1.setCellValueFactory(data -> data.getValue().getType());
         for (Target target : gateway.getDevices()) {
             final IpEntry ipEntry = new IpEntry(target.getIp(), "IPv4");
             nextDevicesTable.getItems().add(ipEntry);
         }
         saveButton.setOnAction(ignored -> {
-            String deviceName = deviceNameField.getText();
+            String deviceName = deviceNameTextField.getText();
             gateway.setDeviceName(deviceName);
             refresh.run();
         });

@@ -86,16 +86,14 @@ public class MainController extends DataInjector {
 
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             resizeTargetsPositionAfterChangeEvent();
-            calculateInterfacesPosition();
             calculateRootDevicePosition();
-            calculateGatewaysPosition();
+            calculateInterfaceAndGatewayPosition();
             drawNetwork(canvas);
         });
         canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
             resizeTargetsPositionAfterChangeEvent();
-            calculateInterfacesPosition();
             calculateRootDevicePosition();
-            calculateGatewaysPosition();
+            calculateInterfaceAndGatewayPosition();
             drawNetwork(canvas);
         });
 
@@ -115,8 +113,10 @@ public class MainController extends DataInjector {
 
         refresh.setOnAction(e -> {
             menuButton.getItems().clear();
-            initDevices();
-            // TODO must be fixed after removing of the IPV6 addresses
+            deviceUiMapperService.refresh();
+            calculateInterfaceAndGatewayPosition();
+            initFormFieldInterfacesComboBox();
+            drawNetwork(canvas);
         });
         setupMouseEvents();
         initDevices();
@@ -124,9 +124,8 @@ public class MainController extends DataInjector {
 
     private void initDevices() {
         initFormFieldInterfacesComboBox();
-        calculateInterfacesPosition();
+        calculateInterfaceAndGatewayPosition();
         calculateRootDevicePosition();
-        calculateGatewaysPosition();
         drawNetwork(canvas);
     }
 
@@ -141,33 +140,44 @@ public class MainController extends DataInjector {
             menuItem.setOnAction(ignored -> menuButton.setText(menuItem.getText()));
             menuButton.getItems().add(menuItem);
         }
+        if (menuButton.getItems().isEmpty()) {
+            menuButton.setText("No network");
+        } else {
+            String interfaceFound = menuButton.getItems().getFirst().getText();
+            menuButton.setText(interfaceFound);
+        }
     }
 
-    private void calculateInterfacesPosition() {
+    private void calculateInterfaceAndGatewayPosition() {
         List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
         double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
-        positionDevicesAroundCenter(interfaces, baseRadius);
-    }
-
-    private void calculateGatewaysPosition() {
-        List<DeviceUI> gateways = deviceUiMapperService.findAll(Gateway.class);
-        double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3 * 2;
-        positionDevicesAroundCenter(gateways, baseRadius);
-    }
-
-    private void positionDevicesAroundCenter(List<DeviceUI> devices, double radius) {
-        if (devices.isEmpty()) return;
+        if (interfaces.isEmpty()) return;
 
         double centerX = deviceUiMapperService.getSelfDevice().getX();
         double centerY = deviceUiMapperService.getSelfDevice().getY();
-        double angleStep = 2 * Math.PI / devices.size();
+        double angleStep = 2 * Math.PI / interfaces.size();
 
-        for (int i = 0; i < devices.size(); i++) {
-            double angle = i * angleStep;
-            double x = centerX + radius * Math.cos(angle);
-            double y = centerY + radius * Math.sin(angle);
-            devices.get(i).setX(x);
-            devices.get(i).setY(y);
+        for (int i = 0; i < interfaces.size(); i++) {
+            final double angle = i * angleStep;
+            final double x = centerX + baseRadius * Math.cos(angle);
+            final double y = centerY + baseRadius * Math.sin(angle);
+            final Interface interfaceDevice = (Interface) interfaces.get(i).getDevice();
+            if(interfaceDevice.getGatewayOptional().isPresent()){
+                final Gateway gatewayDataOptional = interfaceDevice.getGatewayOptional().get();
+                final Optional<DeviceUI> gatewayUI = deviceUiMapperService
+                        .getDevices()
+                        .stream()
+                        .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOptional))
+                        .findFirst();
+                gatewayUI.ifPresent(gw -> {
+                  final double routerX = centerX + baseRadius * 2 * Math.cos(angle);
+                  final double routerY = centerY + baseRadius * 2 * Math.sin(angle);
+                  gw.setX(routerX);
+                  gw.setY(routerY);
+                });
+            }
+            interfaces.get(i).setX(x);
+            interfaces.get(i).setY(y);
         }
     }
 

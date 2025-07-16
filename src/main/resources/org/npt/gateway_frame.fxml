@@ -12,8 +12,8 @@
 	<Label layoutX="52.0" layoutY="210.0" prefHeight="21.0" prefWidth="213.0" styleClass="form-label" text="Connected Devices :" />
 	<TableView fx:id="nextDevicesTable" layoutX="47.0" layoutY="246.0" prefHeight="127.0" prefWidth="628.0" styleClass="info-table">
 		<columns>
-			<TableColumn fx:id="ipColumn1" prefWidth="300.0" text="IP" />
-			<TableColumn fx:id="typeColumn1" prefWidth="316.0" text="Type" />
+			<TableColumn fx:id="ipColumn" prefWidth="300.0" text="IP" />
+			<TableColumn fx:id="typeColumn" prefWidth="316.0" text="Type" />
 		</columns>
 	</TableView>
 	<Button fx:id="saveButton" layoutX="52.0" layoutY="415.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="628.0" styleClass="btn-success" text="Save" />

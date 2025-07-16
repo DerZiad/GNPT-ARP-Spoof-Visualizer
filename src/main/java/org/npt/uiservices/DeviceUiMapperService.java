@@ -7,9 +7,11 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.npt.controllers.FrameService;
+import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
 import org.npt.models.Gateway;
+import org.npt.models.Interface;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 import org.npt.models.ui.DeviceUI;
@@ -65,7 +67,8 @@ public class DeviceUiMapperService {
         initMenu(selfDevice);
         dataService.getDevices().forEach(device -> {
             DeviceUI deviceUI = new DeviceUI(device);
-            initMenu(deviceUI);
+            if(!(deviceUI.getDevice() instanceof Interface))
+                initMenu(deviceUI);
             devices.add(deviceUI);
         });
     }
@@ -104,6 +107,14 @@ public class DeviceUiMapperService {
             devices.add(deviceUI);
         });
         hardRefreshAction.run();
+    }
+
+    public void refresh() {
+        try {
+            dataService.run();
+        } catch (DrawNetworkException e) {
+            ErrorHandler.handle(e);
+        }
     }
 
     // Privates functions
@@ -157,7 +168,7 @@ public class DeviceUiMapperService {
         arpSpoofService.spoof(scanInterface, target, gateway);
     }
 
-    public void showDetails(DeviceUI deviceUI) {
+    private void showDetails(DeviceUI deviceUI) {
         switch (deviceUI.getDevice()) {
             case Target target -> {
                 Frame detailsFrame = Frame.createTargetView();
