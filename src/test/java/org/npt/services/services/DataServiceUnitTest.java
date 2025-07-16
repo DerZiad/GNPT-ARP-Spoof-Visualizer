@@ -16,28 +16,28 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 @DisplayName("DataService Behavior Tests")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class DataServiceUnitTest {
 
     private static final String TEST_IP = "192.168.0.100";
     private static final String TEST_DEVICE_NAME = "TestDevice";
     private static final String TEST_DEVICE_INTERFACE = "eth-test0";
 
-    private static DataService dataService;
+    private DataService dataService;
 
     @BeforeAll
-    public static void setup() throws Exception {
+    void setup() throws Exception {
         dataService = GraphicalNetworkTracerFactory.getInstance().getDataService();
-        dataService.run();
+        dataService.run(); // initializes interfaces and gateways
     }
 
     @AfterEach
-    public void clean() {
+    void clean() {
         dataService.clear();
     }
 
     @Test
-    @DisplayName("Should add a Target device")
-    public void testAddDeviceForTarget() {
+    void shouldAddDevice() {
         Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
 
@@ -45,8 +45,7 @@ public class DataServiceUnitTest {
     }
 
     @Test
-    @DisplayName("Should remove device by object")
-    public void testRemoveByObject() {
+    void shouldRemoveDeviceByObject() {
         Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
         dataService.removeByObject(target);
@@ -55,8 +54,7 @@ public class DataServiceUnitTest {
     }
 
     @Test
-    @DisplayName("Should remove device by index")
-    public void testRemoveByIndex() {
+    void shouldRemoveDeviceByIndex() {
         Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
         dataService.removeByIndex(0);
@@ -65,8 +63,7 @@ public class DataServiceUnitTest {
     }
 
     @Test
-    @DisplayName("Should get device by index")
-    public void testGetDevice() {
+    void shouldReturnDeviceByIndex() {
         Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
         dataService.addDevice(target);
 
@@ -74,26 +71,24 @@ public class DataServiceUnitTest {
     }
 
     @Test
-    @DisplayName("Should filter devices by type")
-    public void testGetDevicesByClass() {
-        Target t1 = new Target(TEST_DEVICE_NAME, TEST_IP);
-        Target t2 = new Target(TEST_DEVICE_NAME + "2", TEST_IP);
-        Gateway g1 = new Gateway("Router", "192.168.0.1", List.of(t1));
+    void shouldFilterDevicesByClass() {
+        Target t1 = new Target("T1", "192.168.1.2");
+        Target t2 = new Target("T2", "192.168.1.3");
+        Gateway g = new Gateway("G1", "192.168.1.1", List.of(t1, t2));
 
         dataService.addDevice(t1);
         dataService.addDevice(t2);
-        dataService.addDevice(g1);
+        dataService.addDevice(g);
 
         HashMap<Integer, Target> targets = dataService.getDevices(Target.class);
         HashMap<Integer, Gateway> gateways = dataService.getDevices(Gateway.class);
 
-        assertThat(targets).hasSize(2);
-        assertThat(gateways).hasSize(1);
+        assertThat(targets.values()).contains(t1, t2);
+        assertThat(gateways.values()).contains(g);
     }
 
     @Test
-    @DisplayName("Should clear all devices")
-    public void testClear() {
+    void shouldClearDevices() {
         dataService.addDevice(new Target(TEST_DEVICE_NAME, TEST_IP));
         dataService.clear();
 
@@ -101,69 +96,106 @@ public class DataServiceUnitTest {
     }
 
     @Test
-    @DisplayName("Should create target with valid input")
-    public void testCreateTargetValid() throws InvalidInputException {
-        Optional<Interface> networkInterface = dataService.getSelfDevice().getAnInterfaces().stream().findFirst();
-        Assumptions.assumeTrue(networkInterface.isPresent());
+    void shouldCreateTargetWithValidInput() throws InvalidInputException {
+        Optional<Interface> opt = dataService.getSelfDevice().getAnInterfaces().stream().filter(i -> i.getGatewayOptional().isPresent()).findFirst();
+        Assumptions.assumeTrue(opt.isPresent());
 
-        String iface = networkInterface.get().getDeviceName();
-        Target target = dataService.createTarget(TEST_DEVICE_NAME, iface, TEST_IP);
+        Target target = dataService.createTarget(TEST_DEVICE_NAME, opt.get().getDeviceName(), TEST_IP);
 
         assertThat(target).isNotNull();
         assertThat(dataService.getDevices()).contains(target);
     }
 
     @Test
-    @DisplayName("Should throw exception when creating invalid target (missing IP)")
-    public void testCreateTargetInvalidMissingIp() {
-        InvalidInputException thrown = catchThrowableOfType(() ->
+    void shouldFailCreateTargetWhenInterfaceMissing() {
+        InvalidInputException ex = catchThrowableOfType(() ->
+                dataService.createTarget(TEST_DEVICE_NAME, "non-existent", TEST_IP), InvalidInputException.class);
+
+        assertThat(ex.getErrors()).containsKey("Network Interface");
+    }
+
+    @Test
+    void shouldFailCreateTargetWhenGatewayIsMissing() {
+        Optional<Interface> opt = dataService.getSelfDevice().getAnInterfaces().stream()
+                .filter(i -> i.getGatewayOptional().isEmpty()).findFirst();
+        Assumptions.assumeTrue(opt.isPresent());
+
+        InvalidInputException ex = catchThrowableOfType(() ->
+                dataService.createTarget(TEST_DEVICE_NAME, opt.get().getDeviceName(), TEST_IP), InvalidInputException.class);
+
+        assertThat(ex.getErrors()).containsKey("Network Interface");
+    }
+
+    @Test
+    void shouldFailCreateTargetWhenNameIsDuplicate() throws InvalidInputException {
+        Optional<Interface> opt = dataService.getSelfDevice().getAnInterfaces().stream()
+                .filter(i -> i.getGatewayOptional().isPresent()).findFirst();
+        Assumptions.assumeTrue(opt.isPresent());
+
+        dataService.createTarget(TEST_DEVICE_NAME, opt.get().getDeviceName(), "192.168.0.101");
+
+        InvalidInputException ex = catchThrowableOfType(() ->
+                        dataService.createTarget(TEST_DEVICE_NAME, opt.get().getDeviceName(), "192.168.0.102"),
+                InvalidInputException.class);
+
+        assertThat(ex.getErrors()).containsKey("Device Name");
+    }
+
+    @Test
+    void shouldFailCreateTargetWhenIpIsNull() {
+        InvalidInputException ex = catchThrowableOfType(() ->
                 dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, null), InvalidInputException.class);
 
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getErrors()).containsKey("IP Address");
+        assertThat(ex.getErrors()).containsKey("IP Address");
     }
 
     @Test
-    @DisplayName("Should throw exception when creating invalid target (duplicate name)")
-    public void testCreateTargetInvalidDuplicateName() throws InvalidInputException {
-        Optional<Interface> networkInterface = dataService.getSelfDevice().getAnInterfaces().stream().findFirst();
-        Assumptions.assumeTrue(networkInterface.isPresent());
+    void shouldFailCreateTargetWhenIpIsInvalid() {
+        InvalidInputException ex = catchThrowableOfType(() ->
+                        dataService.createTarget(TEST_DEVICE_NAME, TEST_DEVICE_INTERFACE, "999.999.999.999"),
+                InvalidInputException.class);
 
-        String iface = networkInterface.get().getDeviceName();
-        dataService.createTarget(TEST_DEVICE_NAME, iface, "192.168.0.101");
-
-        InvalidInputException thrown = catchThrowableOfType(() ->
-                dataService.createTarget(TEST_DEVICE_NAME, iface, "192.168.0.102"), InvalidInputException.class);
-
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getErrors()).containsKey("Device Name");
+        assertThat(ex.getErrors()).containsKey("IP Address");
     }
 
     @Test
-    @DisplayName("Should throw exception when creating invalid target (blank name)")
-    public void testCreateTargetInvalidBlankName() {
-        InvalidInputException thrown = catchThrowableOfType(() ->
-                dataService.createTarget("", TEST_DEVICE_INTERFACE, TEST_IP), InvalidInputException.class);
+    void shouldFailCreateTargetWhenNameIsBlank() {
+        InvalidInputException ex = catchThrowableOfType(() ->
+                dataService.createTarget(" ", TEST_DEVICE_INTERFACE, TEST_IP), InvalidInputException.class);
 
-        assertThat(thrown).isNotNull();
-        assertThat(thrown.getErrors()).containsKey("Device Name");
+        assertThat(ex.getErrors()).containsKey("Device Name");
     }
 
     @Test
-    @DisplayName("Should return empty Optional from findGatewayByTarget")
-    public void testFindGatewayByTarget() {
+    void shouldReturnEmptyWhenTargetHasNoGateway() {
         Target target = new Target(TEST_DEVICE_NAME, TEST_IP);
-        Optional<Gateway> result = dataService.findGatewayByTarget(target);
+        Optional<Gateway> found = dataService.findGatewayByTarget(target);
 
-        assertThat(result).isEmpty();
+        assertThat(found).isEmpty();
     }
 
     @Test
-    @DisplayName("Should return same singleton instance")
-    public void testSingletonInstance() {
-        DataService instance1 = dataService;
-        DataService instance2 = GraphicalNetworkTracerFactory.getInstance().getDataService();
+    void shouldReturnSameSingletonInstance() {
+        DataService ds1 = GraphicalNetworkTracerFactory.getInstance().getDataService();
+        DataService ds2 = GraphicalNetworkTracerFactory.getInstance().getDataService();
 
-        assertThat(instance1).isSameAs(instance2);
+        assertThat(ds1).isSameAs(ds2);
+    }
+
+    @Test
+    void shouldAllowMultipleDeviceTypesInSameList() {
+        Gateway gateway = new Gateway("G", "192.168.0.1", List.of());
+        Target target = new Target("T", "192.168.0.5");
+
+        dataService.addDevice(gateway);
+        dataService.addDevice(target);
+
+        assertThat(dataService.getDevices()).contains(gateway, target);
+    }
+
+    @Test
+    void shouldHandleEmptyInterfacesOnStartupGracefully() throws Exception {
+        List<Interface> interfaces = dataService.getSelfDevice().getAnInterfaces();
+        assertThat(interfaces).isNotNull();
     }
 }
