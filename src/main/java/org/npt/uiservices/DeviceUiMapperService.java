@@ -166,17 +166,17 @@ public class DeviceUiMapperService {
             case Target target -> {
                 Frame detailsFrame = Frame.createTargetView();
                 detailsFrame.setArgs(new Object[]{target, refreshAction});
-                frameService.createNewStage(detailsFrame, true);
+                frameService.createNewStage(detailsFrame, false,false);
             }
             case SelfDevice ignored -> {
                 Frame detailsFrame = Frame.createSelfDetails();
                 detailsFrame.setArgs(new Object[]{refreshAction});
-                frameService.createNewStage(detailsFrame, true);
+                frameService.createNewStage(detailsFrame, false,false);
             }
             case Gateway gateway -> {
                 Frame detailsFrame = Frame.createGatewayDetails();
                 detailsFrame.setArgs(new Object[]{gateway, refreshAction});
-                frameService.createNewStage(detailsFrame, true);
+                frameService.createNewStage(detailsFrame, false,false);
             }
             default -> {
                 // ignored

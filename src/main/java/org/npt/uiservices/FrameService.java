@@ -47,8 +47,10 @@ public class FrameService {
         primaryStage.show();
     }
 
-    public void createNewStage(Frame frame, boolean maximized) {
+    public void createNewStage(Frame frame, boolean maximized, boolean resizable) {
         Stage popupStage = new Stage();
+        popupStage.setTitle(frame.getTitle());
+        popupStage.setResizable(resizable);
         popupStage.setMaximized(maximized);
         popupStage.initModality(Modality.WINDOW_MODAL);
         startStage(popupStage, frame);
@@ -115,21 +117,17 @@ public class FrameService {
         double prefWidth = frame.getSize().width();
         double prefHeight = frame.getSize().height();
 
-        Scene scene = new Scene(root); // Don’t set size here
+        Scene scene = new Scene(root);
         stage.setScene(scene);
 
-        // Show stage first to calculate decoration offsets
         stage.show();
 
-        // Compute actual decoration dimensions
         double decorationWidth = stage.getWidth() - scene.getWidth();
         double decorationHeight = stage.getHeight() - scene.getHeight();
 
-        // Now manually resize the window
         stage.setWidth(prefWidth + decorationWidth);
         stage.setHeight(prefHeight + decorationHeight);
 
-        // (Optional) If root is Region, clamp it as well
         if (root instanceof Region region) {
             region.setMinSize(prefWidth, prefHeight);
             region.setPrefSize(prefWidth, prefHeight);

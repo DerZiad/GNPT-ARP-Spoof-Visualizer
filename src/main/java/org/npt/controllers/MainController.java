@@ -117,7 +117,7 @@ public class MainController extends DataInjector {
             final FrameService frameService = FrameService.getInstance();
             final Frame targetFrame = Frame.createAddTargetFrame();
             targetFrame.setArgs(new Object[]{deviceUiMapperService});
-            frameService.createNewStage(targetFrame, true);
+            frameService.createNewStage(targetFrame, false,false);
         });
         setupMouseEvents();
         initDevices();
