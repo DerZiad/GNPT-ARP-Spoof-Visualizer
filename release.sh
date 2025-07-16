@@ -3,7 +3,7 @@
 set -e
 
 java -version
-mvn clean compile assembly:single -X
+mvn clean compile assembly:single
 
 rm -rf gnpt
 mkdir gnpt
