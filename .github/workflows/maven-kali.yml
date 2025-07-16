@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git maven unzip wget curl dsniff xvfb
+          sudo apt-get install -y git maven unzip wget curl dsniff xvfb nmap
 
       - name: Setup Java 21
         uses: actions/setup-java@v3
