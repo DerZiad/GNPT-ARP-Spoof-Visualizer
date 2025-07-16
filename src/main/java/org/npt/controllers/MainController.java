@@ -46,22 +46,10 @@ public class MainController extends DataInjector {
     private boolean draggingRouter = false;
 
     @FXML
-    public TextField ipAddress;
-
-    @FXML
-    public Button addDevice;
-
-    @FXML
-    public TextField deviceName;
-
-    @FXML
     public VBox vboxPane;
 
     @FXML
     public Canvas canvas;
-
-    @FXML
-    public MenuButton menuButton;
 
     @FXML
     public BorderPane borderPane;
@@ -105,12 +93,12 @@ public class MainController extends DataInjector {
         });
 
         newMenu.setOnAction(ignored -> {
-            menuButton.getItems().clear();
             deviceUiMapperService.clear();
+            calculateInterfaceAndGatewayPosition();
+            drawNetwork(canvas);
         });
 
         refresh.setOnAction(e -> {
-            menuButton.getItems().clear();
             deviceUiMapperService.refresh();
             calculateInterfaceAndGatewayPosition();
             drawNetwork(canvas);

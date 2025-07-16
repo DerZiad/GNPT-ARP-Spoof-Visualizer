@@ -18,7 +18,7 @@
             <MenuItem fx:id="aboutGnptMenu" text="Version Info"/>
         </Menu>
     </MenuBar>
-    <BorderPane fx:id="borderPane" prefHeight="737.0" prefWidth="1054.0" styleClass="canvas-border-wrapper" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
+    <BorderPane fx:id="borderPane" prefHeight="1117.0" prefWidth="1054.0" styleClass="canvas-border-wrapper" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1">
         <center>
             <Canvas fx:id="canvas" height="1117.0" width="1054.0" />
         </center>
