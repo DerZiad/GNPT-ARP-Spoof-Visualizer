@@ -220,10 +220,11 @@ public class DefaultDataService implements DataService {
         }
 
         // check if network interface exist and the gateway associated with it is present
+        Optional<Interface> interfaceOpt = Optional.empty();
         if (networkInterface == null || networkInterface.trim().isEmpty()) {
             errors.put("Network Interface", "Network interface cannot be empty.");
         } else {
-            final Optional<Interface> interfaceOpt = selfDevice.getAnInterfaces()
+            interfaceOpt = selfDevice.getAnInterfaces()
                     .stream()
                     .filter(anInterface -> anInterface.getDeviceName().equals(networkInterface))
                     .findFirst();
@@ -246,6 +247,16 @@ public class DefaultDataService implements DataService {
             errors.put("IP Address", "An IP address is required.");
         } else if (!isValidIPv4(ip)) {
             errors.put("IP Address", "Invalid IPv4 format. Please enter a valid IPv4 address (e.g., 192.168.1.1).");
+        }
+
+        if (interfaceOpt.isPresent() && interfaceOpt.get().getGatewayOptional().isPresent()) {
+            final Gateway gateway = interfaceOpt.get().getGatewayOptional().get();
+            final boolean ipExists = gateway.getDevices()
+                    .stream()
+                    .anyMatch(t -> t.getIp().equals(ip));
+            if (ipExists) {
+                errors.put("IP Address", "A Target with IP '" + ip + "' already exists for this Gateway.");
+            }
         }
 
         if (!errors.isEmpty()) {

@@ -59,6 +59,7 @@ sudo apt-get install -y dsniff
 * 📊 Real-time packet analysis and charts
 * 🎛️ Graphical interface built with JavaFX
 * 🧵 Efficient packet capture via **Pcap4J**
+* 🔍 Automatically scans for device IPs on your network
 
 ---
 
