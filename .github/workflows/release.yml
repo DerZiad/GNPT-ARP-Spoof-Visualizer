@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*.*.*"  # Triggers on tags like v1.0.0
+      - "v*.*.*"
+  pull_request:
+    branches: [ '*' ]
 
 jobs:
   build-release:
