@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    branches: ['*']
-    tags: ['*']
+    branches: [ '*' ]
+    tags: [ '*' ]
 
 jobs:
   build-and-release:
@@ -24,14 +24,11 @@ jobs:
         with:
           maven-version: '3.9.6'
 
-      - name: List files for debug
-        run: ls -l
+      - name: Execute Permission Script
+        run: chmod +x release.sh
 
-      - name: Build and package
-        run: |
-          cd /home/smookerzz/Documents/GraphicalNetworkPacketTracer
-          chmod +x release.sh
-          ./release.sh
+      - name: Build Project
+        run: sh release.sh
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
