@@ -1,116 +1,100 @@
-# NetworkPacketTracer
+# 🧪 Graphical Network Packet Tracer (GNPT)
 
-## Overview
-
-**NetworkPacketTracer** is a Java-based ARP spoofing project that captures and analyzes network packets in real-time. The captured packets are processed and displayed statistically via a JavaFX-based user interface, providing insights into network traffic during the spoofing operation.
-
----
-
-## Features
-
-* Perform ARP spoofing on the local network.
-* Capture network packets using the Pcap4J library.
-* Display detailed statistics of sniffed packets in real-time.
-* Rich JavaFX UI with charts and controls for intuitive monitoring.
+A JavaFX-based ARP spoofing tool with real-time packet capture and visualization.
+Powered by **Pcap4J**, it allows you to analyze live network traffic during spoofing operations.
 
 ---
 
-## Prerequisites
+## 📦 Download
 
-* **Java Development Kit (JDK) 21** or later installed.
-* **Maven 3.6+** installed.
-* **Root or Administrator privileges** (required for packet sniffing).
-* JavaFX SDK downloaded (the project includes an automated task for this).
-* Network interface with permissions to sniff packets.
-
-> **⚠️ OS Compatibility Note:**
->
-> This project is intended to be run on **Kali Linux**.
->
-> If you are using **Ubuntu**, you must install additional dependencies with:
->
-> ```bash
-> sudo apt-get install -y git maven unzip wget curl dsniff xvfb
-> ```
+Latest release:
+👉 [**Download v0.1.0 - binary\_file\_gnpt.zip**](https://github.com/DerZiad/GraphicalNetworkPacketTracer/releases/download/v0.1.0/binary_file_gnpt.zip)
 
 ---
 
-## Setup & Build Instructions
+## ✅ System Requirements
 
-1. **Clone the repository** (if applicable):
+**🖥️ OS:**
+
+* Linux (only)
+
+**📦 Required Package:**
 
 ```bash
-git clone https://your-repo-url.git
+sudo apt-get install -y dsniff
+```
+
+**🔐 Permissions:**
+
+* Must be run with `sudo` for low-level network access.
+
+---
+
+## 🚀 Running the App (Binary)
+
+1. **Extract the zip file:**
+
+   ```bash
+   unzip binary_file_gnpt.zip
+   cd gnpt
+   ```
+
+2. **Make the launcher executable:**
+
+   ```bash
+   chmod +x run.sh
+   ```
+
+3. **Start the application:**
+
+   ```bash
+   sudo ./run.sh
+   ```
+
+---
+
+## 🧠 Features
+
+* ⚡ ARP spoofing on local networks
+* 📊 Real-time packet analysis and charts
+* 🎛️ Graphical interface built with JavaFX
+* 🧵 Efficient packet capture via **Pcap4J**
+
+---
+
+## 🛠️ Building from Source
+
+### 🔧 Prerequisites
+
+* Java 21+
+* Maven 3.6+
+* Root/Administrator privileges
+* Internet connection (Maven will auto-fetch JavaFX SDK)
+
+### 📦 Build Instructions
+
+```bash
+git clone https://github.com/DerZiad/GraphicalNetworkPacketTracer.git
 cd NetworkPacketTracer
+mvn clean compile exec:java
 ```
-
-2. **Ensure JavaFX SDK is available**:
-
-The Maven build includes a step to download and extract the JavaFX SDK automatically. This happens during the `generate-resources` phase. You can manually trigger it by running:
-
-```bash
-mvn generate-resources
-```
-
-3. **Build the project**:
-
-Compile and package the application along with all dependencies:
-
-```bash
-mvn clean package
-```
-
-This will generate a JAR file `NetworkPacketTracer-1.0.jar` with all dependencies included in the `target` directory.
 
 ---
 
-## Running the Application
+## 🧯 Troubleshooting
 
-Because sniffing packets requires elevated privileges, you need to run the application with `sudo` (Linux/macOS) or as Administrator (Windows).
-
-### Run with Maven:
-
-From your project root directory:
-
-```bash
-sudo mvn clean compile exec:java
-```
-
-* This cleans, compiles, and runs the main JavaFX application.
-* You will be prompted to enter your password for `sudo`.
-
-### Run the packaged JAR:
-
-Alternatively, after packaging, you can run the JAR directly:
-
-```bash
-sudo java --module-path ./javafx/lib --add-modules javafx.controls,javafx.fxml,javafx.swing -jar target/NetworkPacketTracer-1.0.jar
-```
-
-Make sure the `javafx/lib` directory exists and contains the JavaFX SDK libraries as expected.
+| Issue               | Solution                                                 |
+| ------------------- | -------------------------------------------------------- |
+| `JavaFX errors`     | Make sure JavaFX modules are included in the module path |
+| `Permission denied` | Run the app as `sudo`                                    |
+| `dsniff not found`  | Install via `apt` as shown above                         |
 
 ---
 
-## Configuration
+## 🙏 Acknowledgments
 
-* The `pom.xml` contains all required dependencies and JavaFX configuration.
-* Modify the `java.fx.lib.path` property in the `pom.xml` if your JavaFX SDK path differs.
-* The main class is set as `org.npt.Launch`.
-
----
-
-## Troubleshooting
-
-* **JavaFX errors**: Verify that the JavaFX SDK is correctly downloaded and the module path is set properly.
-* **Permission issues**: Ensure you run the application with sufficient privileges (`sudo` on Linux/macOS).
-* **Maven errors**: Check Maven installation and network connectivity for downloading dependencies.
-
----
-
-## Acknowledgments
-
-* [Pcap4J](https://github.com/kaitoy/pcap4j) for packet capturing.
-* JavaFX community and ControlsFX for UI components.
-* Maven for build automation.
+* [Pcap4J](https://github.com/kaitoy/pcap4j) — packet capture library
+* JavaFX & ControlsFX — UI and controls
+* Apache Maven — dependency management and builds
 
 ---
