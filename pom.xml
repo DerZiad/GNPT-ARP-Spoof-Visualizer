@@ -12,7 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>21</java.version>
-        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
         <mainClass>org.npt.Launch</mainClass>
         <output.jar>NetworkPacketTracer-1.0.jar</output.jar>
 
