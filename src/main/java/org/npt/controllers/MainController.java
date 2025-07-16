@@ -101,15 +101,6 @@ public class MainController extends DataInjector {
             drawNetwork(canvas);
         });
 
-//        addDevice.setOnAction(ignored -> {
-//            final String ipAddress = this.ipAddress.getText();
-//            final String deviceInterface = this.menuButton.getText();
-//            final String deviceName = this.deviceName.getText();
-//            deviceUiMapperService.addTarget(ipAddress, deviceInterface, deviceName);
-//            this.ipAddress.setText("");
-//            this.deviceName.setText("");
-//        });
-
         newMenu.setOnAction(ignored -> {
             menuButton.getItems().clear();
             deviceUiMapperService.clear();
@@ -119,7 +110,6 @@ public class MainController extends DataInjector {
             menuButton.getItems().clear();
             deviceUiMapperService.refresh();
             calculateInterfaceAndGatewayPosition();
-            initFormFieldInterfacesComboBox();
             drawNetwork(canvas);
         });
 
@@ -134,29 +124,9 @@ public class MainController extends DataInjector {
     }
 
     private void initDevices() {
-        initFormFieldInterfacesComboBox();
         calculateInterfaceAndGatewayPosition();
         calculateRootDevicePosition();
         drawNetwork(canvas);
-    }
-
-    private void initFormFieldInterfacesComboBox() {
-        final List<Interface> interfaces = deviceUiMapperService.findAll(Interface.class)
-                .stream()
-                .map(DeviceUI::getDevice)
-                .map(Interface.class::cast)
-                .toList();
-        for (Interface interfaceDevice : interfaces) {
-            final MenuItem menuItem = new MenuItem(interfaceDevice.getDeviceName());
-            menuItem.setOnAction(ignored -> menuButton.setText(menuItem.getText()));
-            menuButton.getItems().add(menuItem);
-        }
-        if (menuButton.getItems().isEmpty()) {
-            menuButton.setText("No network");
-        } else {
-            String interfaceFound = menuButton.getItems().getFirst().getText();
-            menuButton.setText(interfaceFound);
-        }
     }
 
     private void calculateInterfaceAndGatewayPosition() {
