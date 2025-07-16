@@ -40,9 +40,10 @@ public class DefaultDataService implements DataService {
             selfDevice = new SelfDevice("Self Device", interfaces);
             devices.addAll(interfaces);
             devices.addAll(interfaces
-                            .stream()
-                            .map(Interface::getGateway)
-                            .collect(Collectors.toCollection(ArrayList::new)));
+                    .stream()
+                    .filter(anInterface -> anInterface.getGatewayOptional().isPresent())
+                    .map((anInterface) -> anInterface.getGatewayOptional().get())
+                    .collect(Collectors.toCollection(ArrayList::new)));
         } catch (SocketException e) {
             throw new DrawNetworkException("Failed to initialize network interfaces: unable to retrieve local network data.");
         }
@@ -100,9 +101,7 @@ public class DefaultDataService implements DataService {
                 .stream()
                 .filter(anInterface -> anInterface.getDeviceName().equals(networkInterface))
                 .findFirst();
-        selfDeviceInterfaceOpt.ifPresent(selfDeviceInterface -> {
-            selfDeviceInterface.getGateway().getDevices().add(target);
-        });
+        selfDeviceInterfaceOpt.flatMap(Interface::getGatewayOptional).ifPresent(gateway -> gateway.getDevices().add(target));
         this.addDevice(target);
         return target;
     }
@@ -164,9 +163,7 @@ public class DefaultDataService implements DataService {
             final String interfaceName = ni.getDisplayName();
             final Optional<String> ipAddressOptional = findFirstIPv4(ni.getInetAddresses());
             ipAddressOptional.ifPresent(ip -> {
-                discoverGatewayForInterface(interfaceName).ifPresent(gw -> {
-                    interfacesObj.add(new Interface(interfaceName, ip, gw));
-                });
+                discoverGatewayForInterface(interfaceName).ifPresent(gw -> interfacesObj.add(new Interface(interfaceName, ip, Optional.of(gw))));
             });
         }
 

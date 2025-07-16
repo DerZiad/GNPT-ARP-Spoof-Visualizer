@@ -149,7 +149,8 @@ public class DeviceUiMapperService {
         String scanInterface = dataService.getSelfDevice()
                 .getAnInterfaces()
                 .stream()
-                .filter(anInterface -> anInterface.getGateway().equals(gateway))
+                .filter(anInterface -> anInterface.getGatewayOptional().isPresent())
+                .filter(anInterface -> anInterface.getGatewayOptional().get().equals(gateway))
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException("No interface found for the gateway"))
                 .getDeviceName();
@@ -163,7 +164,7 @@ public class DeviceUiMapperService {
                 detailsFrame.setArgs(new Object[]{target, refreshAction});
                 frameService.createNewStage(detailsFrame, true);
             }
-            case SelfDevice selfDeviceObj -> {
+            case SelfDevice ignored -> {
                 Frame detailsFrame = Frame.createSelfDetails();
                 detailsFrame.setArgs(new Object[]{refreshAction});
                 frameService.createNewStage(detailsFrame, true);

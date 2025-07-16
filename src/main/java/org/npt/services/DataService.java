@@ -93,9 +93,9 @@ public interface DataService {
     /**
      * Creates a new {@link Target} device from the provided input.
      *
-     * @param deviceName      the name to assign to the target device
+     * @param deviceName       the name to assign to the target device
      * @param networkInterface the name of the interface the target is associated with
-     * @param ip              the IP address of the target
+     * @param ip               the IP address of the target
      * @return a new {@link Target} instance
      * @throws InvalidInputException if input validation fails
      */

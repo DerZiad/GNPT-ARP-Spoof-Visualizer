@@ -7,11 +7,9 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import org.npt.controllers.DataInjector;
-import org.npt.models.Gateway;
 import org.npt.models.Interface;
 import org.npt.models.SelfDevice;
-import org.npt.models.ui.IpEntry;
-import org.npt.models.ui.IpEntryWithNetworkInterface;
+import org.npt.models.ui.SelfDeviceIpEntry;
 import org.npt.services.GraphicalNetworkTracerFactory;
 
 public class SelfDeviceDetailsController extends DataInjector {
@@ -20,25 +18,16 @@ public class SelfDeviceDetailsController extends DataInjector {
     public TextField deviceNameField;
 
     @FXML
-    private TableView<IpEntry> ipTable;
+    public TableView<SelfDeviceIpEntry> ipTable;
 
     @FXML
-    private TableColumn<IpEntryWithNetworkInterface, String> ipColumn;
+    public TableColumn<SelfDeviceIpEntry, String> networkInterface;
 
     @FXML
-    private TableColumn<IpEntryWithNetworkInterface, String> typeColumn;
+    public TableColumn<SelfDeviceIpEntry, String> ipColumn;
 
     @FXML
-    public TableColumn<IpEntryWithNetworkInterface, String> networkInterface;
-
-    @FXML
-    public TableView<IpEntry> nextDevicesTable;
-
-    @FXML
-    private TableColumn<IpEntry, String> ipColumn1;
-
-    @FXML
-    private TableColumn<IpEntry, String> typeColumn1;
+    public TableColumn<SelfDeviceIpEntry, String> gatewayIp;
 
     @FXML
     public Button saveButton;
@@ -46,26 +35,23 @@ public class SelfDeviceDetailsController extends DataInjector {
 
     @FXML
     public void initialize() {
-        SelfDevice selfDevice = GraphicalNetworkTracerFactory.getInstance().getDataService().getSelfDevice();
-        Runnable refresh = (Runnable) getArgs()[0];
+        final SelfDevice selfDevice = GraphicalNetworkTracerFactory.getInstance().getDataService().getSelfDevice();
+        final Runnable refresh = (Runnable) getArgs()[0];
         deviceNameField.setText(selfDevice.getDeviceName());
-        ipColumn.setCellValueFactory(data -> data.getValue().getIp());
-        typeColumn.setCellValueFactory(data -> data.getValue().getType());
-        ipColumn1.setCellValueFactory(data -> data.getValue().getIp());
-        typeColumn1.setCellValueFactory(data -> data.getValue().getType());
-        networkInterface.setCellValueFactory(data -> data.getValue().getNetworkInterface());
+        networkInterface.setCellValueFactory(data -> data.getValue().networkInterface());
+        ipColumn.setCellValueFactory(data -> data.getValue().ip());
+        gatewayIp.setCellValueFactory(data -> data.getValue().gatewayIp());
         for (Interface anInterface : selfDevice.getAnInterfaces()) {
-            IpEntryWithNetworkInterface ipEntryWithNetworkInterface = new IpEntryWithNetworkInterface(new SimpleStringProperty(anInterface.getIp()),
-                    new SimpleStringProperty("IPv4"),
-                    new SimpleStringProperty(anInterface.getDeviceName()));
-            ipTable.getItems().add(ipEntryWithNetworkInterface);
-            final Gateway gateway = anInterface.getGateway();
-            nextDevicesTable.getItems().add(new IpEntry(gateway.getIp(), "IPv4"));
+            final SelfDeviceIpEntry selfDeviceIpEntry = new SelfDeviceIpEntry(new SimpleStringProperty(anInterface.getIp()),
+                    new SimpleStringProperty(anInterface.getIp()),
+                    anInterface.getGatewayOptional().isPresent() ?
+                            new SimpleStringProperty(anInterface.getGatewayOptional().get().getIp()) :
+                            new SimpleStringProperty("UNKNOWN"));
+            ipTable.getItems().add(selfDeviceIpEntry);
         }
 
         saveButton.setOnAction(ignored -> {
-            String deviceName = deviceNameField.getText();
-            selfDevice.setDeviceName(deviceName);
+            selfDevice.setDeviceName(deviceNameField.getText());
             refresh.run();
         });
     }

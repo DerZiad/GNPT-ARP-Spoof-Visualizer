@@ -24,6 +24,7 @@ import org.npt.uiservices.DeviceUiMapperService;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -292,17 +293,19 @@ public class MainController extends DataInjector {
             draw(graphicsContext, interfaceUI, imageSize, Interface.class);
             drawConnection(graphicsContext, interfaceUI, selfDevice);
             final Interface interfaceData = (Interface) interfaceUI.getDevice();
-            final Gateway gatewayData = interfaceData.getGateway();
+            final Optional<Gateway> gatewayDataOpt = interfaceData.getGatewayOptional();
+            if (gatewayDataOpt.isEmpty())
+                continue;
             final DeviceUI gatewayUI = deviceUiMapperService
                     .getDevices()
                     .stream()
-                    .filter(deviceUi -> deviceUi.getDevice().equals(gatewayData))
+                    .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOpt.get()))
                     .findFirst()
                     .get();
             draw(graphicsContext, gatewayUI, imageSize, Gateway.class);
             drawConnection(graphicsContext, gatewayUI, interfaceUI);
             final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class).stream()
-                    .filter(deviceUi -> gatewayData.getDevices().contains((Target) deviceUi.getDevice()))
+                    .filter(deviceUi -> gatewayDataOpt.get().getDevices().contains((Target) deviceUi.getDevice()))
                     .toList();
             for (DeviceUI target : targets) {
                 draw(graphicsContext, target, imageSize, Target.class);
@@ -393,7 +396,6 @@ public class MainController extends DataInjector {
             gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         }
     }
-
 
 
     private void drawGrid(GraphicsContext gc) {
