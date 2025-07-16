@@ -4,7 +4,6 @@ import lombok.Getter;
 
 import java.util.HashMap;
 
-
 @Getter
 public class InvalidInputException extends Exception {
 

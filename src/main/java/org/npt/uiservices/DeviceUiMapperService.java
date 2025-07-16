@@ -2,11 +2,8 @@ package org.npt.uiservices;
 
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
+import lombok.*;
 import org.jetbrains.annotations.NotNull;
-import org.npt.controllers.FrameService;
 import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
@@ -67,7 +64,7 @@ public class DeviceUiMapperService {
         initMenu(selfDevice);
         dataService.getDevices().forEach(device -> {
             DeviceUI deviceUI = new DeviceUI(device);
-            if(!(deviceUI.getDevice() instanceof Interface))
+            if (!(deviceUI.getDevice() instanceof Interface))
                 initMenu(deviceUI);
             devices.add(deviceUI);
         });
@@ -80,16 +77,12 @@ public class DeviceUiMapperService {
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) {
-        try {
-            Target target = dataService.createTarget(deviceName, deviceInterface, ipAddress);
-            DeviceUI deviceUI = new DeviceUI(target);
-            initMenu(deviceUI);
-            devices.add(deviceUI);
-            refreshAction.run();
-        } catch (InvalidInputException e) {
-            ErrorHandler.handle(e);
-        }
+    public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) throws InvalidInputException {
+        final Target target = dataService.createTarget(deviceName, deviceInterface, ipAddress);
+        final DeviceUI deviceUI = new DeviceUI(target);
+        initMenu(deviceUI);
+        devices.add(deviceUI);
+        refreshAction.run();
     }
 
     @SneakyThrows

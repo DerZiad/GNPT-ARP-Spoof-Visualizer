@@ -9,6 +9,7 @@
       xmlns:fx="http://javafx.com/fxml/1">
     <MenuBar>
         <Menu text="Actions">
+            <MenuItem fx:id="addTargetMenu" text="Add Target" />
             <MenuItem fx:id="refresh" text="Refresh" />
             <MenuItem fx:id="newMenu" text="Clear network" />
         </Menu>

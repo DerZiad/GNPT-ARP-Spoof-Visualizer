@@ -1,4 +1,4 @@
-package org.npt.controllers;
+package org.npt.uiservices;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
@@ -9,6 +9,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import kotlin.Pair;
 import lombok.*;
+import org.npt.controllers.DataInjector;
 import org.npt.models.ui.Frame;
 
 import java.net.URL;

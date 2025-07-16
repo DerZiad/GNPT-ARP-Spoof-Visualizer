@@ -20,7 +20,9 @@ import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.npt.models.*;
 import org.npt.models.ui.DeviceUI;
+import org.npt.models.ui.Frame;
 import org.npt.uiservices.DeviceUiMapperService;
+import org.npt.uiservices.FrameService;
 
 import java.util.HashMap;
 import java.util.List;
@@ -68,12 +70,14 @@ public class MainController extends DataInjector {
     public MenuItem refresh;
 
     @FXML
+    public MenuItem addTargetMenu;
+
+    @FXML
     public MenuItem aboutGnptMenu;
 
     @FXML
     public void initialize() {
         deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices, canvas.getWidth(), canvas.getHeight());
-        deviceUiMapperService.addTarget("192.168.178.46", "eth0", "My Test Device");
 
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
         images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));
@@ -97,14 +101,14 @@ public class MainController extends DataInjector {
             drawNetwork(canvas);
         });
 
-        addDevice.setOnAction(ignored -> {
-            final String ipAddress = this.ipAddress.getText();
-            final String deviceInterface = this.menuButton.getText();
-            final String deviceName = this.deviceName.getText();
-            deviceUiMapperService.addTarget(ipAddress, deviceInterface, deviceName);
-            this.ipAddress.setText("");
-            this.deviceName.setText("");
-        });
+//        addDevice.setOnAction(ignored -> {
+//            final String ipAddress = this.ipAddress.getText();
+//            final String deviceInterface = this.menuButton.getText();
+//            final String deviceName = this.deviceName.getText();
+//            deviceUiMapperService.addTarget(ipAddress, deviceInterface, deviceName);
+//            this.ipAddress.setText("");
+//            this.deviceName.setText("");
+//        });
 
         newMenu.setOnAction(ignored -> {
             menuButton.getItems().clear();
@@ -117,6 +121,13 @@ public class MainController extends DataInjector {
             calculateInterfaceAndGatewayPosition();
             initFormFieldInterfacesComboBox();
             drawNetwork(canvas);
+        });
+
+        addTargetMenu.setOnAction(e -> {
+            final FrameService frameService = FrameService.getInstance();
+            final Frame targetFrame = Frame.createAddTargetFrame();
+            targetFrame.setArgs(new Object[]{deviceUiMapperService});
+            frameService.createNewStage(targetFrame, true);
         });
         setupMouseEvents();
         initDevices();
@@ -162,7 +173,7 @@ public class MainController extends DataInjector {
             final double x = centerX + baseRadius * Math.cos(angle);
             final double y = centerY + baseRadius * Math.sin(angle);
             final Interface interfaceDevice = (Interface) interfaces.get(i).getDevice();
-            if(interfaceDevice.getGatewayOptional().isPresent()){
+            if (interfaceDevice.getGatewayOptional().isPresent()) {
                 final Gateway gatewayDataOptional = interfaceDevice.getGatewayOptional().get();
                 final Optional<DeviceUI> gatewayUI = deviceUiMapperService
                         .getDevices()
@@ -170,10 +181,10 @@ public class MainController extends DataInjector {
                         .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOptional))
                         .findFirst();
                 gatewayUI.ifPresent(gw -> {
-                  final double routerX = centerX + baseRadius * 2 * Math.cos(angle);
-                  final double routerY = centerY + baseRadius * 2 * Math.sin(angle);
-                  gw.setX(routerX);
-                  gw.setY(routerY);
+                    final double routerX = centerX + baseRadius * 2 * Math.cos(angle);
+                    final double routerY = centerY + baseRadius * 2 * Math.sin(angle);
+                    gw.setX(routerX);
+                    gw.setY(routerY);
                 });
             }
             interfaces.get(i).setX(x);

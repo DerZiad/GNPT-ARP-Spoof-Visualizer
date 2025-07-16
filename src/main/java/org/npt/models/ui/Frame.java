@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.npt.controllers.MainController;
 import org.npt.controllers.StatisticsController;
+import org.npt.controllers.viewdetails.AddTargetFrameController;
 import org.npt.controllers.viewdetails.GatewayDetailsController;
 import org.npt.controllers.viewdetails.SelfDeviceDetailsController;
 import org.npt.controllers.viewdetails.TargetDetailsController;
@@ -77,6 +78,17 @@ public class Frame {
                 StatisticsController.class,
                 new Object[]{},
                 new Size(1054, 674)
+        );
+    }
+
+    public static Frame createAddTargetFrame() {
+        return new Frame(
+                "addTargetFrame",
+                "Add Target",
+                PREFIX + "/add_target_modal_frame.fxml",
+                AddTargetFrameController.class,
+                new Object[]{},
+                new Size(530.0, 490.0)
         );
     }
 }
