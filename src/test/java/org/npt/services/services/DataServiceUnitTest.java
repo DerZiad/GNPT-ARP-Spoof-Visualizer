@@ -194,8 +194,37 @@ public class DataServiceUnitTest {
     }
 
     @Test
-    void shouldHandleEmptyInterfacesOnStartupGracefully() throws Exception {
+    void shouldHandleEmptyInterfacesOnStartupGracefully() {
         List<Interface> interfaces = dataService.getSelfDevice().getAnInterfaces();
         assertThat(interfaces).isNotNull();
+    }
+
+    @Test
+    void shouldFailCreateTargetWhenIpIsDuplicateForGateway() throws InvalidInputException {
+        Optional<Interface> opt = dataService.getSelfDevice().getAnInterfaces().stream()
+                .filter(i -> i.getGatewayOptional().isPresent()).findFirst();
+        Assumptions.assumeTrue(opt.isPresent());
+
+        String duplicateIp = "192.168.0.200";
+        dataService.createTarget("Device1", opt.get().getDeviceName(), duplicateIp);
+
+        InvalidInputException ex = catchThrowableOfType(() ->
+                dataService.createTarget("Device2", opt.get().getDeviceName(), duplicateIp), InvalidInputException.class);
+
+        assertThat(ex.getErrors()).containsKey("IP Address");
+        assertThat(ex.getErrors().get("IP Address")).contains("already exists for this Gateway");
+    }
+
+    @Test
+    void shouldAllowSameIpOnDifferentGateways() throws InvalidInputException {
+        List<Interface> interfaces = dataService.getSelfDevice().getAnInterfaces().stream()
+                .filter(i -> i.getGatewayOptional().isPresent()).limit(2).toList();
+        Assumptions.assumeTrue(interfaces.size() == 2);
+
+        String sharedIp = "192.168.0.201";
+        Target t1 = dataService.createTarget("DeviceA", interfaces.get(0).getDeviceName(), sharedIp);
+        Target t2 = dataService.createTarget("DeviceB", interfaces.get(1).getDeviceName(), sharedIp);
+
+        assertThat(dataService.getDevices()).contains(t1, t2);
     }
 }

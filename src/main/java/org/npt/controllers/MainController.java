@@ -26,9 +26,6 @@ import org.npt.uiservices.FrameService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 
 @Slf4j
@@ -43,8 +40,6 @@ public class MainController extends DataInjector {
     private final long radarStartTime = System.currentTimeMillis();
     private double radarRadius = 0;
     private static final double RADAR_PERIOD_MS = 3000;
-    private AnimationTimer radarTimer;
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private static final double MIN_DISTANCE_BETWEEN_DEVICES = 70;
     private static final double TEXT_LINE_HEIGHT = 18;
     private static final double TEXT_OFFSET_Y = 10;
@@ -58,8 +53,6 @@ public class MainController extends DataInjector {
     public BorderPane borderPane;
     @FXML
     public MenuItem newMenu;
-    @FXML
-    public MenuItem refresh;
     @FXML
     public MenuItem addTargetMenu;
     @FXML
@@ -92,11 +85,7 @@ public class MainController extends DataInjector {
             calculateInterfaceAndGatewayPosition();
             drawNetwork(canvas);
         });
-        refresh.setOnAction(e -> {
-            deviceUiMapperService.refresh();
-            calculateInterfaceAndGatewayPosition();
-            drawNetwork(canvas);
-        });
+
         addTargetMenu.setOnAction(e -> {
             final FrameService frameService = FrameService.getInstance();
             final Frame targetFrame = Frame.createAddTargetFrame();
@@ -106,12 +95,11 @@ public class MainController extends DataInjector {
         });
         setupMouseEvents();
         initDevices();
-        radarTimer = new AnimationTimer() {
+        final AnimationTimer radarTimer = new AnimationTimer() {
             @Override
             public void handle(long now) {
                 long elapsed = System.currentTimeMillis() - radarStartTime;
-                double progress = (elapsed % RADAR_PERIOD_MS) / (double) RADAR_PERIOD_MS;
-                radarRadius = progress;
+                radarRadius = (elapsed % RADAR_PERIOD_MS) / (double) RADAR_PERIOD_MS;
                 drawNetwork(canvas);
             }
         };
@@ -125,27 +113,27 @@ public class MainController extends DataInjector {
     }
 
     private void calculateInterfaceAndGatewayPosition() {
-        List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
-        double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
+        final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
+        final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
         if (interfaces.isEmpty()) return;
-        double centerX = deviceUiMapperService.getSelfDevice().getX();
-        double centerY = deviceUiMapperService.getSelfDevice().getY();
-        double angleStep = 2 * Math.PI / interfaces.size();
+        final double centerX = deviceUiMapperService.getSelfDevice().getX();
+        final double centerY = deviceUiMapperService.getSelfDevice().getY();
+        final double angleStep = 2 * Math.PI / interfaces.size();
         for (int i = 0; i < interfaces.size(); i++) {
-            double angle = i * angleStep;
-            double x = centerX + baseRadius * Math.cos(angle);
-            double y = centerY + baseRadius * Math.sin(angle);
-            Interface interfaceDevice = (Interface) interfaces.get(i).getDevice();
+            final double angle = i * angleStep;
+            final double x = centerX + baseRadius * Math.cos(angle);
+            final double y = centerY + baseRadius * Math.sin(angle);
+            final Interface interfaceDevice = (Interface) interfaces.get(i).getDevice();
             if (interfaceDevice.getGatewayOptional().isPresent()) {
-                Gateway gatewayDataOptional = interfaceDevice.getGatewayOptional().get();
-                Optional<DeviceUI> gatewayUI = deviceUiMapperService
+                final Gateway gatewayDataOptional = interfaceDevice.getGatewayOptional().get();
+                final Optional<DeviceUI> gatewayUI = deviceUiMapperService
                         .getDevices()
                         .stream()
                         .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOptional))
                         .findFirst();
                 gatewayUI.ifPresent(gw -> {
-                    double routerX = centerX + baseRadius * 2 * Math.cos(angle);
-                    double routerY = centerY + baseRadius * 2 * Math.sin(angle);
+                    final double routerX = centerX + baseRadius * 2 * Math.cos(angle);
+                    final double routerY = centerY + baseRadius * 2 * Math.sin(angle);
                     gw.setX(routerX);
                     gw.setY(routerY);
                 });
@@ -156,7 +144,7 @@ public class MainController extends DataInjector {
     }
 
     private void calculateRootDevicePosition() {
-        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+        final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         selfDevice.setX(canvas.getWidth() / 2);
         selfDevice.setY(canvas.getHeight() / 2);
         canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
@@ -169,17 +157,11 @@ public class MainController extends DataInjector {
         });
     }
 
-    public void start() {
-        scheduler.scheduleAtFixedRate(() -> deviceUiMapperService.refresh(), 0, 3, TimeUnit.SECONDS);
-    }
-
-    public void stop() {
-        scheduler.shutdown();
-    }
-
     private void resizeTargetsPositionAfterChangeEvent() {
-        double newWidth = canvas.getWidth();
-        double newHeight = canvas.getHeight();
+        final double newWidth = canvas.getWidth();
+        final double newHeight = canvas.getHeight();
+        if (canvas.getHeight() == 0 || canvas.getWidth() == 0)
+            return;
         final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
         for (DeviceUI target : targets) {
             double xPercentage = target.getX() / deviceUiMapperService.getActualWidth();
@@ -268,32 +250,32 @@ public class MainController extends DataInjector {
         });
     }
 
-    public void drawNetwork(Canvas canvas) {
-        GraphicsContext gc = canvas.getGraphicsContext2D();
+    public void drawNetwork(final Canvas canvas) {
+        final GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         drawGrid(gc);
         gc.setStroke(Color.BLACK);
         gc.setLineWidth(3);
-        double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+        final double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         draw(gc, selfDevice, imageSize, SelfDevice.class);
-        List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
-        List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
+        final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
+        final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
         for (DeviceUI interfaceUI : interfaces) {
             draw(gc, interfaceUI, imageSize, Interface.class);
             drawConnection(gc, interfaceUI, selfDevice);
-            Interface interfaceData = (Interface) interfaceUI.getDevice();
-            Optional<Gateway> gatewayDataOpt = interfaceData.getGatewayOptional();
+            final Interface interfaceData = (Interface) interfaceUI.getDevice();
+            final Optional<Gateway> gatewayDataOpt = interfaceData.getGatewayOptional();
             if (gatewayDataOpt.isEmpty()) continue;
-            DeviceUI gatewayUI = deviceUiMapperService.getDevices().stream()
+            final DeviceUI gatewayUI = deviceUiMapperService.getDevices().stream()
                     .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOpt.get()))
                     .findFirst().get();
             draw(gc, gatewayUI, imageSize, Gateway.class);
             drawConnection(gc, gatewayUI, interfaceUI);
-            List<DeviceUI> gwTargets = targets.stream()
+            final List<DeviceUI> gwTargets = targets.stream()
                     .filter(deviceUi -> gatewayDataOpt.get().getDevices().contains((Target) deviceUi.getDevice()))
                     .toList();
-            for (DeviceUI target : gwTargets) {
+            for (final DeviceUI target : gwTargets) {
                 draw(gc, target, imageSize, Target.class);
                 drawConnection(gc, gatewayUI, target);
             }
@@ -308,11 +290,11 @@ public class MainController extends DataInjector {
         double margin = 10;
         double mapX = width - mapSize - margin;
         double mapY = margin;
-        gc.setFill(Color.rgb(240,240,240,0.85));
+        gc.setFill(Color.rgb(240, 240, 240, 0.85));
         gc.fillRect(mapX, mapY, mapSize, mapSize);
         gc.setStroke(Color.GRAY);
         gc.strokeRect(mapX, mapY, mapSize, mapSize);
-        gc.setStroke(Color.rgb(200,200,200,0.7));
+        gc.setStroke(Color.rgb(200, 200, 200, 0.7));
         gc.setLineWidth(1);
         int gridCount = 5;
         double gridStep = mapSize / gridCount;
@@ -331,10 +313,10 @@ public class MainController extends DataInjector {
             gc.setStroke(Color.rgb(0, 180, 255, 0.6));
             gc.setLineWidth(3);
             gc.strokeOval(
-                radarCenterX - currentRadarRadius,
-                radarCenterY - currentRadarRadius,
-                currentRadarRadius * 2,
-                currentRadarRadius * 2
+                    radarCenterX - currentRadarRadius,
+                    radarCenterY - currentRadarRadius,
+                    currentRadarRadius * 2,
+                    currentRadarRadius * 2
             );
             gc.setGlobalAlpha(1.0);
             gc.setLineWidth(1);
@@ -412,7 +394,7 @@ public class MainController extends DataInjector {
         double legendBoxHeight = 4 * 22 + 16;
         double legendBoxX = mapX;
         double legendBoxY = mapY + mapSize + 8;
-        gc.setFill(Color.rgb(240,240,240,0.92));
+        gc.setFill(Color.rgb(240, 240, 240, 0.92));
         gc.fillRect(legendBoxX, legendBoxY, mapSize, legendBoxHeight);
         gc.setStroke(Color.GRAY);
         gc.strokeRect(legendBoxX, legendBoxY, mapSize, legendBoxHeight);
