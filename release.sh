@@ -2,6 +2,7 @@
 
 set -e
 
+java -version
 mvn clean compile assembly:single -X
 
 rm -rf gnpt
