@@ -2,7 +2,7 @@
 
 set -e
 
-mvn clean compile assembly:single
+mvn clean compile assembly:single -X
 
 rm -rf gnpt
 mkdir gnpt
