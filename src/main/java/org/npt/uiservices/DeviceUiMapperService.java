@@ -2,6 +2,7 @@ package org.npt.uiservices;
 
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.stage.Stage;
 import lombok.*;
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
@@ -166,21 +167,28 @@ public class DeviceUiMapperService {
             case Target target -> {
                 Frame detailsFrame = Frame.createTargetView();
                 detailsFrame.setArgs(new Object[]{target, refreshAction});
-                frameService.createNewStage(detailsFrame, false,false);
+                final Stage stage = frameService.createNewStage(detailsFrame, false,false);
+                handlePopupClose(stage,detailsFrame);
             }
             case SelfDevice ignored -> {
                 Frame detailsFrame = Frame.createSelfDetails();
                 detailsFrame.setArgs(new Object[]{refreshAction});
-                frameService.createNewStage(detailsFrame, false,false);
+                final Stage stage = frameService.createNewStage(detailsFrame, false,false);
+                handlePopupClose(stage,detailsFrame);
             }
             case Gateway gateway -> {
-                Frame detailsFrame = Frame.createGatewayDetails();
+                final Frame detailsFrame = Frame.createGatewayDetails();
                 detailsFrame.setArgs(new Object[]{gateway, refreshAction});
-                frameService.createNewStage(detailsFrame, false,false);
+                final Stage stage = frameService.createNewStage(detailsFrame, false,false);
+                handlePopupClose(stage,detailsFrame);
             }
             default -> {
                 // ignored
             }
         }
+    }
+
+    private void handlePopupClose(final Stage stage, Frame frame) {
+        stage.setOnCloseRequest(ignored -> frameService.stopStage(frame.getKey()));
     }
 }

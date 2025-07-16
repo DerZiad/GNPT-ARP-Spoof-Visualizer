@@ -47,13 +47,14 @@ public class FrameService {
         primaryStage.show();
     }
 
-    public void createNewStage(Frame frame, boolean maximized, boolean resizable) {
+    public Stage createNewStage(Frame frame, boolean maximized, boolean resizable) {
         Stage popupStage = new Stage();
         popupStage.setTitle(frame.getTitle());
         popupStage.setResizable(resizable);
         popupStage.setMaximized(maximized);
         popupStage.initModality(Modality.WINDOW_MODAL);
         startStage(popupStage, frame);
+        return popupStage;
     }
 
     public void stopStage(String key) {
