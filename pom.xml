@@ -12,6 +12,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>21</java.version>
+        <maven.compiler.release>21</maven.compiler.release>
         <mainClass>org.npt.Launch</mainClass>
         <output.jar>NetworkPacketTracer-1.0.jar</output.jar>
 
@@ -244,8 +245,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin}</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${maven.compiler.release}</release>
                     <compilerArgs>
                         <arg>--module-path</arg>
                         <arg>${java.fx.lib.path}</arg>
@@ -383,4 +383,3 @@
     </build>
 
 </project>
-

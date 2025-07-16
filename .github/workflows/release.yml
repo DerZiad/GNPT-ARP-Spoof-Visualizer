@@ -27,6 +27,8 @@ jobs:
       - name: Execute Permission Script
         run: chmod +x release.sh
 
+      -
+
       - name: Build Project
         run: sh release.sh
 
