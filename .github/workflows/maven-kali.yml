@@ -2,9 +2,9 @@ name: Install Dependencies, Install JDK 21, Build, Test, Integration Test, Publi
 
 on:
   push:
-    branches: [ '1' ]
+    branches: [ '*' ]
   pull_request:
-    branches: [ '1' ]
+    branches: [ '*' ]
 
 jobs:
   build:
