@@ -1,0 +1,41 @@
+services:
+  attacker:
+    build:
+      dockerfile: Dockerfile_attacker
+    container_name: attacker
+    networks:
+      arptest:
+        ipv4_address: 192.168.56.50
+    user: root
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - victim1
+      - victim2
+
+  victim1:
+    build:
+      dockerfile: Dockerfile_victim1
+    container_name: victim1
+    networks:
+      arptest:
+        ipv4_address: 192.168.56.10
+    cap_add:
+      - NET_ADMIN
+
+  victim2:
+    build:
+      dockerfile: Dockerfile_victim2
+    container_name: victim2
+    networks:
+      arptest:
+        ipv4_address: 192.168.56.11
+    cap_add:
+      - NET_ADMIN
+
+networks:
+  arptest:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.56.0/24
