@@ -3,6 +3,7 @@ services:
     build:
       dockerfile: Dockerfile_attacker
     container_name: attacker
+    command: xvfb-run --auto-servernum --server-args="-screen 0 1024x768x16" mvn clean verify -DskipUnitTests=false -X
     networks:
       arptest:
         ipv4_address: 192.168.56.50
