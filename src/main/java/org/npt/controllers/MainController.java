@@ -44,6 +44,7 @@ public class MainController extends DataInjector {
     private static final double TEXT_LINE_HEIGHT = 18;
     private static final double TEXT_OFFSET_Y = 10;
     private static final double LABEL_WIDTH = 100;
+    private double imageSize; // Global image size variable
 
     @FXML
     public VBox vboxPane;
@@ -68,13 +69,16 @@ public class MainController extends DataInjector {
         canvas.widthProperty().bind(borderPane.widthProperty());
         canvas.heightProperty().bind(borderPane.heightProperty());
         borderPane.setMinSize(0, 0);
+        updateImageSize();
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
+            updateImageSize();
             resizeTargetsPositionAfterChangeEvent();
             calculateRootDevicePosition();
             calculateInterfaceAndGatewayPosition();
             drawNetwork(canvas);
         });
         canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
+            updateImageSize();
             resizeTargetsPositionAfterChangeEvent();
             calculateRootDevicePosition();
             calculateInterfaceAndGatewayPosition();
@@ -104,6 +108,10 @@ public class MainController extends DataInjector {
             }
         };
         radarTimer.start();
+    }
+
+    private void updateImageSize() {
+        imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
     }
 
     private void initDevices() {
@@ -168,7 +176,7 @@ public class MainController extends DataInjector {
 
     private void setupMouseEvents() {
         EventHandler<MouseEvent> onMousePressed = event -> {
-            final double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+            // Use global imageSize
             BiPredicate<DeviceUI, MouseEvent> isInsideImage = (device, evt) -> {
                 double x = evt.getX(), y = evt.getY();
                 double left = device.getX() - imageSize / 2;
@@ -214,17 +222,19 @@ public class MainController extends DataInjector {
             final double newY = event.getY() - dragOffsetY;
             if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
             final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+            // Use dynamic border radius for minimum distance
+            double borderRadius = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
             boolean tooClose = deviceUiMapperService.getDevices().stream()
                     .filter(other -> other != movingDevice)
                     .anyMatch(other -> {
                         double dx = newX - other.getX();
                         double dy = newY - other.getY();
-                        return Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE_BETWEEN_DEVICES;
+                        return Math.sqrt(dx * dx + dy * dy) < borderRadius * 2;
                     });
             if (!draggingRouter && selfDevice != movingDevice) {
                 double dx = newX - selfDevice.getX();
                 double dy = newY - selfDevice.getY();
-                if (Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE_BETWEEN_DEVICES) {
+                if (Math.sqrt(dx * dx + dy * dy) < borderRadius) {
                     tooClose = true;
                 }
             }
@@ -249,7 +259,7 @@ public class MainController extends DataInjector {
         drawGrid(gc);
         gc.setStroke(Color.BLACK);
         gc.setLineWidth(3);
-        final double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+        // Use global imageSize
         final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         draw(gc, selfDevice, imageSize, SelfDevice.class);
         final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
@@ -387,9 +397,8 @@ public class MainController extends DataInjector {
     }
 
     private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
-        //final double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.135;
-        //double r = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
-        final double r = 35;
+        // Calculate radius based on imageSize
+        double r = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
         final double x1 = startLine.getX();
         final double y1 = startLine.getY();
         final double x2 = endLine.getX();
@@ -404,6 +413,8 @@ public class MainController extends DataInjector {
         final double newY1 = y1 + uy * r;
         final double newX2 = x2 - ux * r;
         final double newY2 = y2 - uy * r;
+        // Only draw if endpoints are not overlapping
+        if (Math.abs(newX1 - newX2) < 1 && Math.abs(newY1 - newY2) < 1) return;
         gc.setStroke(Color.BLACK);
         gc.strokeLine(newX1, newY1, newX2, newY2);
     }
