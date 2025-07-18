@@ -17,6 +17,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.npt.models.*;
 import org.npt.models.ui.DeviceUI;
 import org.npt.models.ui.Frame;
@@ -39,7 +40,7 @@ public class MainController extends DataInjector {
     private boolean draggingRouter = false;
     private final long radarStartTime = System.currentTimeMillis();
     private double radarRadius = 0;
-    private static final double RADAR_PERIOD_MS = 3000;
+    private static final double RADAR_PERIOD_MS = 4000;
     private static final double MIN_DISTANCE_BETWEEN_DEVICES = 70;
     private static final double TEXT_LINE_HEIGHT = 18;
     private static final double TEXT_OFFSET_Y = 10;
@@ -175,7 +176,7 @@ public class MainController extends DataInjector {
 
     private void setupMouseEvents() {
         EventHandler<MouseEvent> onMousePressed = event -> {
-            double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
+            final double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
             BiPredicate<DeviceUI, MouseEvent> isInsideImage = (device, evt) -> {
                 double x = evt.getX(), y = evt.getY();
                 double left = device.getX() - imageSize / 2;
@@ -215,12 +216,12 @@ public class MainController extends DataInjector {
             }
         };
         EventHandler<MouseEvent> onMouseDragged = event -> {
-            DeviceUI movingDevice = draggingRouter ? deviceUiMapperService.getSelfDevice() : draggedDevice;
+            final DeviceUI movingDevice = draggingRouter ? deviceUiMapperService.getSelfDevice() : draggedDevice;
             if (movingDevice == null) return;
-            double newX = event.getX() - dragOffsetX;
-            double newY = event.getY() - dragOffsetY;
+            final double newX = event.getX() - dragOffsetX;
+            final double newY = event.getY() - dragOffsetY;
             if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
-            DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+            final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
             boolean tooClose = deviceUiMapperService.getDevices().stream()
                     .filter(other -> other != movingDevice)
                     .anyMatch(other -> {
@@ -238,7 +239,7 @@ public class MainController extends DataInjector {
             if (tooClose) return;
             movingDevice.setX(newX);
             movingDevice.setY(newY);
-            PauseTransition pause = new PauseTransition(Duration.millis(10));
+            final PauseTransition pause = new PauseTransition(Duration.millis(10));
             pause.setOnFinished(e -> drawNetwork(canvas));
             pause.play();
         };
@@ -283,7 +284,7 @@ public class MainController extends DataInjector {
         drawMinimap(gc);
     }
 
-    private void drawMinimap(GraphicsContext gc) {
+    private void drawMinimap(@NotNull GraphicsContext gc) {
         double width = canvas.getWidth();
         double height = canvas.getHeight();
         double mapSize = Math.min(width, height) * 0.25;
@@ -423,43 +424,45 @@ public class MainController extends DataInjector {
     }
 
     private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
-        double r = 35;
-        double x1 = startLine.getX();
-        double y1 = startLine.getY();
-        double x2 = endLine.getX();
-        double y2 = endLine.getY();
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double length = Math.sqrt(dx * dx + dy * dy);
+        //final double imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.135;
+        //double r = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
+        final double r = 35;
+        final double x1 = startLine.getX();
+        final double y1 = startLine.getY();
+        final double x2 = endLine.getX();
+        final double y2 = endLine.getY();
+        final double dx = x2 - x1;
+        final double dy = y2 - y1;
+        final double length = Math.sqrt(dx * dx + dy * dy);
         if (length == 0) return;
-        double ux = dx / length;
-        double uy = dy / length;
-        double newX1 = x1 + ux * r;
-        double newY1 = y1 + uy * r;
-        double newX2 = x2 - ux * r;
-        double newY2 = y2 - uy * r;
+        final double ux = dx / length;
+        final double uy = dy / length;
+        final double newX1 = x1 + ux * r;
+        final double newY1 = y1 + uy * r;
+        final double newX2 = x2 - ux * r;
+        final double newY2 = y2 - uy * r;
         gc.setStroke(Color.BLACK);
         gc.strokeLine(newX1, newY1, newX2, newY2);
     }
 
-    private <T> void draw(GraphicsContext gc, DeviceUI deviceUi, double imageSize, Class<T> deviceClass) {
-        double x = deviceUi.getX() - imageSize / 2;
-        double y = deviceUi.getY() - imageSize / 2;
+    private <T> void draw(final GraphicsContext gc, final DeviceUI deviceUi, final double imageSize, final Class<T> deviceClass) {
+        final double x = deviceUi.getX() - imageSize / 2;
+        final double y = deviceUi.getY() - imageSize / 2;
         gc.drawImage(images.get(deviceClass), x, y, imageSize, imageSize);
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
-        double textX = deviceUi.getX() - LABEL_WIDTH / 2;
-        double baseY = y + imageSize + TEXT_OFFSET_Y;
+        final double textX = deviceUi.getX() - LABEL_WIDTH / 2;
+        final double baseY = y + imageSize + TEXT_OFFSET_Y;
         int line = 0;
         gc.fillText(deviceUi.getDevice().getDeviceName(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         if (deviceClass.equals(Target.class)) {
-            Target target = (Target) deviceUi.getDevice();
+            final Target target = (Target) deviceUi.getDevice();
             gc.fillText(target.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         } else if (deviceClass.equals(Interface.class)) {
-            Interface intf = (Interface) deviceUi.getDevice();
+            final Interface intf = (Interface) deviceUi.getDevice();
             gc.fillText(intf.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         } else if (deviceClass.equals(Gateway.class)) {
-            Gateway gateway = (Gateway) deviceUi.getDevice();
+            final Gateway gateway = (Gateway) deviceUi.getDevice();
             gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         }
     }

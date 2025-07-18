@@ -105,6 +105,7 @@ public class DeviceUiMapperService {
     }
 
     // Privates functions
+
     private void initMenu(DeviceUI deviceUI) {
         ContextMenu contextMenu = deviceUI.getContextMenu();
         MenuItem detailsItem = new MenuItem(SHOW_DETAILS_TEXT);

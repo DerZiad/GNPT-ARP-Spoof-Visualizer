@@ -1,0 +1,11 @@
+FROM debian:bookworm
+
+RUN apt-get update && apt-get install -y \
+    iputils-ping \
+    iproute2 \
+    net-tools \
+    curl \
+    tcpdump \
+    && apt-get clean
+
+CMD ["sh", "-c", "ping -i 1 facebook.com > /dev/null 2>&1"]
