@@ -6,15 +6,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.npt.models.Device;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class DeviceUI {
 
-    private Device device;
     private double x = 0.0;
     private double y = 0.0;
     private ContextMenu contextMenu = new ContextMenu();
+    private List<DeviceUI> children = new ArrayList<>();
+    private Device device;
 
     public DeviceUI(Device device) {
         this.device = device;

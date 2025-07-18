@@ -9,10 +9,7 @@ import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
-import org.npt.models.Gateway;
-import org.npt.models.Interface;
-import org.npt.models.SelfDevice;
-import org.npt.models.Target;
+import org.npt.models.*;
 import org.npt.models.ui.DeviceUI;
 import org.npt.models.ui.Frame;
 import org.npt.services.ArpSpoofService;
@@ -62,14 +59,7 @@ public class DeviceUiMapperService {
         this.hardRefreshAction = hardRefreshAction;
         this.actualHeight = actualHeight;
         this.actualWidth = actualWidth;
-        selfDevice = new DeviceUI(dataService.getSelfDevice());
-        initMenu(selfDevice);
-        dataService.getDevices().forEach(device -> {
-            final DeviceUI deviceUI = new DeviceUI(device);
-            if (!(deviceUI.getDevice() instanceof Interface))
-                initMenu(deviceUI);
-            devices.add(deviceUI);
-        });
+        selfDevice = initUIDevices(dataService.getSelfDevice());
     }
 
     public <T> List<DeviceUI> findAll(Class<T> clazz) {
@@ -81,10 +71,16 @@ public class DeviceUiMapperService {
 
     public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) throws InvalidInputException {
         final Target target = dataService.createTarget(deviceName, deviceInterface, ipAddress);
-        final DeviceUI deviceUI = new DeviceUI(target);
-        initMenu(deviceUI);
-        devices.add(deviceUI);
-        refreshAction.run();
+        final DeviceUI targetUI = createDeviceUI(target);
+        for (final DeviceUI interfaceUI : selfDevice.getChildren()) {
+            if (interfaceUI.getDevice().getDeviceName().equals(deviceInterface)) {
+                final DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
+                gatewayUI.getChildren().add(targetUI);
+                refreshAction.run();
+                return;
+            }
+        }
+
     }
 
     @SneakyThrows
@@ -94,17 +90,38 @@ public class DeviceUiMapperService {
         dataService.clear();
         arpSpoofService.clear();
         dataService.run();
-        selfDevice = new DeviceUI(dataService.getSelfDevice());
-        initMenu(selfDevice);
-        dataService.getDevices().forEach(device -> {
-            final DeviceUI deviceUI = new DeviceUI(device);
-            initMenu(deviceUI);
-            devices.add(deviceUI);
-        });
+        selfDevice = initUIDevices(dataService.getSelfDevice());
         hardRefreshAction.run();
     }
 
     // Privates functions
+
+    private DeviceUI initUIDevices(SelfDevice selfDevice) {
+        final DeviceUI selfDeviceUI = createDeviceUI(selfDevice);
+        for (final Interface interfaceData : selfDevice.getAnInterfaces()) {
+            final DeviceUI interfaceUI = createDeviceUI(interfaceData);
+            selfDeviceUI.getChildren().add(interfaceUI);
+            if (interfaceData.getGatewayOptional().isPresent()) {
+                final Gateway gateway = interfaceData.getGatewayOptional().get();
+                final DeviceUI gatewayUI = createDeviceUI(gateway);
+                interfaceUI.getChildren().add(gatewayUI);
+                final List<Target> targets = gateway.getDevices();
+                for (Target target : targets) {
+                    final DeviceUI targetUI = createDeviceUI(target);
+                    gatewayUI.getChildren().add(targetUI);
+                }
+            }
+        }
+        return selfDeviceUI;
+    }
+
+    private DeviceUI createDeviceUI(Device device) {
+        final DeviceUI deviceUI = new DeviceUI(device);
+        if (!(device instanceof Interface))
+            initMenu(deviceUI);
+        this.devices.add(deviceUI);
+        return deviceUI;
+    }
 
     private void initMenu(DeviceUI deviceUI) {
         ContextMenu contextMenu = deviceUI.getContextMenu();

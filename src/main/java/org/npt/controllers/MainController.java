@@ -114,7 +114,7 @@ public class MainController extends DataInjector {
     }
 
     private void calculateInterfaceAndGatewayPosition() {
-        final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
+        final List<DeviceUI> interfaces = deviceUiMapperService.getSelfDevice().getChildren();
         final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
         if (interfaces.isEmpty()) return;
         final double centerX = deviceUiMapperService.getSelfDevice().getX();
@@ -124,23 +124,16 @@ public class MainController extends DataInjector {
             final double angle = i * angleStep;
             final double x = centerX + baseRadius * Math.cos(angle);
             final double y = centerY + baseRadius * Math.sin(angle);
-            final Interface interfaceDevice = (Interface) interfaces.get(i).getDevice();
-            if (interfaceDevice.getGatewayOptional().isPresent()) {
-                final Gateway gatewayDataOptional = interfaceDevice.getGatewayOptional().get();
-                final Optional<DeviceUI> gatewayUI = deviceUiMapperService
-                        .getDevices()
-                        .stream()
-                        .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOptional))
-                        .findFirst();
-                gatewayUI.ifPresent(gw -> {
-                    final double routerX = centerX + baseRadius * 2 * Math.cos(angle);
-                    final double routerY = centerY + baseRadius * 2 * Math.sin(angle);
-                    gw.setX(routerX);
-                    gw.setY(routerY);
-                });
+            final DeviceUI interfaceUI = interfaces.get(i);
+            interfaceUI.setX(x);
+            interfaceUI.setY(y);
+            if (!interfaceUI.getChildren().isEmpty()) {
+                final DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
+                final double routerX = centerX + baseRadius * 2 * Math.cos(angle);
+                final double routerY = centerY + baseRadius * 2 * Math.sin(angle);
+                gatewayUI.setX(routerX);
+                gatewayUI.setY(routerY);
             }
-            interfaces.get(i).setX(x);
-            interfaces.get(i).setY(y);
         }
     }
 
@@ -262,21 +255,14 @@ public class MainController extends DataInjector {
         draw(gc, selfDevice, imageSize, SelfDevice.class);
         final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
         final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
-        for (DeviceUI interfaceUI : interfaces) {
+        for (final DeviceUI interfaceUI : interfaces) {
             draw(gc, interfaceUI, imageSize, Interface.class);
             drawConnection(gc, interfaceUI, selfDevice);
-            final Interface interfaceData = (Interface) interfaceUI.getDevice();
-            final Optional<Gateway> gatewayDataOpt = interfaceData.getGatewayOptional();
-            if (gatewayDataOpt.isEmpty()) continue;
-            final DeviceUI gatewayUI = deviceUiMapperService.getDevices().stream()
-                    .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOpt.get()))
-                    .findFirst().get();
+            if (interfaceUI.getChildren().isEmpty()) continue;
+            final DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
             draw(gc, gatewayUI, imageSize, Gateway.class);
             drawConnection(gc, gatewayUI, interfaceUI);
-            final List<DeviceUI> gwTargets = targets.stream()
-                    .filter(deviceUi -> gatewayDataOpt.get().getDevices().contains((Target) deviceUi.getDevice()))
-                    .toList();
-            for (final DeviceUI target : gwTargets) {
+            for (final DeviceUI target : gatewayUI.getChildren()) {
                 draw(gc, target, imageSize, Target.class);
                 drawConnection(gc, gatewayUI, target);
             }
