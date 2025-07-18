@@ -1,10 +1,12 @@
 package org.npt.models;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 public class Gateway extends Device {
 
     @Getter

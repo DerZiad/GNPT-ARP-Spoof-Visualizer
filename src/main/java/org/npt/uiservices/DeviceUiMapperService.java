@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
+import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
 import org.npt.models.*;
@@ -19,6 +20,7 @@ import org.npt.services.GraphicalNetworkTracerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Queue;
 import java.util.stream.Collectors;
 
 public class DeviceUiMapperService {
@@ -59,7 +61,7 @@ public class DeviceUiMapperService {
         this.hardRefreshAction = hardRefreshAction;
         this.actualHeight = actualHeight;
         this.actualWidth = actualWidth;
-        selfDevice = initUIDevices(dataService.getSelfDevice());
+        selfDevice = initSelfDevice(dataService.getSelfDevice());
     }
 
     public <T> List<DeviceUI> findAll(Class<T> clazz) {
@@ -80,7 +82,70 @@ public class DeviceUiMapperService {
                 return;
             }
         }
+    }
 
+    public void rescan() {
+        try {
+            final Queue<ChangeAfterRescan> commits = dataService.rescan();
+            while (!commits.isEmpty()) {
+                final ChangeAfterRescan change = commits.poll();
+                switch (change.operation()){
+                    case ADD -> {
+                        final Device device = change.device();
+                        if(device instanceof Interface interfaceData) {
+                            final DeviceUI deviceUI = initInterface(interfaceData);
+                            selfDevice.getChildren().add(deviceUI);
+                        }else if(device instanceof Gateway gateway){
+                            final Interface parent = (Interface) change.parent();
+                            final DeviceUI parentUI = selfDevice.getChildren()
+                                    .stream()
+                                    .filter(ui -> ui.getDevice().equals(parent))
+                                    .findFirst()
+                                    .orElseThrow(() -> new DrawNetworkException("Parent interface not found"));
+                            final DeviceUI deviceUI = initGateway(gateway);
+                            parentUI.getChildren().add(deviceUI);
+                        } else if(device instanceof Target target){
+                            final Gateway parent = (Gateway) change.parent();
+                            final DeviceUI targetUI = createDeviceUI(target);
+                            final DeviceUI gatewayUI = selfDevice.getChildren()
+                                    .stream()
+                                    .flatMap(ui -> ui.getChildren().stream())
+                                    .filter(ui -> ui.getDevice().equals(parent))
+                                    .findFirst()
+                                    .orElseThrow(() -> new DrawNetworkException("Parent gateway not found"));
+                            gatewayUI.getChildren().add(targetUI);
+                        }
+                    }
+                    case REMOVE -> {
+                        final Device device = change.device();
+                        if(device instanceof Interface interfaceData) {
+                            final DeviceUI deviceUI = initInterface(interfaceData);
+                            selfDevice.getChildren().add(deviceUI);
+                        }else if(device instanceof Gateway gateway){
+                            final Interface parent = (Interface) change.parent();
+                            final DeviceUI parentUI = selfDevice.getChildren()
+                                    .stream()
+                                    .filter(ui -> ui.getDevice().equals(parent))
+                                    .findFirst()
+                                    .orElseThrow(() -> new DrawNetworkException("Parent interface not found"));
+                            final DeviceUI deviceUI = initGateway(gateway);
+                            parentUI.getChildren().add(deviceUI);
+                        }
+                    }
+                }
+                if (change.operation().equals(ChangeAfterRescan.Operation.ADD)) {
+                    final Device device = change.device();
+                    final DeviceUI deviceUI = createDeviceUI(device);
+                    if (device instanceof Interface) {
+
+                    } else if
+                } else if (change.getType() == ChangeAfterRescan.Type.REMOVE) {
+                    devices.removeIf(ui -> ui.getDevice().equals(change.device()));
+                }
+            }
+        } catch (DrawNetworkException e) {
+
+        }
     }
 
     @SneakyThrows
@@ -90,29 +155,38 @@ public class DeviceUiMapperService {
         dataService.clear();
         arpSpoofService.clear();
         dataService.run();
-        selfDevice = initUIDevices(dataService.getSelfDevice());
+        selfDevice = initSelfDevice(dataService.getSelfDevice());
         hardRefreshAction.run();
     }
 
     // Privates functions
 
-    private DeviceUI initUIDevices(SelfDevice selfDevice) {
+    private DeviceUI initSelfDevice(SelfDevice selfDevice) {
         final DeviceUI selfDeviceUI = createDeviceUI(selfDevice);
         for (final Interface interfaceData : selfDevice.getAnInterfaces()) {
-            final DeviceUI interfaceUI = createDeviceUI(interfaceData);
+            final DeviceUI interfaceUI = initInterface(interfaceData);
             selfDeviceUI.getChildren().add(interfaceUI);
-            if (interfaceData.getGatewayOptional().isPresent()) {
-                final Gateway gateway = interfaceData.getGatewayOptional().get();
-                final DeviceUI gatewayUI = createDeviceUI(gateway);
-                interfaceUI.getChildren().add(gatewayUI);
-                final List<Target> targets = gateway.getDevices();
-                for (Target target : targets) {
-                    final DeviceUI targetUI = createDeviceUI(target);
-                    gatewayUI.getChildren().add(targetUI);
-                }
-            }
         }
         return selfDeviceUI;
+    }
+
+    private DeviceUI initInterface(Interface interfaceData) {
+        final DeviceUI interfaceUI = createDeviceUI(interfaceData);
+        if (interfaceData.getGatewayOptional().isPresent()) {
+            final Gateway gateway = interfaceData.getGatewayOptional().get();
+            final DeviceUI gatewayUI = initGateway(gateway);
+            interfaceUI.getChildren().add(gatewayUI);
+        }
+        return interfaceUI;
+    }
+
+    private DeviceUI initGateway(Gateway gateway) {
+        final DeviceUI gatewayUI = createDeviceUI(gateway);
+        for (final Target target : gateway.getDevices()) {
+            final DeviceUI targetUI = createDeviceUI(target);
+            gatewayUI.getChildren().add(targetUI);
+        }
+        return gatewayUI;
     }
 
     private DeviceUI createDeviceUI(Device device) {

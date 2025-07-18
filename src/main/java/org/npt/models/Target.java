@@ -1,8 +1,10 @@
 package org.npt.models;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
+@EqualsAndHashCode(callSuper = true)
 public class Target extends Device {
 
     @Getter

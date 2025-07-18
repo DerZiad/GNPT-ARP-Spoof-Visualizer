@@ -4,7 +4,6 @@ import kotlin.Pair;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
@@ -21,87 +20,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-final class NetworkScanner {
-
-    private static final int IPV4_LENGTH = 4;
-    private final Interface networkInterface;
-
-    public NetworkScanner(Interface networkInterface) {
-        this.networkInterface = networkInterface;
-    }
-
-    @SneakyThrows
-    public Map<String, String> scan() {
-        final String cidr = buildCidr(networkInterface.getIp(), networkInterface.getNetmask());
-        final ProcessBuilder builder = new ProcessBuilder("nmap", "-sn", cidr);
-        builder.redirectErrorStream(true);
-
-        final Process process = builder.start();
-        final Map<String, String> devices = new LinkedHashMap<>();
-
-        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            String hostname;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("Nmap scan report for ")) {
-                    String remainder = line.substring("Nmap scan report for ".length()).trim();
-                    if (remainder.contains(" (") && remainder.endsWith(")")) {
-                        int openParen = remainder.lastIndexOf(" (");
-                        hostname = remainder.substring(0, openParen).trim();
-                        String ip = remainder.substring(openParen + 2, remainder.length() - 1).trim();
-                        if (!ip.equals(networkInterface.getIp())) {
-                            devices.put(hostname, ip);
-                        }
-                    } else {
-                        hostname = remainder;
-                        if (!hostname.equals(networkInterface.getIp())) {
-                            devices.put(hostname, hostname);
-                        }
-                    }
-                }
-            }
-        }
-
-        process.waitFor();
-        return devices;
-    }
-
-    private String buildCidr(final String ip, final String netmask) throws IOException {
-        final InetAddress ipAddr = InetAddress.getByName(ip);
-        final InetAddress maskAddr = InetAddress.getByName(netmask);
-        final String network = calculateNetworkAddress(ipAddr, maskAddr);
-        final int prefix = netmaskToPrefix(maskAddr);
-        return network + "/" + prefix;
-    }
-
-    private String calculateNetworkAddress(final InetAddress ipAddr, final InetAddress maskAddr) {
-        final byte[] ipBytes = ipAddr.getAddress();
-        final byte[] maskBytes = maskAddr.getAddress();
-        final byte[] networkBytes = new byte[IPV4_LENGTH];
-
-        for (int i = 0; i < IPV4_LENGTH; i++) {
-            networkBytes[i] = (byte) (ipBytes[i] & maskBytes[i]);
-        }
-
-        try {
-            return InetAddress.getByAddress(networkBytes).getHostAddress();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to calculate network address", e);
-        }
-    }
-
-    private int netmaskToPrefix(final InetAddress maskAddr) {
-        final byte[] bytes = maskAddr.getAddress();
-        int count = 0;
-        for (byte b : bytes) {
-            count += Integer.bitCount(b & 0xFF);
-        }
-        return count;
-    }
-}
-
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class DefaultDataService implements DataService {
+public final class DefaultDataService implements DataService {
 
     @Getter
     private final List<Device> devices = new ArrayList<>();
@@ -161,16 +81,11 @@ public class DefaultDataService implements DataService {
                 .filter(tClass::isInstance)
                 .map(tClass::cast)
                 .collect(Collectors.toMap(
-                        i -> index.getAndIncrement(),
+                        ignored -> index.getAndIncrement(),
                         i -> i,
-                        (a, b) -> b,
+                        (ignored, b) -> b,
                         HashMap::new
                 ));
-    }
-
-    @Override
-    public void clear() {
-        devices.clear();
     }
 
     @Override
@@ -194,6 +109,68 @@ public class DefaultDataService implements DataService {
                 .stream()
                 .filter(gateway -> gateway.getDevices().contains(target))
                 .findFirst();
+    }
+
+    @Override
+    public Queue<ChangeAfterRescan> rescan() throws DrawNetworkException {
+        final Queue<ChangeAfterRescan> changesAfterRescan = new LinkedList<>();
+        final List<Interface> newScan;
+        try {
+            newScan = scanNetwork();
+        } catch (SocketException e) {
+            throw new DrawNetworkException("Failed to initialize network interfaces: unable to retrieve local network data.");
+        }
+
+        // Drop removed interfaces and their associated devices
+        selfDevice.getAnInterfaces()
+                .stream()
+                .filter(anInterface -> newScan.stream().noneMatch(newInterface -> newInterface.getDeviceName().equals(anInterface.getDeviceName())))
+                .map(anInterface -> new ChangeAfterRescan(Interface.class, ChangeAfterRescan.Operation.REMOVE, anInterface))
+                .forEach(changesAfterRescan::add);
+        // Interfaces that must be added
+        newScan.stream()
+                .filter(anInterface -> selfDevice.getAnInterfaces().stream().noneMatch(existingInterface -> existingInterface.getDeviceName().equals(anInterface.getDeviceName())))
+                .map(anInterface -> new ChangeAfterRescan(Interface.class, ChangeAfterRescan.Operation.ADD, anInterface))
+                .forEach(changesAfterRescan::add);
+        // Process existing interfaces to check for changes
+        final List<Interface> existingInterfacesThatShouldNotBeRemoved = selfDevice.getAnInterfaces()
+                .stream()
+                .filter(anInterface -> newScan.stream().anyMatch(newInterface -> newInterface.getDeviceName().equals(anInterface.getDeviceName())))
+                .toList();
+        for (final Interface existInterface : existingInterfacesThatShouldNotBeRemoved) {
+            final Interface newInterfaceData = newScan.stream()
+                    .filter(newInterface -> newInterface.getDeviceName().equals(existInterface.getDeviceName()))
+                    .findFirst()
+                    .get();
+            existInterface.setIp(newInterfaceData.getIp());
+            // Gateway changes
+            final Optional<Gateway> oldGatewayOpt = existInterface.getGatewayOptional();
+            final Optional<Gateway> newGatewayOpt = newInterfaceData.getGatewayOptional();
+            if (newGatewayOpt.isEmpty() && oldGatewayOpt.isPresent()) {
+                changesAfterRescan.add(new ChangeAfterRescan(ChangeAfterRescan.Operation.REMOVE, oldGatewayOpt.get(), existInterface));
+            } else if (newGatewayOpt.isPresent() && oldGatewayOpt.isEmpty()) {
+                changesAfterRescan.add(new ChangeAfterRescan(ChangeAfterRescan.Operation.ADD, newInterfaceData.getGatewayOptional().get(), existInterface));
+            } else if (newGatewayOpt.isPresent() && oldGatewayOpt.isPresent()) {
+                // Gateway exists in both old and new data
+                final Gateway oldGateway = oldGatewayOpt.get();
+                final Gateway newGateway = newInterfaceData.getGatewayOptional().get();
+                oldGateway.setIp(newGateway.getIp());
+
+                // Targets changes
+                final List<Target> oldTargets = oldGateway.getDevices();
+                final List<Target> newTargets = newGateway.getDevices();
+                // Add new targets
+                newTargets.stream()
+                        .filter(newTarget -> oldTargets.stream().noneMatch(oldTarget -> oldTarget.getIp().equals(newTarget.getIp())))
+                        .forEach(newTarget -> changesAfterRescan.add(new ChangeAfterRescan(ChangeAfterRescan.Operation.ADD, newTarget, oldGateway)));
+            }
+        }
+        return changesAfterRescan;
+    }
+
+    @Override
+    public void clear() {
+        devices.clear();
     }
 
     public static DataService getInstance() {
@@ -264,36 +241,43 @@ public class DefaultDataService implements DataService {
         }
     }
 
+    // Network scanning methods
     private List<Interface> scanNetwork() throws SocketException {
         final List<Interface> interfacesObj = new ArrayList<>();
         final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 
         while (interfaces.hasMoreElements()) {
             final NetworkInterface ni = interfaces.nextElement();
-            final String interfaceName = ni.getDisplayName();
-            final Optional<Pair<String, String>> ipAddressOptional = findFirstIPv4(ni.getInetAddresses());
-            ipAddressOptional.ifPresent(ip -> {
-                final String ipString = ip.getFirst();
-                final String netmaskString = ip.getSecond();
-                final Optional<Gateway> gwOpt = discoverGatewayForInterface(interfaceName);
-                final Interface interfaceObj = new Interface(interfaceName, ipString, netmaskString, gwOpt);
-                if (gwOpt.isPresent()) {
-                    final NetworkScanner networkScanner = new NetworkScanner(interfaceObj);
-                    final Map<String, String> foundIps = networkScanner.scan();
-                    final Gateway gw = gwOpt.get();
-                    for (final String hostname : foundIps.keySet()) {
-                        final String foundIp = foundIps.get(hostname);
-                        if (!gw.getIp().equals(foundIp)) {
-                            final Target target = new Target(hostname, foundIp);
-                            gw.getDevices().add(target);
-                        }
-                    }
-                }
-                interfacesObj.add(new Interface(interfaceName, ipString, netmaskString, gwOpt));
-            });
+            final Optional<Interface> interfaceObjOptional = initInterface(ni);
+            interfaceObjOptional.ifPresent(interfacesObj::add);
         }
 
         return interfacesObj;
+    }
+
+    private Optional<Interface> initInterface(final NetworkInterface ni) {
+        final String interfaceName = ni.getDisplayName();
+        final Optional<Pair<String, String>> ipAddressOptional = findFirstIPv4(ni.getInetAddresses());
+        Interface[] interfaceObj = new Interface[]{null};
+        ipAddressOptional.ifPresent(ip -> {
+            final String ipString = ip.getFirst();
+            final String netmaskString = ip.getSecond();
+            final Optional<Gateway> gwOpt = discoverGatewayForInterface(interfaceName);
+            interfaceObj[0] = new Interface(interfaceName, ipString, netmaskString, gwOpt);
+            if (gwOpt.isPresent()) {
+                final NetworkScanner networkScanner = new NetworkScanner(interfaceObj[0]);
+                final Map<String, String> foundIps = networkScanner.scan();
+                final Gateway gw = gwOpt.get();
+                for (final String hostname : foundIps.keySet()) {
+                    final String foundIp = foundIps.get(hostname);
+                    if (!gw.getIp().equals(foundIp)) {
+                        final Target target = new Target(hostname, foundIp);
+                        gw.getDevices().add(target);
+                    }
+                }
+            }
+        });
+        return Optional.ofNullable(interfaceObj[0]);
     }
 
     private Optional<Gateway> discoverGatewayForInterface(String interfaceName) {

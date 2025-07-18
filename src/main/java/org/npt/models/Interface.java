@@ -1,19 +1,26 @@
 package org.npt.models;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Optional;
 
+@EqualsAndHashCode(callSuper = true)
 public class Interface extends Device {
 
     @Getter
-    private final String ip;
+    @Setter
+    private String ip;
 
     @Getter
-    private final Optional<Gateway> gatewayOptional;
+    @Setter
+    private Optional<Gateway> gatewayOptional;
 
     @Getter
-    private final String netmask;
+    @Setter
+    private String netmask;
 
     public Interface(final String networkInterface, final String ip, final String netmask, final Optional<Gateway> gatewayOptional) {
         super(networkInterface);

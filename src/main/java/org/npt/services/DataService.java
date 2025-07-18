@@ -3,14 +3,13 @@ package org.npt.services;
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
-import org.npt.models.Device;
-import org.npt.models.Gateway;
-import org.npt.models.SelfDevice;
-import org.npt.models.Target;
+import org.npt.models.*;
 
+import java.net.SocketException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Queue;
 
 /**
  * Defines operations for managing network devices and interactions within a network environment.
@@ -108,4 +107,11 @@ public interface DataService {
      * @return an {@link Optional} containing the gateway if found, otherwise empty
      */
     Optional<Gateway> findGatewayByTarget(final Target target);
+
+    /**
+     * Rescans the network to update device states and configurations.
+     * @return a {@link Queue} of {@link ChangeAfterRescan} representing changes detected after the rescan
+     * @throws DrawNetworkException if the rescan fails due to a network error
+     */
+    Queue<ChangeAfterRescan> rescan() throws DrawNetworkException;
 }

@@ -2,6 +2,8 @@ package org.npt.controllers;
 
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -86,7 +88,7 @@ public class MainController extends DataInjector {
             drawNetwork(canvas);
         });
 
-        addTargetMenu.setOnAction(e -> {
+        addTargetMenu.setOnAction(ignored1 -> {
             final FrameService frameService = FrameService.getInstance();
             final Frame targetFrame = Frame.createAddTargetFrame();
             targetFrame.setArgs(new Object[]{deviceUiMapperService});
@@ -99,11 +101,24 @@ public class MainController extends DataInjector {
             @Override
             public void handle(long now) {
                 long elapsed = System.currentTimeMillis() - radarStartTime;
-                radarRadius = (elapsed % RADAR_PERIOD_MS) / (double) RADAR_PERIOD_MS;
+                radarRadius = (elapsed % RADAR_PERIOD_MS) / RADAR_PERIOD_MS;
                 drawNetwork(canvas);
             }
         };
         radarTimer.start();
+
+        final long[] lastScanTime = {System.currentTimeMillis()};
+        AnimationTimer nmapScanTimer = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastScanTime[0] >= 5000) {
+                    startNmapAutomaticScanning();
+                    lastScanTime[0] = currentTime;
+                }
+            }
+        };
+        nmapScanTimer.start();
     }
 
     private void updateImageSize() {
@@ -114,6 +129,20 @@ public class MainController extends DataInjector {
         calculateInterfaceAndGatewayPosition();
         calculateRootDevicePosition();
         drawNetwork(canvas);
+    }
+
+    private void startNmapAutomaticScanning() {
+        Task<Void> backgroundTask = new Task<>() {
+
+            @Override
+            protected Void call() throws Exception {
+                Platform.runLater(() -> {
+                    System.out.println("Starting Nmap automatic scanning...");
+                });
+                return null;
+            }
+        };
+        new Thread(backgroundTask).start();
     }
 
     private void calculateInterfaceAndGatewayPosition() {
@@ -144,11 +173,11 @@ public class MainController extends DataInjector {
         final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         selfDevice.setX(canvas.getWidth() / 2);
         selfDevice.setY(canvas.getHeight() / 2);
-        canvas.widthProperty().addListener((obs, oldVal, newVal) -> {
+        canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             selfDevice.setX(canvas.getWidth() / 2);
             drawNetwork(canvas);
         });
-        canvas.heightProperty().addListener((obs, oldVal, newVal) -> {
+        canvas.heightProperty().addListener((ignored1, ignored2, newVal) -> {
             selfDevice.setY(newVal.doubleValue() / 2);
             drawNetwork(canvas);
         });
