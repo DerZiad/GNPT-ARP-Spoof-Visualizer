@@ -281,16 +281,9 @@ public class MainController extends DataInjector {
         gc.fillRect(mapX, mapY, mapSize, mapSize);
         gc.setStroke(Color.GRAY);
         gc.strokeRect(mapX, mapY, mapSize, mapSize);
-        gc.setStroke(Color.rgb(200, 200, 200, 0.7));
-        gc.setLineWidth(1);
-        int gridCount = 5;
-        double gridStep = mapSize / gridCount;
-        for (int i = 1; i < gridCount; i++) {
-            double gx = mapX + i * gridStep;
-            double gy = mapY + i * gridStep;
-            gc.strokeLine(gx, mapY, gx, mapY + mapSize);
-            gc.strokeLine(mapX, gy, mapX + mapSize, gy);
-        }
+
+        drawGrid(gc, mapX, mapY, mapSize, mapSize, 0.1);
+
         double radarCenterX = mapX + mapSize / 2;
         double radarCenterY = mapY + mapSize / 2;
         double maxRadarRadius = mapSize / 2;
@@ -440,13 +433,17 @@ public class MainController extends DataInjector {
     }
 
     private void drawGrid(GraphicsContext gc) {
-        for (double percentage = 0.1; percentage <= 1.0; percentage += 0.1) {
-            double x = canvas.getWidth() * percentage;
-            double y = canvas.getHeight() * percentage;
-            gc.setStroke(Color.LIGHTGRAY);
-            gc.setLineWidth(1);
-            gc.strokeLine(x, 0, x, canvas.getHeight());
-            gc.strokeLine(0, y, canvas.getWidth(), y);
+        drawGrid(gc, 0, 0, canvas.getWidth(), canvas.getHeight(), 0.1);
+    }
+
+    private void drawGrid(GraphicsContext gc, double x0, double y0, double width, double height, double stepFraction) {
+        gc.setStroke(Color.LIGHTGRAY);
+        gc.setLineWidth(1);
+        for (double percentage = stepFraction; percentage <= 1.0; percentage += stepFraction) {
+            double x = x0 + width * percentage;
+            double y = y0 + height * percentage;
+            gc.strokeLine(x, y0, x, y0 + height);
+            gc.strokeLine(x0, y, x0 + width, y);
         }
     }
 
