@@ -11,7 +11,6 @@ import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -40,14 +39,11 @@ public class MainController extends DataInjector {
     private final long radarStartTime = System.currentTimeMillis();
     private double radarRadius = 0;
     private static final double RADAR_PERIOD_MS = 4000;
-    private static final double MIN_DISTANCE_BETWEEN_DEVICES = 70;
     private static final double TEXT_LINE_HEIGHT = 18;
     private static final double TEXT_OFFSET_Y = 10;
     private static final double LABEL_WIDTH = 100;
-    private double imageSize; // Global image size variable
+    private double imageSize;
 
-    @FXML
-    public VBox vboxPane;
     @FXML
     public Canvas canvas;
     @FXML
@@ -176,7 +172,6 @@ public class MainController extends DataInjector {
 
     private void setupMouseEvents() {
         EventHandler<MouseEvent> onMousePressed = event -> {
-            // Use global imageSize
             BiPredicate<DeviceUI, MouseEvent> isInsideImage = (device, evt) -> {
                 double x = evt.getX(), y = evt.getY();
                 double left = device.getX() - imageSize / 2;
@@ -222,7 +217,6 @@ public class MainController extends DataInjector {
             final double newY = event.getY() - dragOffsetY;
             if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
             final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-            // Use dynamic border radius for minimum distance
             double borderRadius = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
             boolean tooClose = deviceUiMapperService.getDevices().stream()
                     .filter(other -> other != movingDevice)
@@ -259,7 +253,6 @@ public class MainController extends DataInjector {
         drawGrid(gc);
         gc.setStroke(Color.BLACK);
         gc.setLineWidth(3);
-        // Use global imageSize
         final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         draw(gc, selfDevice, imageSize, SelfDevice.class);
         final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
@@ -351,7 +344,6 @@ public class MainController extends DataInjector {
                 gc.fillOval(tx - 5, ty - 5, 10, 10);
             }
         }
-        // Draw targets not attached to any gateway
         List<DeviceUI> allTargets = deviceUiMapperService.findAll(Target.class);
         for (DeviceUI target : allTargets) {
             boolean drawn = interfaces.stream().anyMatch(interfaceUI ->
@@ -397,7 +389,6 @@ public class MainController extends DataInjector {
     }
 
     private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
-        // Calculate radius based on imageSize
         double r = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
         final double x1 = startLine.getX();
         final double y1 = startLine.getY();
@@ -413,7 +404,6 @@ public class MainController extends DataInjector {
         final double newY1 = y1 + uy * r;
         final double newX2 = x2 - ux * r;
         final double newY2 = y2 - uy * r;
-        // Only draw if endpoints are not overlapping
         if (Math.abs(newX1 - newX2) < 1 && Math.abs(newY1 - newY2) < 1) return;
         gc.setStroke(Color.BLACK);
         gc.strokeLine(newX1, newY1, newX2, newY2);
