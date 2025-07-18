@@ -63,14 +63,14 @@ public class DefaultGraphicalNetworkTracerFactory implements GraphicalNetworkTra
             throw new ShutdownException(String.format(ShutdownException.ERROR_FORMAT, this.getClass().getName(), "Failed to load property File"), ShutdownException.ShutdownExceptionErrorCode.FAILED_TO_LOAD_PROPERTY_FILE);
         }
 
-        Set<String> keys = props.stringPropertyNames();
-        for (String key : keys) {
+        final Set<String> keys = props.stringPropertyNames();
+        for (final String key : keys) {
             if (key.endsWith(".icon")) {
-                String appName = key.substring(0, key.indexOf(".icon"));
-                String iconPath = props.getProperty(key);
-                String ipKey = appName + ".ips";
-                String ipValue = props.getProperty(ipKey, "");
-                List<String> ipList = Arrays.asList(ipValue.split("\\s*,\\s*"));
+                final String appName = key.substring(0, key.indexOf(".icon"));
+                final String iconPath = props.getProperty(key);
+                final String ipKey = appName + ".ips";
+                final String ipValue = props.getProperty(ipKey, "");
+                final List<String> ipList = Arrays.asList(ipValue.split("\\s*,\\s*"));
                 knownHosts.put(appName, new KnownHost(appName, iconPath, ipList));
             }
         }
