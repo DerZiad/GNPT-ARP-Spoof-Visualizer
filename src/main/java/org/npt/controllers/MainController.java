@@ -313,26 +313,18 @@ public class MainController extends DataInjector {
         DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         double selfX = mapX + selfDevice.getX() * scaleX;
         double selfY = mapY + selfDevice.getY() * scaleY;
-        List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
-        List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
+        List<DeviceUI> interfaces = selfDevice.getChildren();
         gc.setStroke(Color.BLACK);
         for (DeviceUI interfaceUI : interfaces) {
             double ix = mapX + interfaceUI.getX() * scaleX;
             double iy = mapY + interfaceUI.getY() * scaleY;
             gc.strokeLine(ix, iy, selfX, selfY);
-            Interface interfaceData = (Interface) interfaceUI.getDevice();
-            Optional<Gateway> gatewayDataOpt = interfaceData.getGatewayOptional();
-            if (gatewayDataOpt.isEmpty()) continue;
-            DeviceUI gatewayUI = deviceUiMapperService.getDevices().stream()
-                    .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOpt.get()))
-                    .findFirst().get();
+            if (interfaceUI.getChildren().isEmpty()) continue;
+            DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
             double gx = mapX + gatewayUI.getX() * scaleX;
             double gy = mapY + gatewayUI.getY() * scaleY;
             gc.strokeLine(gx, gy, ix, iy);
-            List<DeviceUI> gwTargets = targets.stream()
-                    .filter(deviceUi -> gatewayDataOpt.get().getDevices().contains((Target) deviceUi.getDevice()))
-                    .toList();
-            for (DeviceUI target : gwTargets) {
+            for (DeviceUI target : gatewayUI.getChildren()) {
                 double tx = mapX + target.getX() * scaleX;
                 double ty = mapY + target.getY() * scaleY;
                 gc.strokeLine(gx, gy, tx, ty);
@@ -345,32 +337,26 @@ public class MainController extends DataInjector {
             double iy = mapY + interfaceUI.getY() * scaleY;
             gc.setFill(Color.BLUE);
             gc.fillOval(ix - 5, iy - 5, 10, 10);
-            Interface interfaceData = (Interface) interfaceUI.getDevice();
-            Optional<Gateway> gatewayDataOpt = interfaceData.getGatewayOptional();
-            if (gatewayDataOpt.isEmpty()) continue;
-            DeviceUI gatewayUI = deviceUiMapperService.getDevices().stream()
-                    .filter(deviceUi -> deviceUi.getDevice().equals(gatewayDataOpt.get()))
-                    .findFirst().get();
+            if (interfaceUI.getChildren().isEmpty()) continue;
+            DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
             double gx = mapX + gatewayUI.getX() * scaleX;
             double gy = mapY + gatewayUI.getY() * scaleY;
             gc.setFill(Color.ORANGE);
             gc.fillOval(gx - 5, gy - 5, 10, 10);
-            List<DeviceUI> gwTargets = targets.stream()
-                    .filter(deviceUi -> gatewayDataOpt.get().getDevices().contains((Target) deviceUi.getDevice()))
-                    .toList();
-            for (DeviceUI target : gwTargets) {
+            for (DeviceUI target : gatewayUI.getChildren()) {
                 double tx = mapX + target.getX() * scaleX;
                 double ty = mapY + target.getY() * scaleY;
                 gc.setFill(Color.RED);
                 gc.fillOval(tx - 5, ty - 5, 10, 10);
             }
         }
-        for (DeviceUI target : targets) {
-            boolean drawn = interfaces.stream().anyMatch(interfaceUI -> {
-                Interface interfaceData = (Interface) interfaceUI.getDevice();
-                Optional<Gateway> gatewayDataOpt = interfaceData.getGatewayOptional();
-                return gatewayDataOpt.isPresent() && gatewayDataOpt.get().getDevices().contains((Target) target.getDevice());
-            });
+        // Draw targets not attached to any gateway
+        List<DeviceUI> allTargets = deviceUiMapperService.findAll(Target.class);
+        for (DeviceUI target : allTargets) {
+            boolean drawn = interfaces.stream().anyMatch(interfaceUI ->
+                    !interfaceUI.getChildren().isEmpty() &&
+                            interfaceUI.getChildren().getFirst().getChildren().contains(target)
+            );
             if (!drawn) {
                 double tx = mapX + target.getX() * scaleX;
                 double ty = mapY + target.getY() * scaleY;
