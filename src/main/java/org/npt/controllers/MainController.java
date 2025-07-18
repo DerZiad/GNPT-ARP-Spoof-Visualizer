@@ -26,7 +26,6 @@ import org.npt.uiservices.FrameService;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiPredicate;
 
 @Slf4j
@@ -254,7 +253,6 @@ public class MainController extends DataInjector {
         final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
         draw(gc, selfDevice, imageSize, SelfDevice.class);
         final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
-        final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
         for (final DeviceUI interfaceUI : interfaces) {
             draw(gc, interfaceUI, imageSize, Interface.class);
             drawConnection(gc, interfaceUI, selfDevice);
