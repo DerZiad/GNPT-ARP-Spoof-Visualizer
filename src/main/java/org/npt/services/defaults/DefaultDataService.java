@@ -165,14 +165,12 @@ public final class DefaultDataService implements DataService {
             final Interface existingInterface = anInterface.get();
             existingInterface.setIp(ipString);
             if (existingInterface.getGateway() != null) {
-                existingInterface.getGateway().setIp(ipString);
+                existingInterface.getGateway().setIp(gateway.getIp());
             }
             existingInterface.setNetmask(netmaskString);
             return Optional.empty();
         }
         final Interface interfaceObj = new Interface(interfaceName, ipString, netmaskString, gateway);
-        if (gateway == null)
-            return Optional.of(interfaceObj);
         return Optional.of(interfaceObj);
     }
 

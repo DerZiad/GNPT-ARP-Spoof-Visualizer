@@ -94,11 +94,9 @@ public final class NetworkScanner implements Runnable {
         final Map<String, String> foundIps = scan();
         for (final String hostname : foundIps.keySet()) {
             final String foundIp = foundIps.get(hostname);
-            if (!networkInterface.targetAlreadyScanned(foundIp)) {
+            if (!networkInterface.targetAlreadyScanned(foundIp) && !networkInterface.getGateway().getIp().equals(foundIp)) {
                 final Target target = new Target(hostname, foundIp);
-                if (!networkInterface.targetAlreadyScanned(target) && networkInterface.getGateway() != null) {
-                    networkInterface.getGateway().getDevices().add(target);
-                }
+                networkInterface.getGateway().getDevices().add(target);
             }
         }
     }
