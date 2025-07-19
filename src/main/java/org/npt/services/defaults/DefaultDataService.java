@@ -21,7 +21,7 @@ public final class DefaultDataService implements DataService {
     private final HashMap<Interface, Pair<Thread, NetworkScanner>> networkScanners = new HashMap<>();
 
     @Getter
-    private SelfDevice selfDevice;
+    private final SelfDevice selfDevice;
 
     private static volatile DataService instance;
 

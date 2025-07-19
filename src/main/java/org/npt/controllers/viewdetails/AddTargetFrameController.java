@@ -17,28 +17,32 @@ public class AddTargetFrameController extends DataInjector {
     private DeviceUiMapperService deviceUiMapperService;
 
     @FXML
-    private TextField ipTextField;
+    public TextField ipTextField;
     @FXML
-    private TextField deviceNameTextField;
+    public TextField deviceNameTextField;
     @FXML
-    private MenuButton menuButton;
+    public MenuButton menuButton;
 
     @FXML
-    private VBox errorAlertBox;
-    @FXML
-    private Label errorTitle;
-    @FXML
-    private VBox errorMessages;
+    public VBox errorAlertBox;
 
     @FXML
-    private VBox successAlertBox;
-    @FXML
-    private Label successTitle;
-    @FXML
-    private VBox successMessages;
+    public Label errorTitle;
 
     @FXML
-    private Button saveButton;
+    public VBox errorMessages;
+
+    @FXML
+    public VBox successAlertBox;
+
+    @FXML
+    public Label successTitle;
+
+    @FXML
+    public VBox successMessages;
+
+    @FXML
+    public Button saveButton;
 
     @FXML
     public void initialize() {
@@ -51,13 +55,13 @@ public class AddTargetFrameController extends DataInjector {
     @FXML
     private void addTarget() {
         final String ip = ipTextField.getText();
-        final String iface = menuButton.getText();
+        final String anInterface = menuButton.getText();
         final String name = deviceNameTextField.getText();
 
         hideAlerts();
 
         try {
-            deviceUiMapperService.addTarget(ip, iface, name);
+            deviceUiMapperService.addTarget(ip, anInterface, name);
             showSuccess();
             clearInputs();
         } catch (InvalidInputException e) {

@@ -31,15 +31,6 @@ public abstract sealed class Device implements Comparable<Device> permits Target
         return Objects.hash(deviceName, key);
     }
 
-    public Boolean isClose(Device device, double radius) {
-        if (device == null) {
-            return false;
-        }
-        double dx = this.x - device.getX();
-        double dy = this.y - device.getY();
-        return Math.sqrt(dx * dx + dy * dy) <= radius;
-    }
-
     @Override
     public int compareTo(@NotNull Device o) {
         return 0;

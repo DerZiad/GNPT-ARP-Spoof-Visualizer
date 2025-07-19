@@ -43,19 +43,19 @@ public class StatisticsController extends DataInjector {
     private boolean isRunning = true;
 
     @FXML
-    private VBox vboxPane2;
+    public VBox vboxPane2;
 
     @FXML
-    private VBox vboxPane1;
+    public VBox vboxPane1;
 
     @FXML
-    private VBox vboxPane;
+    public VBox vboxPane;
 
     @FXML
-    private Button returnToMainInterface;
+    public Button returnToMainInterface;
 
     @Getter
-    private Target target;
+    public Target target;
 
     @FXML
     public void initialize() {

@@ -4,11 +4,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
+@Setter
+@Getter
 @EqualsAndHashCode(callSuper = true)
 public final class Target extends Device {
 
-    @Getter
-    @Setter
     private String ip;
 
     public Target(String deviceName, String ip) {

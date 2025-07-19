@@ -10,11 +10,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@Setter
+@Getter
 @EqualsAndHashCode(callSuper = true)
 public final class SelfDevice extends Device {
 
-    @Getter
-    @Setter
     private List<Interface> anInterfaces = new CopyOnWriteArrayList<>();
 
     public SelfDevice(String deviceName) {

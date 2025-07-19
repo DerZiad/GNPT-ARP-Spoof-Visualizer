@@ -18,7 +18,6 @@ public final class Gateway extends Device {
 
     public Gateway(String deviceName, String ip) {
         super(deviceName);
-        this.devices = devices;
         this.ip = ip;
     }
 }

@@ -50,6 +50,7 @@ public class DeviceUiMapperService {
         this.refreshAction = refreshAction;
         this.actualHeight = actualHeight;
         this.actualWidth = actualWidth;
+        configureDevices();
     }
 
     public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) throws InvalidInputException {
@@ -64,7 +65,7 @@ public class DeviceUiMapperService {
             final Gateway gateway = anInterface.getGateway();
             if (gateway != null) {
                 initMenu(gateway);
-                gateway.getDevices().forEach(target -> initMenu(target));
+                gateway.getDevices().forEach(this::initMenu);
             }
         }
     }
@@ -111,18 +112,22 @@ public class DeviceUiMapperService {
         return devices;
     }
 
+    public ContextMenu getContextMenu(Device device) {
+        return contextMenus.getOrDefault(device.getKey(),initMenu(device));
+    }
+
     public SelfDevice getSelfDevice() {
         return dataService.getSelfDevice();
     }
 
     // Privates functions
 
-    private void initMenu(final Device device) {
+    private ContextMenu initMenu(final Device device) {
         final ContextMenu contextMenu = new ContextMenu();
         final List<MenuItem> menuItems = contextMenu.getItems();
         final MenuItem detailsItem = new MenuItem(SHOW_DETAILS_TEXT);
         detailsItem.setOnAction(ignored -> showDetails(device));
-        contextMenu.getItems().add(detailsItem);
+        menuItems.add(detailsItem);
 
         if (device instanceof Target target) {
             final MenuItem removeItem = new MenuItem(REMOVE_DEVICE_TEXT);
@@ -131,25 +136,28 @@ public class DeviceUiMapperService {
                 refreshAction.run();
             });
 
-            final MenuItem startSpoofingMenuItem = new MenuItem(START_SPOOFING_TEXT);
-            startSpoofingMenuItem.setOnAction(ignored -> {
-                try {
-                    spoof(target);
-                    Frame statisticsFrame = Frame.createStatisticsDetails();
-                    statisticsFrame.setArgs(new Object[]{target});
-                    frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
-                    refreshAction.run();
-                } catch (NotFoundException ex) {
-                    ErrorHandler.handle(ex);
-                }
-            });
-            contextMenu.getItems().addAll(startSpoofingMenuItem, removeItem);
+            final MenuItem startSpoofingMenuItem = getTargetMenuItem(target);
+            menuItems.add(startSpoofingMenuItem);
+            menuItems.add(removeItem);
         }
         contextMenus.put(device.getKey(), contextMenu);
+        return contextMenu;
     }
 
-    public ContextMenu getContextMenu(Device device) {
-        return contextMenus.get(device.getKey());
+    private @NotNull MenuItem getTargetMenuItem(Target target) {
+        final MenuItem startSpoofingMenuItem = new MenuItem(START_SPOOFING_TEXT);
+        startSpoofingMenuItem.setOnAction(ignored -> {
+            try {
+                spoof(target);
+                Frame statisticsFrame = Frame.createStatisticsDetails();
+                statisticsFrame.setArgs(new Object[]{target});
+                frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
+                refreshAction.run();
+            } catch (NotFoundException ex) {
+                ErrorHandler.handle(ex);
+            }
+        });
+        return startSpoofingMenuItem;
     }
 
     private void spoof(Target target) throws NotFoundException {
@@ -182,7 +190,7 @@ public class DeviceUiMapperService {
                 final Stage stage = frameService.createNewStage(detailsFrame, false, false);
                 handlePopupClose(stage, detailsFrame);
             }
-            case Interface interfaceObj -> {
+            case Interface ignored -> {
                 // ignored
             }
         }

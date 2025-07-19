@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+@Getter
 public class DefaultArpSpoofService implements ArpSpoofService {
 
     private static final String COMMAND = "sudo arpspoof -i %s -t %s %s";
@@ -27,7 +28,6 @@ public class DefaultArpSpoofService implements ArpSpoofService {
 
     private static ArpSpoofService instance = null;
 
-    @Getter
     private final List<ArpSpoofProcess> arpSpoofProcesses = new ArrayList<>();
 
     private DefaultArpSpoofService() {
