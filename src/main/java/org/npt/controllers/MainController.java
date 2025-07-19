@@ -17,24 +17,27 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.util.Pair;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.npt.models.*;
-import org.npt.models.ui.DeviceUI;
 import org.npt.models.ui.Frame;
 import org.npt.uiservices.DeviceUiMapperService;
 import org.npt.uiservices.FrameService;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 
 @Slf4j
 public class MainController extends DataInjector {
 
     private static DeviceUiMapperService deviceUiMapperService;
     private static final HashMap<Class<? extends Device>, Image> images = new HashMap<>();
-    private DeviceUI draggedDevice = null;
+    private Device draggedDevice = null;
     private double dragOffsetX;
     private double dragOffsetY;
     private boolean draggingRouter = false;
@@ -59,7 +62,7 @@ public class MainController extends DataInjector {
 
     @FXML
     public void initialize() {
-        deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), this::initDevices, canvas.getWidth(), canvas.getHeight());
+        deviceUiMapperService = new DeviceUiMapperService(() -> drawNetwork(canvas), canvas.getWidth(), canvas.getHeight());
         images.put(Target.class, new Image(graphicalNetworkTracerFactory.getResource("images/computer.png")));
         images.put(Gateway.class, new Image(graphicalNetworkTracerFactory.getResource("images/router.png")));
         images.put(SelfDevice.class, new Image(graphicalNetworkTracerFactory.getResource("images/hacker.png")));
@@ -71,20 +74,15 @@ public class MainController extends DataInjector {
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             updateImageSize();
             resizeTargetsPositionAfterChangeEvent();
-            calculateRootDevicePosition();
-            calculateInterfaceAndGatewayPosition();
             drawNetwork(canvas);
         });
         canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
             updateImageSize();
             resizeTargetsPositionAfterChangeEvent();
-            calculateRootDevicePosition();
-            calculateInterfaceAndGatewayPosition();
             drawNetwork(canvas);
         });
         newMenu.setOnAction(ignored -> {
-            deviceUiMapperService.clear();
-            calculateInterfaceAndGatewayPosition();
+            //deviceUiMapperService.rescan();
             drawNetwork(canvas);
         });
 
@@ -96,7 +94,27 @@ public class MainController extends DataInjector {
             stage.setOnCloseRequest(ignored -> frameService.stopStage(targetFrame.getKey()));
         });
         setupMouseEvents();
-        initDevices();
+        runNmapScanAndMapAnimation();
+    }
+
+    private void updateImageSize() {
+        imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.08;
+    }
+
+    private void runNmapScanAndMapAnimation() {
+        final Consumer<Void> rescan = ignored -> {
+            final Task<Void> backgroundTask = new Task<>() {
+
+                @Override
+                protected Void call() throws Exception {
+                    Platform.runLater(() -> {
+                        deviceUiMapperService.rescan();
+                    });
+                    return null;
+                }
+            };
+            new Thread(backgroundTask).start();
+        };
         final AnimationTimer radarTimer = new AnimationTimer() {
             @Override
             public void handle(long now) {
@@ -113,7 +131,7 @@ public class MainController extends DataInjector {
             public void handle(long now) {
                 long currentTime = System.currentTimeMillis();
                 if (currentTime - lastScanTime[0] >= 5000) {
-                    startNmapAutomaticScanning();
+                    rescan.accept(null);
                     lastScanTime[0] = currentTime;
                 }
             }
@@ -121,58 +139,15 @@ public class MainController extends DataInjector {
         nmapScanTimer.start();
     }
 
-    private void updateImageSize() {
-        imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.1;
-    }
-
-    private void initDevices() {
-        calculateInterfaceAndGatewayPosition();
-        calculateRootDevicePosition();
-        drawNetwork(canvas);
-    }
-
-    private void startNmapAutomaticScanning() {
-        Task<Void> backgroundTask = new Task<>() {
-
-            @Override
-            protected Void call() throws Exception {
-                Platform.runLater(() -> {
-                    System.out.println("Starting Nmap automatic scanning...");
-                });
-                return null;
-            }
-        };
-        new Thread(backgroundTask).start();
-    }
-
-    private void calculateInterfaceAndGatewayPosition() {
-        final List<DeviceUI> interfaces = deviceUiMapperService.getSelfDevice().getChildren();
-        final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 3;
-        if (interfaces.isEmpty()) return;
-        final double centerX = deviceUiMapperService.getSelfDevice().getX();
-        final double centerY = deviceUiMapperService.getSelfDevice().getY();
-        final double angleStep = 2 * Math.PI / interfaces.size();
-        for (int i = 0; i < interfaces.size(); i++) {
-            final double angle = i * angleStep;
-            final double x = centerX + baseRadius * Math.cos(angle);
-            final double y = centerY + baseRadius * Math.sin(angle);
-            final DeviceUI interfaceUI = interfaces.get(i);
-            interfaceUI.setX(x);
-            interfaceUI.setY(y);
-            if (!interfaceUI.getChildren().isEmpty()) {
-                final DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
-                final double routerX = centerX + baseRadius * 2 * Math.cos(angle);
-                final double routerY = centerY + baseRadius * 2 * Math.sin(angle);
-                gatewayUI.setX(routerX);
-                gatewayUI.setY(routerY);
-            }
+    private void initPositions() {
+        if (canvas.getHeight() == 0 || canvas.getWidth() == 0)
+            return;
+        final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
+        // Only set position if not already set
+        if (selfDevice.getX() == null || selfDevice.getY() == null) {
+            selfDevice.setX(canvas.getWidth() / 2);
+            selfDevice.setY(canvas.getHeight() / 2);
         }
-    }
-
-    private void calculateRootDevicePosition() {
-        final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-        selfDevice.setX(canvas.getWidth() / 2);
-        selfDevice.setY(canvas.getHeight() / 2);
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             selfDevice.setX(canvas.getWidth() / 2);
             drawNetwork(canvas);
@@ -181,19 +156,61 @@ public class MainController extends DataInjector {
             selfDevice.setY(newVal.doubleValue() / 2);
             drawNetwork(canvas);
         });
+        final BiConsumer<List<? extends Device>, Pair<Double, Double>> drawCircle = (devices, position) -> {
+            final List<? extends Device> toBeUpdated = devices.stream()
+                    .filter(device -> device.getX() == null || device.getY() == null)
+                    .toList();
+            if (toBeUpdated.isEmpty()) return;
+            final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 5.0;
+            final double centerX = position.getKey();
+            final double centerY = position.getValue();
+            final double angleStep = 2 * Math.PI / toBeUpdated.size();
+            for (int i = 0; i < toBeUpdated.size(); i++) {
+                final double angle = i * angleStep;
+                final double x = centerX + baseRadius * Math.cos(angle);
+                final double y = centerY + baseRadius * Math.sin(angle);
+                final Device device = toBeUpdated.get(i);
+                device.setX(x);
+                device.setY(y);
+            }
+        };
+        drawCircle.accept(selfDevice.getAnInterfaces(), new Pair<>(selfDevice.getX(), selfDevice.getY()));
+        selfDevice.getAnInterfaces().stream()
+                .filter(anInterface -> anInterface.getGateway() != null)
+                .forEach(anInterface -> {
+                    drawCircle.accept(Arrays.asList(anInterface.getGateway()), new Pair<>(anInterface.getX(), anInterface.getY()));
+                    drawCircle.accept(anInterface.getGateway().getDevices(), new Pair<>(anInterface.getGateway().getX(), anInterface.getGateway().getY()));
+                });
     }
 
     private void resizeTargetsPositionAfterChangeEvent() {
+        final double prevWidth = deviceUiMapperService.getActualWidth();
+        final double prevHeight = deviceUiMapperService.getActualHeight();
         final double newWidth = canvas.getWidth();
         final double newHeight = canvas.getHeight();
-        if (canvas.getHeight() == 0 || canvas.getWidth() == 0)
+        if (newWidth == 0 || newHeight == 0 || prevWidth == 0 || prevHeight == 0)
             return;
-        final List<DeviceUI> targets = deviceUiMapperService.findAll(Target.class);
-        for (DeviceUI target : targets) {
-            double xPercentage = target.getX() / deviceUiMapperService.getActualWidth();
-            double yPercentage = target.getY() / deviceUiMapperService.getActualHeight();
-            target.setX(xPercentage * newWidth);
-            target.setY(yPercentage * newHeight);
+
+        final Consumer<Device> resizeDevice = (device) -> {
+            // Only resize if position is already set
+            if (device.getX() != null && device.getY() != null) {
+                double xRatio = device.getX() / prevWidth;
+                double yRatio = device.getY() / prevHeight;
+                device.setX(xRatio * newWidth);
+                device.setY(yRatio * newHeight);
+            }
+        };
+
+        resizeDevice.accept(deviceUiMapperService.getSelfDevice());
+        for (final Interface anInterface : deviceUiMapperService.getSelfDevice().getAnInterfaces()) {
+            resizeDevice.accept(anInterface);
+            final Gateway gateway = anInterface.getGateway();
+            if (gateway != null) {
+                resizeDevice.accept(gateway);
+                for (Target target : gateway.getDevices()) {
+                    resizeDevice.accept(target);
+                }
+            }
         }
         deviceUiMapperService.setActualHeight(newHeight);
         deviceUiMapperService.setActualWidth(newWidth);
@@ -201,7 +218,9 @@ public class MainController extends DataInjector {
 
     private void setupMouseEvents() {
         EventHandler<MouseEvent> onMousePressed = event -> {
-            BiPredicate<DeviceUI, MouseEvent> isInsideImage = (device, evt) -> {
+            BiPredicate<Device, MouseEvent> isInsideImage = (device, evt) -> {
+                // Null check for device and its coordinates
+                if (device == null || device.getX() == null || device.getY() == null) return false;
                 double x = evt.getX(), y = evt.getY();
                 double left = device.getX() - imageSize / 2;
                 double right = device.getX() + imageSize / 2;
@@ -210,26 +229,26 @@ public class MainController extends DataInjector {
                 return x >= left && x <= right && y >= top && y <= bottom;
             };
             if (event.getButton() == MouseButton.SECONDARY) {
-                DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+                Device selfDevice = deviceUiMapperService.getSelfDevice();
                 if (isInsideImage.test(selfDevice, event)) {
-                    selfDevice.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                    deviceUiMapperService.getContextMenu(selfDevice).show(canvas, event.getScreenX(), event.getScreenY());
                     return;
                 }
-                for (DeviceUI device : deviceUiMapperService.getDevices()) {
+                for (Device device : deviceUiMapperService.getAllDevices()) {
                     if (isInsideImage.test(device, event)) {
-                        device.getContextMenu().show(canvas, event.getScreenX(), event.getScreenY());
+                        deviceUiMapperService.getContextMenu(selfDevice).show(canvas, event.getScreenX(), event.getScreenY());
                         return;
                     }
                 }
             } else {
-                DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+                Device selfDevice = deviceUiMapperService.getSelfDevice();
                 if (isInsideImage.test(selfDevice, event)) {
                     draggingRouter = true;
                     dragOffsetX = event.getX() - selfDevice.getX();
                     dragOffsetY = event.getY() - selfDevice.getY();
                     return;
                 }
-                for (DeviceUI device : deviceUiMapperService.getDevices()) {
+                for (Device device : deviceUiMapperService.getAllDevices()) {
                     if (isInsideImage.test(device, event)) {
                         draggedDevice = device;
                         dragOffsetX = event.getX() - device.getX();
@@ -240,25 +259,28 @@ public class MainController extends DataInjector {
             }
         };
         EventHandler<MouseEvent> onMouseDragged = event -> {
-            final DeviceUI movingDevice = draggingRouter ? deviceUiMapperService.getSelfDevice() : draggedDevice;
-            if (movingDevice == null) return;
+            final Device movingDevice = draggingRouter ? deviceUiMapperService.getSelfDevice() : draggedDevice;
+            if (movingDevice == null || movingDevice.getX() == null || movingDevice.getY() == null) return;
             final double newX = event.getX() - dragOffsetX;
             final double newY = event.getY() - dragOffsetY;
             if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
-            final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
+            final Device selfDevice = deviceUiMapperService.getSelfDevice();
             double borderRadius = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
-            boolean tooClose = deviceUiMapperService.getDevices().stream()
+            boolean tooClose = deviceUiMapperService.getAllDevices().stream()
                     .filter(other -> other != movingDevice)
+                    .filter(other -> other.getX() != null && other.getY() != null) // Null check for other devices
                     .anyMatch(other -> {
                         double dx = newX - other.getX();
                         double dy = newY - other.getY();
                         return Math.sqrt(dx * dx + dy * dy) < borderRadius * 2;
                     });
             if (!draggingRouter && selfDevice != movingDevice) {
-                double dx = newX - selfDevice.getX();
-                double dy = newY - selfDevice.getY();
-                if (Math.sqrt(dx * dx + dy * dy) < borderRadius) {
-                    tooClose = true;
+                if (selfDevice.getX() != null && selfDevice.getY() != null) { // Null check for selfDevice
+                    double dx = newX - selfDevice.getX();
+                    double dy = newY - selfDevice.getY();
+                    if (Math.sqrt(dx * dx + dy * dy) < borderRadius) {
+                        tooClose = true;
+                    }
                 }
             }
             if (tooClose) return;
@@ -277,30 +299,30 @@ public class MainController extends DataInjector {
     }
 
     public void drawNetwork(final Canvas canvas) {
+        initPositions();
         final GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         drawGrid(gc);
         gc.setStroke(Color.BLACK);
         gc.setLineWidth(3);
-        final DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-        draw(gc, selfDevice, imageSize, SelfDevice.class);
-        final List<DeviceUI> interfaces = deviceUiMapperService.findAll(Interface.class);
-        for (final DeviceUI interfaceUI : interfaces) {
-            draw(gc, interfaceUI, imageSize, Interface.class);
-            drawConnection(gc, interfaceUI, selfDevice);
-            if (interfaceUI.getChildren().isEmpty()) continue;
-            final DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
-            draw(gc, gatewayUI, imageSize, Gateway.class);
-            drawConnection(gc, gatewayUI, interfaceUI);
-            for (final DeviceUI target : gatewayUI.getChildren()) {
-                draw(gc, target, imageSize, Target.class);
-                drawConnection(gc, gatewayUI, target);
+        final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
+        drawComponent(gc, selfDevice, imageSize, SelfDevice.class);
+        for (final Interface anInterface : selfDevice.getAnInterfaces()) {
+            drawComponent(gc, anInterface, imageSize, Interface.class);
+            drawConnection(gc, anInterface, selfDevice);
+            if (anInterface.getGateway() == null) continue;
+            final Gateway gateway = anInterface.getGateway();
+            drawComponent(gc, gateway, imageSize, Gateway.class);
+            drawConnection(gc, gateway, anInterface);
+            for (final Target target : gateway.getDevices()) {
+                drawComponent(gc, target, imageSize, Target.class);
+                drawConnection(gc, gateway, target);
             }
         }
         drawMinimap(gc);
     }
 
-    private void drawMinimap(@NotNull GraphicsContext gc) {
+    private void drawMinimap(final @NotNull GraphicsContext gc) {
         double width = canvas.getWidth();
         double height = canvas.getHeight();
         double mapSize = Math.min(width, height) * 0.25;
@@ -333,52 +355,57 @@ public class MainController extends DataInjector {
         }
         double scaleX = mapSize / width;
         double scaleY = mapSize / height;
-        DeviceUI selfDevice = deviceUiMapperService.getSelfDevice();
-        double selfX = mapX + selfDevice.getX() * scaleX;
-        double selfY = mapY + selfDevice.getY() * scaleY;
-        List<DeviceUI> interfaces = selfDevice.getChildren();
-        gc.setStroke(Color.BLACK);
-        for (DeviceUI interfaceUI : interfaces) {
-            double ix = mapX + interfaceUI.getX() * scaleX;
-            double iy = mapY + interfaceUI.getY() * scaleY;
-            gc.strokeLine(ix, iy, selfX, selfY);
-            if (interfaceUI.getChildren().isEmpty()) continue;
-            DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
-            double gx = mapX + gatewayUI.getX() * scaleX;
-            double gy = mapY + gatewayUI.getY() * scaleY;
-            gc.strokeLine(gx, gy, ix, iy);
-            for (DeviceUI target : gatewayUI.getChildren()) {
-                double tx = mapX + target.getX() * scaleX;
-                double ty = mapY + target.getY() * scaleY;
-                gc.strokeLine(gx, gy, tx, ty);
+        final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
+        // Only draw if initialized
+        if (selfDevice.initialized()) {
+            double selfX = mapX + selfDevice.getX() * scaleX;
+            double selfY = mapY + selfDevice.getY() * scaleY;
+            final List<Interface> interfaces = selfDevice.getAnInterfaces();
+            gc.setStroke(Color.BLACK);
+            for (Interface anInterface : interfaces) {
+                if (!anInterface.initialized()) continue;
+                double ix = mapX + anInterface.getX() * scaleX;
+                double iy = mapY + anInterface.getY() * scaleY;
+                gc.strokeLine(ix, iy, selfX, selfY);
+                if (anInterface.getGateway() == null || !anInterface.getGateway().initialized()) continue;
+                Gateway gateway = anInterface.getGateway();
+                double gx = mapX + gateway.getX() * scaleX;
+                double gy = mapY + gateway.getY() * scaleY;
+                gc.strokeLine(gx, gy, ix, iy);
+                for (Target target : gateway.getDevices()) {
+                    if (!target.initialized()) continue;
+                    double tx = mapX + target.getX() * scaleX;
+                    double ty = mapY + target.getY() * scaleY;
+                    gc.strokeLine(gx, gy, tx, ty);
+                }
+            }
+            gc.setFill(Color.GREEN);
+            gc.fillOval(selfX - 5, selfY - 5, 10, 10);
+            for (Interface interfaceUI : interfaces) {
+                if (!interfaceUI.initialized()) continue;
+                double ix = mapX + interfaceUI.getX() * scaleX;
+                double iy = mapY + interfaceUI.getY() * scaleY;
+                gc.setFill(Color.BLUE);
+                gc.fillOval(ix - 5, iy - 5, 10, 10);
+                if (interfaceUI.getGateway() == null || !interfaceUI.getGateway().initialized()) continue;
+                Gateway gatewayUI = interfaceUI.getGateway();
+                double gx = mapX + gatewayUI.getX() * scaleX;
+                double gy = mapY + gatewayUI.getY() * scaleY;
+                gc.setFill(Color.ORANGE);
+                gc.fillOval(gx - 5, gy - 5, 10, 10);
+                for (Target target : gatewayUI.getDevices()) {
+                    if (!target.initialized()) continue;
+                    double tx = mapX + target.getX() * scaleX;
+                    double ty = mapY + target.getY() * scaleY;
+                    gc.setFill(Color.RED);
+                    gc.fillOval(tx - 5, ty - 5, 10, 10);
+                }
             }
         }
-        gc.setFill(Color.GREEN);
-        gc.fillOval(selfX - 5, selfY - 5, 10, 10);
-        for (DeviceUI interfaceUI : interfaces) {
-            double ix = mapX + interfaceUI.getX() * scaleX;
-            double iy = mapY + interfaceUI.getY() * scaleY;
-            gc.setFill(Color.BLUE);
-            gc.fillOval(ix - 5, iy - 5, 10, 10);
-            if (interfaceUI.getChildren().isEmpty()) continue;
-            DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
-            double gx = mapX + gatewayUI.getX() * scaleX;
-            double gy = mapY + gatewayUI.getY() * scaleY;
-            gc.setFill(Color.ORANGE);
-            gc.fillOval(gx - 5, gy - 5, 10, 10);
-            for (DeviceUI target : gatewayUI.getChildren()) {
-                double tx = mapX + target.getX() * scaleX;
-                double ty = mapY + target.getY() * scaleY;
-                gc.setFill(Color.RED);
-                gc.fillOval(tx - 5, ty - 5, 10, 10);
-            }
-        }
-        List<DeviceUI> allTargets = deviceUiMapperService.findAll(Target.class);
-        for (DeviceUI target : allTargets) {
-            boolean drawn = interfaces.stream().anyMatch(interfaceUI ->
-                    !interfaceUI.getChildren().isEmpty() &&
-                            interfaceUI.getChildren().getFirst().getChildren().contains(target)
-            );
+        List<Target> allTargets = deviceUiMapperService.getDevicesByType(Target.class);
+        for (Target target : allTargets) {
+            if (!target.initialized()) continue;
+            boolean drawn = selfDevice.getAnInterfaces().stream().anyMatch(anInterface -> anInterface.targetAlreadyScanned(target));
             if (!drawn) {
                 double tx = mapX + target.getX() * scaleX;
                 double ty = mapY + target.getY() * scaleY;
@@ -417,7 +444,9 @@ public class MainController extends DataInjector {
         gc.setLineWidth(1);
     }
 
-    private void drawConnection(GraphicsContext gc, DeviceUI startLine, DeviceUI endLine) {
+    private void drawConnection(final GraphicsContext gc, final Device startLine, final Device endLine) {
+        if (!startLine.initialized() || !endLine.initialized())
+            return;
         double r = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
         final double x1 = startLine.getX();
         final double y1 = startLine.getY();
@@ -438,25 +467,34 @@ public class MainController extends DataInjector {
         gc.strokeLine(newX1, newY1, newX2, newY2);
     }
 
-    private <T> void draw(final GraphicsContext gc, final DeviceUI deviceUi, final double imageSize, final Class<T> deviceClass) {
-        final double x = deviceUi.getX() - imageSize / 2;
-        final double y = deviceUi.getY() - imageSize / 2;
+    private <T> void drawComponent(final GraphicsContext gc, final Device device, final double imageSize, final Class<T> deviceClass) {
+        if (!device.initialized())
+            return;
+        final double x = device.getX() - imageSize / 2;
+        final double y = device.getY() - imageSize / 2;
         gc.drawImage(images.get(deviceClass), x, y, imageSize, imageSize);
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
-        final double textX = deviceUi.getX() - LABEL_WIDTH / 2;
+        final double textX = device.getX() - LABEL_WIDTH / 2;
         final double baseY = y + imageSize + TEXT_OFFSET_Y;
         int line = 0;
-        gc.fillText(deviceUi.getDevice().getDeviceName(), textX, baseY + TEXT_LINE_HEIGHT * line++);
-        if (deviceClass.equals(Target.class)) {
-            final Target target = (Target) deviceUi.getDevice();
-            gc.fillText(target.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
-        } else if (deviceClass.equals(Interface.class)) {
-            final Interface intf = (Interface) deviceUi.getDevice();
-            gc.fillText(intf.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
-        } else if (deviceClass.equals(Gateway.class)) {
-            final Gateway gateway = (Gateway) deviceUi.getDevice();
-            gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+        gc.fillText(device.getDeviceName(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+        switch (device) {
+            case Target target -> {
+                gc.fillText(target.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+            }
+
+            case Interface intf -> {
+                gc.fillText(intf.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+            }
+
+            case Gateway gateway -> {
+                gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+            }
+
+            default -> {
+
+            }
         }
     }
 

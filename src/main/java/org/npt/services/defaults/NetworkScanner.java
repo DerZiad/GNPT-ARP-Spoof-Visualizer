@@ -2,6 +2,7 @@ package org.npt.services.defaults;
 
 import lombok.SneakyThrows;
 import org.npt.models.Interface;
+import org.npt.models.Target;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -10,7 +11,7 @@ import java.net.InetAddress;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public final class NetworkScanner {
+public final class NetworkScanner implements Runnable {
 
     private static final int IPV4_LENGTH = 4;
     private final Interface networkInterface;
@@ -22,7 +23,7 @@ public final class NetworkScanner {
     @SneakyThrows
     public Map<String, String> scan() {
         final String cidr = buildCidr(networkInterface.getIp(), networkInterface.getNetmask());
-        final ProcessBuilder builder = new ProcessBuilder("nmap", "-sn", cidr);
+        final ProcessBuilder builder = new ProcessBuilder("nmap", "-sn", "-T5", cidr);
         builder.redirectErrorStream(true);
 
         final Process process = builder.start();
@@ -86,5 +87,19 @@ public final class NetworkScanner {
             count += Integer.bitCount(b & 0xFF);
         }
         return count;
+    }
+
+    @Override
+    public void run() {
+        final Map<String, String> foundIps = scan();
+        for (final String hostname : foundIps.keySet()) {
+            final String foundIp = foundIps.get(hostname);
+            if (!networkInterface.targetAlreadyScanned(foundIp)) {
+                final Target target = new Target(hostname, foundIp);
+                if (!networkInterface.targetAlreadyScanned(target) && networkInterface.getGateway() != null) {
+                    networkInterface.getGateway().getDevices().add(target);
+                }
+            }
+        }
     }
 }

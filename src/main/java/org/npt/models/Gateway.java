@@ -5,19 +5,18 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+@Getter
+@Setter
 @EqualsAndHashCode(callSuper = true)
-public class Gateway extends Device {
+public final class Gateway extends Device {
 
-    @Getter
-    @Setter
     private String ip;
 
-    @Getter
-    @Setter
-    private List<Target> devices;
+    private List<Target> devices = new CopyOnWriteArrayList<>();
 
-    public Gateway(String deviceName, String ip, List<Target> devices) {
+    public Gateway(String deviceName, String ip) {
         super(deviceName);
         this.devices = devices;
         this.ip = ip;

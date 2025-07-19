@@ -6,7 +6,6 @@ import javafx.scene.layout.VBox;
 import org.npt.controllers.DataInjector;
 import org.npt.exception.InvalidInputException;
 import org.npt.models.Interface;
-import org.npt.models.ui.DeviceUI;
 import org.npt.uiservices.DeviceUiMapperService;
 
 import java.util.HashMap;
@@ -103,12 +102,7 @@ public class AddTargetFrameController extends DataInjector {
     }
 
     private void initFormFieldInterfacesComboBox() {
-        final List<Interface> interfaces = deviceUiMapperService.findAll(Interface.class)
-                .stream()
-                .map(DeviceUI::getDevice)
-                .map(Interface.class::cast)
-                .toList();
-
+        final List<Interface> interfaces = deviceUiMapperService.getSelfDevice().getAnInterfaces();
         menuButton.getItems().clear();
         for (Interface interfaceDevice : interfaces) {
             final MenuItem menuItem = new MenuItem(interfaceDevice.getDeviceName());

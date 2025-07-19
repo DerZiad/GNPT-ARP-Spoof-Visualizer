@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @EqualsAndHashCode(callSuper = true)
-public class Target extends Device {
+public final class Target extends Device {
 
     @Getter
     @Setter

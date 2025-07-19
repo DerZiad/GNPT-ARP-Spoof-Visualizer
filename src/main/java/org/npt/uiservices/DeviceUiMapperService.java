@@ -5,22 +5,17 @@ import javafx.scene.control.MenuItem;
 import javafx.stage.Stage;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.SneakyThrows;
 import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.exception.NotFoundException;
 import org.npt.models.*;
-import org.npt.models.ui.DeviceUI;
 import org.npt.models.ui.Frame;
 import org.npt.services.ArpSpoofService;
 import org.npt.services.DataService;
 import org.npt.services.GraphicalNetworkTracerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class DeviceUiMapperService {
@@ -39,14 +34,9 @@ public class DeviceUiMapperService {
 
     private static final String REMOVE_DEVICE_TEXT = "Remove Device";
 
+    private static final HashMap<String, ContextMenu> contextMenus = new HashMap<>();
+
     private final Runnable refreshAction;
-    private final Runnable hardRefreshAction;
-
-    @Getter
-    private DeviceUI selfDevice;
-
-    @Getter
-    private final List<DeviceUI> devices = new ArrayList<>();
 
     @Getter
     @Setter
@@ -56,199 +46,124 @@ public class DeviceUiMapperService {
     @Setter
     private double actualHeight;
 
-    public DeviceUiMapperService(Runnable refreshAction, Runnable hardRefreshAction, double actualWidth, double actualHeight) {
+    public DeviceUiMapperService(Runnable refreshAction, double actualWidth, double actualHeight) {
         this.refreshAction = refreshAction;
-        this.hardRefreshAction = hardRefreshAction;
         this.actualHeight = actualHeight;
         this.actualWidth = actualWidth;
-        selfDevice = initSelfDevice(dataService.getSelfDevice());
-    }
-
-    public <T> List<DeviceUI> findAll(Class<T> clazz) {
-        return devices.stream()
-                .filter(Objects::nonNull)
-                .filter(deviceUi -> clazz.isInstance(deviceUi.getDevice()))
-                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public void addTarget(final String ipAddress, final String deviceInterface, final String deviceName) throws InvalidInputException {
         final Target target = dataService.createTarget(deviceName, deviceInterface, ipAddress);
-        final DeviceUI targetUI = createDeviceUI(target);
-        for (final DeviceUI interfaceUI : selfDevice.getChildren()) {
-            if (interfaceUI.getDevice().getDeviceName().equals(deviceInterface)) {
-                final DeviceUI gatewayUI = interfaceUI.getChildren().getFirst();
-                gatewayUI.getChildren().add(targetUI);
-                refreshAction.run();
-                return;
+        initMenu(target);
+        refreshAction.run();
+    }
+
+    public void configureDevices() {
+        initMenu(dataService.getSelfDevice());
+        for (Interface anInterface : dataService.getSelfDevice().getAnInterfaces()) {
+            final Gateway gateway = anInterface.getGateway();
+            if (gateway != null) {
+                initMenu(gateway);
+                gateway.getDevices().forEach(target -> initMenu(target));
             }
         }
     }
 
-    public void rescan() {
-        try {
-            final Queue<ChangeAfterRescan> commits = dataService.rescan();
-            while (!commits.isEmpty()) {
-                final ChangeAfterRescan change = commits.poll();
-                switch (change.operation()){
-                    case ADD -> {
-                        final Device device = change.device();
-                        if(device instanceof Interface interfaceData) {
-                            final DeviceUI deviceUI = initInterface(interfaceData);
-                            selfDevice.getChildren().add(deviceUI);
-                        }else if(device instanceof Gateway gateway){
-                            final Interface parent = (Interface) change.parent();
-                            final DeviceUI parentUI = selfDevice.getChildren()
-                                    .stream()
-                                    .filter(ui -> ui.getDevice().equals(parent))
-                                    .findFirst()
-                                    .orElseThrow(() -> new DrawNetworkException("Parent interface not found"));
-                            final DeviceUI deviceUI = initGateway(gateway);
-                            parentUI.getChildren().add(deviceUI);
-                        } else if(device instanceof Target target){
-                            final Gateway parent = (Gateway) change.parent();
-                            final DeviceUI targetUI = createDeviceUI(target);
-                            final DeviceUI gatewayUI = selfDevice.getChildren()
-                                    .stream()
-                                    .flatMap(ui -> ui.getChildren().stream())
-                                    .filter(ui -> ui.getDevice().equals(parent))
-                                    .findFirst()
-                                    .orElseThrow(() -> new DrawNetworkException("Parent gateway not found"));
-                            gatewayUI.getChildren().add(targetUI);
-                        }
-                    }
-                    case REMOVE -> {
-                        final Device device = change.device();
-                        if(device instanceof Interface interfaceData) {
-                            final DeviceUI deviceUI = initInterface(interfaceData);
-                            selfDevice.getChildren().add(deviceUI);
-                        }else if(device instanceof Gateway gateway){
-                            final Interface parent = (Interface) change.parent();
-                            final DeviceUI parentUI = selfDevice.getChildren()
-                                    .stream()
-                                    .filter(ui -> ui.getDevice().equals(parent))
-                                    .findFirst()
-                                    .orElseThrow(() -> new DrawNetworkException("Parent interface not found"));
-                            final DeviceUI deviceUI = initGateway(gateway);
-                            parentUI.getChildren().add(deviceUI);
-                        }
-                    }
-                }
-                if (change.operation().equals(ChangeAfterRescan.Operation.ADD)) {
-                    final Device device = change.device();
-                    final DeviceUI deviceUI = createDeviceUI(device);
-                    if (device instanceof Interface) {
+    public <T extends Device> List<T> getDevicesByType(@NotNull Class<T> type) {
+        final List<Interface> interfaces = dataService.getSelfDevice().getAnInterfaces();
 
-                    } else if
-                } else if (change.getType() == ChangeAfterRescan.Type.REMOVE) {
-                    devices.removeIf(ui -> ui.getDevice().equals(change.device()));
-                }
-            }
-        } catch (DrawNetworkException e) {
-
+        if (type.equals(Interface.class)) {
+            return (List<T>) interfaces;
         }
+
+        if (type.equals(Gateway.class)) {
+            return interfaces.stream()
+                    .map(Interface::getGateway)
+                    .filter(Objects::nonNull)
+                    .filter(type::isInstance)
+                    .map(type::cast)
+                    .collect(Collectors.toList());
+        }
+
+        if (type.equals(Target.class)) {
+            return interfaces.stream()
+                    .map(Interface::getGateway)
+                    .filter(Objects::nonNull)
+                    .flatMap(gateway -> gateway.getDevices().stream())
+                    .map(type::cast)
+                    .collect(Collectors.toList());
+        }
+
+        // Return empty list for unsupported types
+        return Collections.emptyList();
     }
 
-    @SneakyThrows
-    public void clear() {
-        devices.clear();
-        selfDevice = null;
-        dataService.clear();
-        arpSpoofService.clear();
-        dataService.run();
-        selfDevice = initSelfDevice(dataService.getSelfDevice());
-        hardRefreshAction.run();
+    public List<Device> getAllDevices() {
+        final List<Device> devices = new ArrayList<>();
+        devices.add(dataService.getSelfDevice());
+        for (Interface anInterface : dataService.getSelfDevice().getAnInterfaces()) {
+            final Gateway gateway = anInterface.getGateway();
+            if (gateway != null) {
+                devices.add(gateway);
+                devices.addAll(gateway.getDevices());
+            }
+        }
+        return devices;
+    }
+
+    public SelfDevice getSelfDevice() {
+        return dataService.getSelfDevice();
     }
 
     // Privates functions
 
-    private DeviceUI initSelfDevice(SelfDevice selfDevice) {
-        final DeviceUI selfDeviceUI = createDeviceUI(selfDevice);
-        for (final Interface interfaceData : selfDevice.getAnInterfaces()) {
-            final DeviceUI interfaceUI = initInterface(interfaceData);
-            selfDeviceUI.getChildren().add(interfaceUI);
-        }
-        return selfDeviceUI;
-    }
+    private void initMenu(final Device device) {
+        final ContextMenu contextMenu = new ContextMenu();
+        final List<MenuItem> menuItems = contextMenu.getItems();
+        final MenuItem detailsItem = new MenuItem(SHOW_DETAILS_TEXT);
+        detailsItem.setOnAction(ignored -> showDetails(device));
+        contextMenu.getItems().add(detailsItem);
 
-    private DeviceUI initInterface(Interface interfaceData) {
-        final DeviceUI interfaceUI = createDeviceUI(interfaceData);
-        if (interfaceData.getGatewayOptional().isPresent()) {
-            final Gateway gateway = interfaceData.getGatewayOptional().get();
-            final DeviceUI gatewayUI = initGateway(gateway);
-            interfaceUI.getChildren().add(gatewayUI);
-        }
-        return interfaceUI;
-    }
-
-    private DeviceUI initGateway(Gateway gateway) {
-        final DeviceUI gatewayUI = createDeviceUI(gateway);
-        for (final Target target : gateway.getDevices()) {
-            final DeviceUI targetUI = createDeviceUI(target);
-            gatewayUI.getChildren().add(targetUI);
-        }
-        return gatewayUI;
-    }
-
-    private DeviceUI createDeviceUI(Device device) {
-        final DeviceUI deviceUI = new DeviceUI(device);
-        if (!(device instanceof Interface))
-            initMenu(deviceUI);
-        this.devices.add(deviceUI);
-        return deviceUI;
-    }
-
-    private void initMenu(DeviceUI deviceUI) {
-        ContextMenu contextMenu = deviceUI.getContextMenu();
-        MenuItem detailsItem = new MenuItem(SHOW_DETAILS_TEXT);
-        detailsItem.setOnAction(ignored -> showDetails(deviceUI));
-
-        MenuItem removeItem = new MenuItem(REMOVE_DEVICE_TEXT);
-        removeItem.setOnAction(ignored -> {
-            devices.remove(deviceUI);
-            dataService.removeByObject(deviceUI.getDevice());
-            refreshAction.run();
-        });
-
-        if (deviceUI.getDevice() instanceof Target) {
-            MenuItem startSpoofingMenuItem = getMenuItem(deviceUI);
-            contextMenu.getItems().add(startSpoofingMenuItem);
-        }
-        contextMenu.getItems().addAll(detailsItem, removeItem);
-    }
-
-    private @NotNull MenuItem getMenuItem(DeviceUI deviceUI) {
-        MenuItem startSpoofingMenuItem = new MenuItem(START_SPOOFING_TEXT);
-        startSpoofingMenuItem.setOnAction(ignored -> {
-            try {
-                spoof(deviceUI);
-                Frame statisticsFrame = Frame.createStatisticsDetails();
-                statisticsFrame.setArgs(new Object[]{deviceUI.getDevice()});
-                frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
+        if (device instanceof Target target) {
+            final MenuItem removeItem = new MenuItem(REMOVE_DEVICE_TEXT);
+            removeItem.setOnAction(ignored -> {
+                dataService.remove(target);
                 refreshAction.run();
-            } catch (NotFoundException ex) {
-                ErrorHandler.handle(ex);
-            }
-        });
-        return startSpoofingMenuItem;
+            });
+
+            final MenuItem startSpoofingMenuItem = new MenuItem(START_SPOOFING_TEXT);
+            startSpoofingMenuItem.setOnAction(ignored -> {
+                try {
+                    spoof(target);
+                    Frame statisticsFrame = Frame.createStatisticsDetails();
+                    statisticsFrame.setArgs(new Object[]{target});
+                    frameService.createNewScene(statisticsFrame, Frame.createMainFrame().getKey());
+                    refreshAction.run();
+                } catch (NotFoundException ex) {
+                    ErrorHandler.handle(ex);
+                }
+            });
+            contextMenu.getItems().addAll(startSpoofingMenuItem, removeItem);
+        }
+        contextMenus.put(device.getKey(), contextMenu);
     }
 
-    private void spoof(DeviceUI deviceUI) throws NotFoundException {
-        Target target = (Target) deviceUI.getDevice();
-        Gateway gateway = dataService.findGatewayByTarget(target)
-                .orElseThrow(() -> new NotFoundException("Couldn't spoof a target that it is not connected to the same Network"));
-        String scanInterface = dataService.getSelfDevice()
-                .getAnInterfaces()
-                .stream()
-                .filter(anInterface -> anInterface.getGatewayOptional().isPresent())
-                .filter(anInterface -> anInterface.getGatewayOptional().get().equals(gateway))
-                .findFirst()
-                .orElseThrow(() -> new NotFoundException("No interface found for the gateway"))
-                .getDeviceName();
-        arpSpoofService.spoof(scanInterface, target, gateway);
+    public ContextMenu getContextMenu(Device device) {
+        return contextMenus.get(device.getKey());
     }
 
-    private void showDetails(DeviceUI deviceUI) {
-        switch (deviceUI.getDevice()) {
+    private void spoof(Target target) throws NotFoundException {
+        final Interface anInterface = dataService.findInterfaceByTarget(target)
+                .orElseThrow(() -> new NotFoundException("Interface not found for the target"));
+        final Gateway gateway = anInterface.getGateway();
+        if (gateway == null) {
+            throw new NotFoundException("Gateway not found for the target");
+        }
+        arpSpoofService.spoof(anInterface.getDeviceName(), target, gateway);
+    }
+
+    private void showDetails(Device device) {
+        switch (device) {
             case Target target -> {
                 Frame detailsFrame = Frame.createTargetView();
                 detailsFrame.setArgs(new Object[]{target, refreshAction});
@@ -267,7 +182,7 @@ public class DeviceUiMapperService {
                 final Stage stage = frameService.createNewStage(detailsFrame, false, false);
                 handlePopupClose(stage, detailsFrame);
             }
-            default -> {
+            case Interface interfaceObj -> {
                 // ignored
             }
         }
@@ -275,5 +190,14 @@ public class DeviceUiMapperService {
 
     private void handlePopupClose(final Stage stage, Frame frame) {
         stage.setOnCloseRequest(ignored -> frameService.stopStage(frame.getKey()));
+    }
+
+    public void rescan() {
+        try {
+            dataService.run();
+            // Update device positions after scan
+        } catch (DrawNetworkException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
