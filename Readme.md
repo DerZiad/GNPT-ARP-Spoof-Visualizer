@@ -5,6 +5,19 @@ Powered by **Pcap4J**, it allows you to analyze live network traffic during spoo
 
 ---
 
+## 📝 High-Level Overview
+
+Graphical Network Packet Tracer (GNPT) is a modular JavaFX application for network learners and professionals.  
+It enables ARP spoofing, device scanning, real-time packet capture, and interactive traffic visualization.
+
+**Main modules:**
+- `org.npt.Launch`: Entry point, initializes UI and core logic.
+- `network`: ARP spoofing, device discovery, packet interception.
+- `ui`: Graphical components, charts, user interactions.
+- `analysis`: Processes and visualizes captured packets.
+
+---
+
 ## 📦 Download
 
 Latest release:
@@ -60,6 +73,7 @@ sudo apt-get install -y dsniff
 * 🎛️ Graphical interface built with JavaFX
 * 🧵 Efficient packet capture via **Pcap4J**
 * 🔍 Automatically scans for device IPs on your network
+* 📚 Designed for network learners and professionals
 
 ---
 
@@ -89,6 +103,27 @@ mvn clean compile exec:java
 | `JavaFX errors`     | Make sure JavaFX modules are included in the module path |
 | `Permission denied` | Run the app as `sudo`                                    |
 | `dsniff not found`  | Install via `apt` as shown above                         |
+
+---
+
+## 📖 Code Documentation
+
+All modules, classes, and functions are documented with Javadoc comments.
+
+- **How to view documentation:**  
+  Run `mvn javadoc:javadoc` to generate HTML docs in `target/site/apidocs`.
+- **Example usage:**  
+  See code comments for usage examples and explanations.
+- **Contributing:**  
+  Please document new code with clear Javadoc and add usage examples where relevant.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository and clone your fork.
+2. Document your code with Javadoc.
+3. Submit a pull request with a summary of your changes.
 
 ---
 
