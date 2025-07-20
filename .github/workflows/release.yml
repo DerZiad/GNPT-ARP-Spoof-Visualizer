@@ -44,10 +44,3 @@ jobs:
           body: ${{ steps.release_notes.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GNPT_TOKEN }}
-
-# Maintenance Instructions:
-# - Ensure GITHUB_TOKEN is available (default for GitHub Actions).
-# - If using a custom token, add it to repository secrets and update env.
-# - To update artifact names, change the 'files' field.
-# - To customize release notes, edit or add .github/release-drafter.yml.
-# - For troubleshooting, check workflow run logs for permission errors.
