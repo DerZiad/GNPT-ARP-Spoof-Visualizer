@@ -8,6 +8,7 @@ import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.image.Image;
 import javafx.scene.input.MouseButton;
@@ -26,6 +27,7 @@ import org.npt.uiservices.DeviceUiMapperService;
 import org.npt.uiservices.FrameService;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -194,6 +196,9 @@ public class MainController extends DataInjector {
 
     private void setupMouseEvents() {
         EventHandler<MouseEvent> handleMousePressed = event -> {
+            // check and close or context menu if it is open
+            final Collection<ContextMenu> contextMenus = deviceUiMapperService.getContextMenus().values();
+            contextMenus.forEach(ContextMenu::hide);
             BiPredicate<Device, MouseEvent> isInsideImage = (device, evt) -> {
                 // Null check for device and its coordinates
                 if (device == null || device.getX() == null || device.getY() == null) return false;

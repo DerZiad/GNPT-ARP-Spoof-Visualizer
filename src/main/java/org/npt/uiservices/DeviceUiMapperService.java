@@ -34,6 +34,7 @@ public class DeviceUiMapperService {
 
     private static final String REMOVE_DEVICE_TEXT = "Remove Device";
 
+    @Getter
     private static final HashMap<String, ContextMenu> contextMenus = new HashMap<>();
 
     private final Runnable refreshAction;
@@ -99,19 +100,6 @@ public class DeviceUiMapperService {
         return Collections.emptyList();
     }
 
-    public List<Device> getAllDevices() {
-        final List<Device> devices = new ArrayList<>();
-        devices.add(dataService.getSelfDevice());
-        for (Interface anInterface : dataService.getSelfDevice().getAnInterfaces()) {
-            final Gateway gateway = anInterface.getGateway();
-            if (gateway != null) {
-                devices.add(gateway);
-                devices.addAll(gateway.getDevices());
-            }
-        }
-        return devices;
-    }
-
     public ContextMenu getContextMenu(Device device) {
         return contextMenus.getOrDefault(device.getKey(),initMenu(device));
     }
@@ -132,6 +120,7 @@ public class DeviceUiMapperService {
         if (device instanceof Target target) {
             final MenuItem removeItem = new MenuItem(REMOVE_DEVICE_TEXT);
             removeItem.setOnAction(ignored -> {
+                contextMenus.remove(target.getKey());
                 dataService.remove(target);
                 refreshAction.run();
             });
