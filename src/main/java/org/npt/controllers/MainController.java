@@ -195,7 +195,7 @@ public class MainController extends DataInjector {
     }
 
     private void setupMouseEvents() {
-        EventHandler<MouseEvent> handleMousePressed = event -> {
+        final EventHandler<MouseEvent> handleMousePressed = event -> {
             // check and close or context menu if it is open
             final Collection<ContextMenu> contextMenus = deviceUiMapperService.getContextMenus().values();
             contextMenus.forEach(ContextMenu::hide);
@@ -227,41 +227,64 @@ public class MainController extends DataInjector {
                 }, true);
             }
         };
-        EventHandler<MouseEvent> handleMouseDragged = event -> {
+        final EventHandler<MouseEvent> handleMouseDragged = event -> {
             if (draggedDevice == null || !draggedDevice.initialized()) return;
-            final double newX = event.getX() - mouseDragOffsetX;
-            final double newY = event.getY() - mouseDragOffsetY;
-            if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
+            double proposedX = event.getX() - mouseDragOffsetX;
+            double proposedY = event.getY() - mouseDragOffsetY;
             double borderRadius = Math.sqrt(deviceImageSize * deviceImageSize + deviceImageSize * deviceImageSize) / 2;
 
-            // Check if draggedDevice is too close to any other initialized device (including selfDevice if needed)
-            Predicate<Device> tooClose = other -> {
+            // Check bounds for each axis
+            boolean xOutOfBounds = proposedX < 0 || proposedX > canvas.getWidth();
+            boolean yOutOfBounds = proposedY < 0 || proposedY > canvas.getHeight();
+
+            // Check proximity for each axis
+            Predicate<Device> tooCloseX = other -> {
                 if (other == draggedDevice || !other.initialized()) return false;
-                double dx = newX - other.getX();
-                double dy = newY - other.getY();
+                double dx = proposedX - other.getX();
+                double dy = draggedDevice.getY() - other.getY();
+                return Math.sqrt(dx * dx + dy * dy) < borderRadius * 2;
+            };
+            Predicate<Device> tooCloseY = other -> {
+                if (other == draggedDevice || !other.initialized()) return false;
+                double dx = draggedDevice.getX() - other.getX();
+                double dy = proposedY - other.getY();
                 return Math.sqrt(dx * dx + dy * dy) < borderRadius * 2;
             };
 
-            // Check if draggedDevice is too close to selfDevice
-            if (!draggedDevice.equals(deviceUiMapperService.getSelfDevice())) {
-                if (tooClose.test(deviceUiMapperService.getSelfDevice()))
-                    return;
-            }
+            boolean xBlocked = xOutOfBounds;
+            boolean yBlocked = yOutOfBounds;
 
-            // Check if draggedDevice is too close to any Interface, Gateway, or Target
+            // Check proximity for each axis
+            if (!draggedDevice.equals(deviceUiMapperService.getSelfDevice())) {
+                if (tooCloseX.test(deviceUiMapperService.getSelfDevice())) xBlocked = true;
+                if (tooCloseY.test(deviceUiMapperService.getSelfDevice())) yBlocked = true;
+            }
             for (Interface anInterface : deviceUiMapperService.getSelfDevice().getAnInterfaces()) {
-                if (tooClose.test(anInterface)) return;
+                if (tooCloseX.test(anInterface)) xBlocked = true;
+                if (tooCloseY.test(anInterface)) yBlocked = true;
                 if (anInterface.getGateway() != null) {
                     Gateway gateway = anInterface.getGateway();
-                    if (tooClose.test(gateway)) return;
+                    if (tooCloseX.test(gateway)) xBlocked = true;
+                    if (tooCloseY.test(gateway)) yBlocked = true;
                     for (Target target : gateway.getDevices()) {
-                        if (tooClose.test(target)) return;
+                        if (tooCloseX.test(target)) xBlocked = true;
+                        if (tooCloseY.test(target)) yBlocked = true;
                     }
                 }
             }
 
-            draggedDevice.setX(newX);
-            draggedDevice.setY(newY);
+            // Only block movement if both axes are blocked
+            if (xBlocked && yBlocked) return;
+
+            // Allow movement along unblocked axis
+            double finalX = draggedDevice.getX();
+            double finalY = draggedDevice.getY();
+            if (!xBlocked) finalX = proposedX;
+            if (!yBlocked) finalY = proposedY;
+
+            draggedDevice.setX(finalX);
+            draggedDevice.setY(finalY);
+
             final PauseTransition pause = new PauseTransition(Duration.millis(10));
             pause.setOnFinished(e -> drawNetwork(canvas));
             pause.play();
