@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
+@Getter
 public class DefaultGraphicalNetworkTracerFactory implements GraphicalNetworkTracerFactory {
 
     private static DefaultGraphicalNetworkTracerFactory instance = null;
@@ -26,7 +27,6 @@ public class DefaultGraphicalNetworkTracerFactory implements GraphicalNetworkTra
         }
     }
 
-    @Getter
     private final HashMap<String, KnownHost> knownHosts = new HashMap<>();
 
     @Override

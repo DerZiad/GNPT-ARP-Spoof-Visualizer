@@ -1,111 +1,82 @@
 package org.npt.services;
 
-import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.models.Device;
-import org.npt.models.Gateway;
+import org.npt.models.Interface;
 import org.npt.models.SelfDevice;
 import org.npt.models.Target;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Defines operations for managing network devices and interactions within a network environment.
+ * DataService provides methods for managing network data, including scanning the network,
+ * creating targets, and finding gateways. Implementations should handle network discovery,
+ * device management, and interface/gateway associations.
+ *
  * <p>
- * Provides functionality for:
- * <ul>
- *     <li>Scanning the network and initializing internal state</li>
- *     <li>Adding, removing, and querying devices</li>
- *     <li>Retrieving devices by type</li>
- *     <li>Accessing the local (self) device information</li>
- * </ul>
+ * The architecture expects DataService implementations to maintain a representation of the
+ * current device (SelfDevice), its interfaces, and associated gateways and targets.
+ * </p>
  */
 public interface DataService {
 
     /**
-     * Adds a device to the internal collection.
+     * Initializes and scans the network interfaces, discovering devices and gateways.
      *
-     * @param device the {@link Device} to be added
-     */
-    void addDevice(@NotNull final Device device);
-
-    /**
-     * Removes a device from the collection by its index.
-     *
-     * @param index the index of the {@link Device} to remove
-     */
-    void removeByIndex(@NotNull final Integer index);
-
-    /**
-     * Removes the specified device instance from the collection.
-     *
-     * @param device the {@link Device} to remove
-     */
-    void removeByObject(@NotNull final Device device);
-
-    /**
-     * Retrieves a device by its index.
-     *
-     * @param index the index of the device
-     * @return the {@link Device} at the given index
-     */
-    Device getDevice(@NotNull final Integer index);
-
-    /**
-     * Performs a network scan and initializes internal state,
-     * including available interfaces, self device, and discovered gateways.
-     *
-     * @throws DrawNetworkException if the scan fails due to a network error
+     * @throws DrawNetworkException if network initialization or scanning fails.
      */
     void run() throws DrawNetworkException;
 
     /**
-     * Retrieves all devices that are instances of the specified type.
+     * Creates a new Target device and associates it with the specified network interface and gateway.
      *
-     * @param tClass the class type to filter by
-     * @param <T>    the specific device subtype
-     * @return a {@link HashMap} mapping indices to matching device instances
-     */
-    <T> HashMap<Integer, T> getDevices(@NotNull final Class<T> tClass);
-
-    /**
-     * Clears all tracked devices and resets internal state.
-     */
-    void clear();
-
-    /**
-     * Returns the self (local) device representing the current host.
+     * <p>
+     * This method throws {@link InvalidInputException} if:
+     * <ul>
+     *   <li>Device name is empty, null, or already exists for the specified gateway</li>
+     *   <li>Network interface is empty, null, does not exist, or has no associated gateway</li>
+     *   <li>IP address is empty, null, not a valid IPv4 address, or already exists for the gateway</li>
+     * </ul>
+     * </p>
      *
-     * @return the {@link SelfDevice} instance
-     */
-    SelfDevice getSelfDevice();
-
-    /**
-     * Returns a list of all registered devices.
-     *
-     * @return a {@link List} of {@link Device} objects
-     */
-    List<Device> getDevices();
-
-    /**
-     * Creates a new {@link Target} device from the provided input.
-     *
-     * @param deviceName       the name to assign to the target device
-     * @param networkInterface the name of the interface the target is associated with
-     * @param ip               the IP address of the target
-     * @return a new {@link Target} instance
-     * @throws InvalidInputException if input validation fails
+     * @param deviceName       the name of the device to create
+     * @param networkInterface the network interface to associate with the target
+     * @param ip               the IPv4 address of the target device
+     * @return the created Target
+     * @throws InvalidInputException if input validation fails (see above)
      */
     Target createTarget(String deviceName, String networkInterface, String ip) throws InvalidInputException;
 
     /**
-     * Searches for a {@link Gateway} that contains the specified target device.
+     * Finds the network Interface associated with the given Target device.
      *
-     * @param target the {@link Target} to locate
-     * @return an {@link Optional} containing the gateway if found, otherwise empty
+     * <p>
+     * Searches all scanned interfaces for one that contains the specified Target.
+     * Returns an empty Optional if not found.
+     * </p>
+     *
+     * @param target the Target device to search for
+     * @return an Optional containing the Interface if found, or empty if not found
      */
-    Optional<Gateway> findGatewayByTarget(final Target target);
+    Optional<Interface> findInterfaceByTarget(Target target);
+
+    /**
+     * Returns the SelfDevice representing the current device and its network interfaces.
+     *
+     * @return the SelfDevice instance
+     */
+    SelfDevice getSelfDevice();
+
+    /**
+     * Removes the specified device (Target or Gateway) from the managed interfaces/gateways.
+     *
+     * <p>
+     * Implementations should ensure that the device is removed from all relevant collections,
+     * including gateways and interfaces.
+     * </p>
+     *
+     * @param device the device to remove
+     */
+    void remove(Device device);
 }

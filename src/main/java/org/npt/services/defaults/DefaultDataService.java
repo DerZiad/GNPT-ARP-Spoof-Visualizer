@@ -1,11 +1,7 @@
 package org.npt.services.defaults;
 
 import kotlin.Pair;
-import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
-import org.jetbrains.annotations.NotNull;
 import org.npt.exception.DrawNetworkException;
 import org.npt.exception.InvalidInputException;
 import org.npt.models.*;
@@ -16,184 +12,64 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-final class NetworkScanner {
+public final class DefaultDataService implements DataService {
 
-    private static final int IPV4_LENGTH = 4;
-    private final Interface networkInterface;
-
-    public NetworkScanner(Interface networkInterface) {
-        this.networkInterface = networkInterface;
-    }
-
-    @SneakyThrows
-    public Map<String, String> scan() {
-        final String cidr = buildCidr(networkInterface.getIp(), networkInterface.getNetmask());
-        final ProcessBuilder builder = new ProcessBuilder("nmap", "-sn", cidr);
-        builder.redirectErrorStream(true);
-
-        final Process process = builder.start();
-        final Map<String, String> devices = new LinkedHashMap<>();
-
-        try (final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            String hostname;
-            while ((line = reader.readLine()) != null) {
-                if (line.startsWith("Nmap scan report for ")) {
-                    String remainder = line.substring("Nmap scan report for ".length()).trim();
-                    if (remainder.contains(" (") && remainder.endsWith(")")) {
-                        int openParen = remainder.lastIndexOf(" (");
-                        hostname = remainder.substring(0, openParen).trim();
-                        String ip = remainder.substring(openParen + 2, remainder.length() - 1).trim();
-                        if (!ip.equals(networkInterface.getIp())) {
-                            devices.put(hostname, ip);
-                        }
-                    } else {
-                        hostname = remainder;
-                        if (!hostname.equals(networkInterface.getIp())) {
-                            devices.put(hostname, hostname);
-                        }
-                    }
-                }
-            }
-        }
-
-        process.waitFor();
-        return devices;
-    }
-
-    private String buildCidr(final String ip, final String netmask) throws IOException {
-        final InetAddress ipAddr = InetAddress.getByName(ip);
-        final InetAddress maskAddr = InetAddress.getByName(netmask);
-        final String network = calculateNetworkAddress(ipAddr, maskAddr);
-        final int prefix = netmaskToPrefix(maskAddr);
-        return network + "/" + prefix;
-    }
-
-    private String calculateNetworkAddress(final InetAddress ipAddr, final InetAddress maskAddr) {
-        final byte[] ipBytes = ipAddr.getAddress();
-        final byte[] maskBytes = maskAddr.getAddress();
-        final byte[] networkBytes = new byte[IPV4_LENGTH];
-
-        for (int i = 0; i < IPV4_LENGTH; i++) {
-            networkBytes[i] = (byte) (ipBytes[i] & maskBytes[i]);
-        }
-
-        try {
-            return InetAddress.getByAddress(networkBytes).getHostAddress();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to calculate network address", e);
-        }
-    }
-
-    private int netmaskToPrefix(final InetAddress maskAddr) {
-        final byte[] bytes = maskAddr.getAddress();
-        int count = 0;
-        for (byte b : bytes) {
-            count += Integer.bitCount(b & 0xFF);
-        }
-        return count;
-    }
-}
-
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class DefaultDataService implements DataService {
+    private final HashMap<Interface, Pair<Thread, NetworkScanner>> networkScanners = new HashMap<>();
 
     @Getter
-    private final List<Device> devices = new ArrayList<>();
-
-    @Getter
-    private SelfDevice selfDevice;
+    private final SelfDevice selfDevice;
 
     private static volatile DataService instance;
+
+    private DefaultDataService() {
+        selfDevice = new SelfDevice(getCurrentDeviceName());
+    }
 
     @Override
     public void run() throws DrawNetworkException {
         try {
-            final List<Interface> interfaces = scanNetwork();
-            selfDevice = new SelfDevice("Self Device", interfaces);
-            for (final Interface anInterface : interfaces) {
-                devices.add(anInterface);
-                if (anInterface.getGatewayOptional().isPresent()) {
-                    final Gateway gateway = anInterface.getGatewayOptional().get();
-                    devices.add(gateway);
-                    devices.addAll(gateway.getDevices());
-                }
-            }
+            scanNetwork();
         } catch (SocketException e) {
             throw new DrawNetworkException("Failed to initialize network interfaces: unable to retrieve local network data.");
         }
     }
 
     @Override
-    public void addDevice(@NotNull Device device) {
-        devices.add(device);
-    }
-
-    @Override
-    public void removeByIndex(@NotNull Integer index) {
-        devices.remove(index.intValue());
-    }
-
-    @Override
-    public void removeByObject(@NotNull Device device) {
-        for (int i = 0; i < devices.size(); i++) {
-            if (device.equals(devices.get(i))) {
-                removeByIndex(i);
-                break;
-            }
-        }
-    }
-
-    @Override
-    public Device getDevice(@NotNull Integer index) {
-        return devices.get(index);
-    }
-
-    @Override
-    public <T> HashMap<Integer, T> getDevices(@NotNull Class<T> tClass) {
-        AtomicInteger index = new AtomicInteger(0);
-        return devices.stream()
-                .filter(tClass::isInstance)
-                .map(tClass::cast)
-                .collect(Collectors.toMap(
-                        i -> index.getAndIncrement(),
-                        i -> i,
-                        (a, b) -> b,
-                        HashMap::new
-                ));
-    }
-
-    @Override
-    public void clear() {
-        devices.clear();
-    }
-
-    @Override
     public Target createTarget(String deviceName, String networkInterface, String ip) throws InvalidInputException {
         final Target target = new Target(deviceName, ip);
         validateTarget(target, networkInterface);
-        final Optional<Interface> selfDeviceInterfaceOpt = selfDevice.getAnInterfaces()
-                .stream()
-                .filter(anInterface -> anInterface.getDeviceName().equals(networkInterface))
-                .findFirst();
-        selfDeviceInterfaceOpt.flatMap(Interface::getGatewayOptional).ifPresent(gateway -> {
-            gateway.getDevices().add(target);
-            this.addDevice(target);
-        });
+        final Interface targetInterface = selfDevice.getInterfaceIfExist(networkInterface).get();
+        final Gateway gateway = targetInterface.getGateway();
+        gateway.getDevices().add(target);
         return target;
     }
 
     @Override
-    public Optional<Gateway> findGatewayByTarget(Target target) {
-        return this.getDevices(Gateway.class).values()
+    public Optional<Interface> findInterfaceByTarget(Target target) {
+        return selfDevice.getAnInterfaces()
                 .stream()
-                .filter(gateway -> gateway.getDevices().contains(target))
+                .filter(anInterface -> anInterface.targetAlreadyScanned(target))
                 .findFirst();
+    }
+
+    @Override
+    public void remove(Device device) {
+        if (device == null) {
+            return;
+        }
+
+        if (device instanceof Target target) {
+            for (Interface anInterface : selfDevice.getAnInterfaces()) {
+                Gateway gateway = anInterface.getGateway();
+                if (gateway != null && gateway.getDevices() != null) {
+                    gateway.getDevices().remove(target);
+                }
+            }
+        }
     }
 
     public static DataService getInstance() {
@@ -207,9 +83,9 @@ public class DefaultDataService implements DataService {
         return instance;
     }
 
-    // ======================
-    // Private Helper Methods
-    // ======================
+    // ==================================================== //
+    // Private Helper Methods // Network scanning methods   //
+    // ==================================================== //
 
     private void validateTarget(Target target, String networkInterface) throws InvalidInputException {
         HashMap<String, String> errors = new HashMap<>();
@@ -232,15 +108,10 @@ public class DefaultDataService implements DataService {
                 errors.put("Network Interface", "The specified network interface does not exist.");
             }
 
-            if (interfaceOpt.isPresent() && interfaceOpt.get().getGatewayOptional().isEmpty()) {
+            if (interfaceOpt.isPresent() && interfaceOpt.get().getGateway() == null) {
                 errors.put("Network Interface", "The specified network interface does not have an associated gateway.");
             }
         }
-
-        devices.stream()
-                .filter(device -> device.getDeviceName().equals(deviceName))
-                .findFirst()
-                .ifPresent(device -> errors.put("Device Name", "A device named '" + device.getDeviceName() + "' already exists."));
 
         final String ip = target.getIp();
         if (ip == null || ip.trim().isEmpty()) {
@@ -249,12 +120,9 @@ public class DefaultDataService implements DataService {
             errors.put("IP Address", "Invalid IPv4 format. Please enter a valid IPv4 address (e.g., 192.168.1.1).");
         }
 
-        if (interfaceOpt.isPresent() && interfaceOpt.get().getGatewayOptional().isPresent()) {
-            final Gateway gateway = interfaceOpt.get().getGatewayOptional().get();
-            final boolean ipExists = gateway.getDevices()
-                    .stream()
-                    .anyMatch(t -> t.getIp().equals(ip));
-            if (ipExists) {
+        if (interfaceOpt.isPresent()) {
+            final Interface anInterface = interfaceOpt.get();
+            if (anInterface.targetAlreadyScanned(target.getIp())) {
                 errors.put("IP Address", "A Target with IP '" + ip + "' already exists for this Gateway.");
             }
         }
@@ -264,39 +132,60 @@ public class DefaultDataService implements DataService {
         }
     }
 
-    private List<Interface> scanNetwork() throws SocketException {
+    private void scanNetwork() throws SocketException {
         final List<Interface> interfacesObj = new ArrayList<>();
-        final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-
-        while (interfaces.hasMoreElements()) {
-            final NetworkInterface ni = interfaces.nextElement();
-            final String interfaceName = ni.getDisplayName();
-            final Optional<Pair<String, String>> ipAddressOptional = findFirstIPv4(ni.getInetAddresses());
-            ipAddressOptional.ifPresent(ip -> {
-                final String ipString = ip.getFirst();
-                final String netmaskString = ip.getSecond();
-                final Optional<Gateway> gwOpt = discoverGatewayForInterface(interfaceName);
-                final Interface interfaceObj = new Interface(interfaceName, ipString, netmaskString, gwOpt);
-                if (gwOpt.isPresent()) {
-                    final NetworkScanner networkScanner = new NetworkScanner(interfaceObj);
-                    final Map<String, String> foundIps = networkScanner.scan();
-                    final Gateway gw = gwOpt.get();
-                    for (final String hostname : foundIps.keySet()) {
-                        final String foundIp = foundIps.get(hostname);
-                        if (!gw.getIp().equals(foundIp)) {
-                            final Target target = new Target(hostname, foundIp);
-                            gw.getDevices().add(target);
-                        }
-                    }
-                }
-                interfacesObj.add(new Interface(interfaceName, ipString, netmaskString, gwOpt));
-            });
+        final Set<NetworkInterface> networkInterface = discoverNetworkInterfaces();
+        final Set<Interface> existingInterfaceNames = selfDevice.getAnInterfaces()
+                .stream()
+                .collect(Collectors.toSet());
+        // Delete interfaces that are not present in the current scan
+        for (Interface existingInterface : existingInterfaceNames) {
+            if (networkInterface.stream().noneMatch(ni -> ni.getDisplayName().equals(existingInterface.getDeviceName()))) {
+                selfDevice.getAnInterfaces().remove(existingInterface);
+            }
         }
 
-        return interfacesObj;
+        // Add or update interfaces
+        for (NetworkInterface ni : networkInterface) {
+            final String displayName = ni.getDisplayName();
+            final Optional<Interface> createdInterface = addInterfaceOrEmptyIfExist(ni);
+            createdInterface.ifPresent(createdInterfaceObj -> selfDevice.getAnInterfaces().add(createdInterface.get()));
+        }
+
+        // Scan for targets on each interface
+        for (final Interface computedInterface : selfDevice.getAnInterfaces()) {
+            if (computedInterface.equals("lo") || (networkScanners.containsKey(computedInterface) && networkScanners.get(computedInterface).getFirst().isAlive()))
+                continue;
+            final NetworkScanner networkScanner = new NetworkScanner(computedInterface);
+            final Thread scannerThread = new Thread(networkScanner, "NetworkScanner-" + computedInterface.getDeviceName());
+            scannerThread.start();
+            networkScanners.put(computedInterface, new Pair<>(scannerThread, networkScanner));
+        }
     }
 
-    private Optional<Gateway> discoverGatewayForInterface(String interfaceName) {
+    private Optional<Interface> addInterfaceOrEmptyIfExist(final NetworkInterface ni) {
+        final String interfaceName = ni.getDisplayName();
+        final Optional<Pair<String, String>> ipAddressOptional = findFirstIPv4(ni.getInetAddresses());
+        if (ipAddressOptional.isEmpty())
+            return Optional.empty();
+        final String ipString = ipAddressOptional.get().getFirst();
+        final Optional<Interface> anInterface = selfDevice.getInterfaceIfExist(ni.getDisplayName());
+        final String netmaskString = ipAddressOptional.get().getSecond();
+        final Gateway gateway = discoverGateway(interfaceName);
+        if (anInterface.isPresent()) {
+            final Interface existingInterface = anInterface.get();
+            existingInterface.setIp(ipString);
+            if (existingInterface.getGateway() != null) {
+                existingInterface.getGateway().setIp(gateway.getIp());
+            }
+            existingInterface.setNetmask(netmaskString);
+            return Optional.empty();
+        }
+        final Interface interfaceObj = new Interface(interfaceName, ipString, netmaskString, gateway);
+        return Optional.of(interfaceObj);
+    }
+
+    private Gateway discoverGateway(String interfaceName) {
         try {
             final Process process = new ProcessBuilder("sh", "-c", "ip route show dev " + interfaceName).start();
             final BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -308,13 +197,33 @@ public class DefaultDataService implements DataService {
                     final int viaIndex = Arrays.asList(parts).indexOf("via");
                     if (viaIndex != -1 && viaIndex + 1 < parts.length) {
                         final String gatewayIp = parts[viaIndex + 1];
-                        return Optional.of(new Gateway("Router", gatewayIp, new ArrayList<>()));
+                        return new Gateway("Router", gatewayIp);
                     }
                 }
             }
-            return Optional.empty();
+            return null;
         } catch (IOException e) {
-            return Optional.empty();
+            return null;
+        }
+    }
+
+    private Set<NetworkInterface> discoverNetworkInterfaces() throws SocketException {
+        final Set<NetworkInterface> networkInterfaces = new HashSet<>();
+        final Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+        while (interfaces.hasMoreElements()) {
+            final NetworkInterface ni = interfaces.nextElement();
+            if (ni.isUp() && !ni.isLoopback() && !ni.isVirtual() && ni.supportsMulticast()) {
+                networkInterfaces.add(ni);
+            }
+        }
+        return networkInterfaces;
+    }
+
+    private String getCurrentDeviceName() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            return "Unknown Device";
         }
     }
 

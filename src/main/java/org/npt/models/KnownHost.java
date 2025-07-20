@@ -38,7 +38,7 @@ public class KnownHost {
         int baseIp = ipToInt(parts[0]);
         int prefixLength = Integer.parseInt(parts[1]);
 
-        int mask = ~((1 << (32 - prefixLength)) - 1);
+        int mask = -(1 << (32 - prefixLength));
         return (ip & mask) == (baseIp & mask);
     }
 

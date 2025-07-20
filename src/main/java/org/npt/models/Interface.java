@@ -1,24 +1,41 @@
 package org.npt.models;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 
-import java.util.Optional;
+import java.util.Objects;
 
-public class Interface extends Device {
+@EqualsAndHashCode(callSuper = true)
+@Getter
+@Setter
+public final class Interface extends Device {
 
-    @Getter
-    private final String ip;
+    private String ip;
 
-    @Getter
-    private final Optional<Gateway> gatewayOptional;
+    private String netmask;
 
-    @Getter
-    private final String netmask;
+    private Gateway gateway;
 
-    public Interface(final String networkInterface, final String ip, final String netmask, final Optional<Gateway> gatewayOptional) {
+    public Interface(final String networkInterface, final String ip, final String netmask, final Gateway gateway) {
         super(networkInterface);
         this.ip = ip;
         this.netmask = netmask;
-        this.gatewayOptional = gatewayOptional;
+        this.gateway = gateway;
+    }
+
+    public boolean targetAlreadyScanned(Target target) {
+        if (gateway != null && gateway.getDevices() != null) {
+            return gateway.getDevices().contains(target);
+        }
+        return false;
+    }
+
+    public boolean targetAlreadyScanned(String ip) {
+        if (gateway != null && gateway.getDevices() != null) {
+            return gateway.getDevices().stream()
+                    .anyMatch(target -> Objects.equals(target.getIp(), ip));
+        }
+        return false;
     }
 }

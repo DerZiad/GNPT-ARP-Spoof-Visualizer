@@ -44,7 +44,7 @@ public class SelfDeviceDetailsController extends DataInjector {
         for (Interface anInterface : selfDevice.getAnInterfaces()) {
             final String networkInterfaceName = anInterface.getDeviceName();
             final String interfaceIp = anInterface.getIp();
-            final String gatewayIpValue = anInterface.getGatewayOptional().isPresent() ? anInterface.getGatewayOptional().get().getIp() : "UNKNOWN";
+            final String gatewayIpValue = anInterface.getGateway() != null ? anInterface.getGateway().getIp() : "UNKNOWN";
             final SelfDeviceIpEntry selfDeviceIpEntry = new SelfDeviceIpEntry(new SimpleStringProperty(networkInterfaceName), new SimpleStringProperty(interfaceIp), new SimpleStringProperty(gatewayIpValue));
             ipTable.getItems().add(selfDeviceIpEntry);
         }
