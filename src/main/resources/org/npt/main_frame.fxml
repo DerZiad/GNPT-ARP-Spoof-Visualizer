@@ -10,7 +10,6 @@
     <MenuBar>
         <Menu fx:id="actionMenu" text="Actions">
             <MenuItem fx:id="addTargetMenu" text="Add Target" />
-            <MenuItem fx:id="newMenu" text="Rescan Network" />
         </Menu>
 
         <Menu text="About">

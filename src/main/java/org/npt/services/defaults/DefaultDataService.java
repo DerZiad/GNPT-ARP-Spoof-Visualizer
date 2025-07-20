@@ -58,7 +58,18 @@ public final class DefaultDataService implements DataService {
 
     @Override
     public void remove(Device device) {
-        // TODO : Implement the logic to remove a device from the selfDevice's interfaces or gateways.
+        if (device == null) {
+            return;
+        }
+
+        if (device instanceof Target target) {
+            for (Interface anInterface : selfDevice.getAnInterfaces()) {
+                Gateway gateway = anInterface.getGateway();
+                if (gateway != null && gateway.getDevices() != null) {
+                    gateway.getDevices().remove(target);
+                }
+            }
+        }
     }
 
     public static DataService getInstance() {

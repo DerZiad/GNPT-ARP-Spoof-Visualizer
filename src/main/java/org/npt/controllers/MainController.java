@@ -40,22 +40,20 @@ public class MainController extends DataInjector {
     private static DeviceUiMapperService deviceUiMapperService;
     private static final HashMap<Class<? extends Device>, Image> images = new HashMap<>();
     private Device draggedDevice = null;
-    private double dragOffsetX;
-    private double dragOffsetY;
+    private double mouseDragOffsetX;
+    private double mouseDragOffsetY;
     private final long radarStartTime = System.currentTimeMillis();
     private double radarRadius = 0;
     private static final double RADAR_PERIOD_MS = 4000;
     private static final double TEXT_LINE_HEIGHT = 18;
     private static final double TEXT_OFFSET_Y = 10;
     private static final double LABEL_WIDTH = 100;
-    private double imageSize;
+    private double deviceImageSize;
 
     @FXML
     public Canvas canvas;
     @FXML
     public BorderPane borderPane;
-    @FXML
-    public MenuItem newMenu;
     @FXML
     public MenuItem addTargetMenu;
     @FXML
@@ -72,21 +70,19 @@ public class MainController extends DataInjector {
         canvas.heightProperty().bind(borderPane.heightProperty());
         borderPane.setMinSize(0, 0);
         updateImageSize();
+        final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
         canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
             updateImageSize();
-            resizeTargetsPositionAfterChangeEvent();
+            selfDevice.setX(canvas.getWidth() / 2);
+            resizeDevicePositionsOnCanvasChange();
             drawNetwork(canvas);
         });
-        canvas.heightProperty().addListener((ignored1, ignored2, ignored3) -> {
+        canvas.heightProperty().addListener((ignored1, ignored2, newVal) -> {
             updateImageSize();
-            resizeTargetsPositionAfterChangeEvent();
+            selfDevice.setY(newVal.doubleValue() / 2);
+            resizeDevicePositionsOnCanvasChange();
             drawNetwork(canvas);
         });
-        newMenu.setOnAction(ignored -> {
-            //deviceUiMapperService.rescan();
-            drawNetwork(canvas);
-        });
-
         addTargetMenu.setOnAction(ignored1 -> {
             final FrameService frameService = FrameService.getInstance();
             final Frame targetFrame = Frame.createAddTargetFrame();
@@ -99,7 +95,7 @@ public class MainController extends DataInjector {
     }
 
     private void updateImageSize() {
-        imageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.08;
+        deviceImageSize = Math.min(canvas.getWidth(), canvas.getHeight()) * 0.08;
     }
 
     private void runNmapScanAndMapAnimation() {
@@ -140,26 +136,19 @@ public class MainController extends DataInjector {
         nmapScanTimer.start();
     }
 
-    private void initPositions() {
+    private void initializeDevicePositions() {
         if (canvas.getHeight() == 0 || canvas.getWidth() == 0)
             return;
         final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
         // Only set position if not already set
-        if (selfDevice.getX() == null || selfDevice.getY() == null) {
+        if (!selfDevice.initialized()) {
             selfDevice.setX(canvas.getWidth() / 2);
             selfDevice.setY(canvas.getHeight() / 2);
         }
-        canvas.widthProperty().addListener((ignored1, ignored2, ignored3) -> {
-            selfDevice.setX(canvas.getWidth() / 2);
-            drawNetwork(canvas);
-        });
-        canvas.heightProperty().addListener((ignored1, ignored2, newVal) -> {
-            selfDevice.setY(newVal.doubleValue() / 2);
-            drawNetwork(canvas);
-        });
+
         final BiConsumer<List<? extends Device>, Pair<Double, Double>> drawCircle = (devices, position) -> {
             final List<? extends Device> toBeUpdated = devices.stream()
-                    .filter(device -> device.getX() == null || device.getY() == null)
+                    .filter(device -> !device.initialized())
                     .toList();
             if (toBeUpdated.isEmpty()) return;
             final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 5.0;
@@ -184,61 +173,61 @@ public class MainController extends DataInjector {
                 });
     }
 
-    private void resizeTargetsPositionAfterChangeEvent() {
+    private void resizeDevicePositionsOnCanvasChange() {
         final double prevWidth = deviceUiMapperService.getActualWidth();
         final double prevHeight = deviceUiMapperService.getActualHeight();
         final double newWidth = canvas.getWidth();
         final double newHeight = canvas.getHeight();
         if (newWidth != 0 && newHeight != 0 && prevWidth != 0 && prevHeight != 0) {
-            iterateOverDevicesAndExecuteAction((device) -> {
+            forEachDevice(device -> {
                 if (device.initialized()) {
                     double xRatio = device.getX() / prevWidth;
                     double yRatio = device.getY() / prevHeight;
                     device.setX(xRatio * newWidth);
                     device.setY(yRatio * newHeight);
                 }
-            }, true);
+            }, false);
         }
         deviceUiMapperService.setActualHeight(newHeight);
         deviceUiMapperService.setActualWidth(newWidth);
     }
 
     private void setupMouseEvents() {
-        EventHandler<MouseEvent> onMousePressed = event -> {
+        EventHandler<MouseEvent> handleMousePressed = event -> {
             BiPredicate<Device, MouseEvent> isInsideImage = (device, evt) -> {
                 // Null check for device and its coordinates
                 if (device == null || device.getX() == null || device.getY() == null) return false;
                 double x = evt.getX(), y = evt.getY();
-                double left = device.getX() - imageSize / 2;
-                double right = device.getX() + imageSize / 2;
-                double top = device.getY() - imageSize / 2;
-                double bottom = device.getY() + imageSize / 2;
+                double left = device.getX() - deviceImageSize / 2;
+                double right = device.getX() + deviceImageSize / 2;
+                double top = device.getY() - deviceImageSize / 2;
+                double bottom = device.getY() + deviceImageSize / 2;
                 return x >= left && x <= right && y >= top && y <= bottom;
             };
             if (event.getButton() == MouseButton.SECONDARY) {
-                iterateOverDevicesAndExecuteAction(device -> {
+                forEachDevice(device -> {
                     if (isInsideImage.test(device, event)) {
                         deviceUiMapperService.getContextMenu(device).show(canvas, event.getScreenX(), event.getScreenY());
                     }
                 }, true);
                 return;
             } else {
-                iterateOverDevicesAndExecuteAction(device -> {
+                forEachDevice(device -> {
                     if (isInsideImage.test(device, event)) {
                         draggedDevice = device;
-                        dragOffsetX = event.getX() - device.getX();
-                        dragOffsetY = event.getY() - device.getY();
+                        mouseDragOffsetX = event.getX() - device.getX();
+                        mouseDragOffsetY = event.getY() - device.getY();
                         return;
                     }
                 }, true);
             }
         };
-        EventHandler<MouseEvent> onMouseDragged = event -> {
+        EventHandler<MouseEvent> handleMouseDragged = event -> {
             if (draggedDevice == null || !draggedDevice.initialized()) return;
-            final double newX = event.getX() - dragOffsetX;
-            final double newY = event.getY() - dragOffsetY;
+            final double newX = event.getX() - mouseDragOffsetX;
+            final double newY = event.getY() - mouseDragOffsetY;
             if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
-            double borderRadius = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
+            double borderRadius = Math.sqrt(deviceImageSize * deviceImageSize + deviceImageSize * deviceImageSize) / 2;
 
             // Check if draggedDevice is too close to any other initialized device (including selfDevice if needed)
             Predicate<Device> tooClose = other -> {
@@ -272,38 +261,38 @@ public class MainController extends DataInjector {
             pause.setOnFinished(e -> drawNetwork(canvas));
             pause.play();
         };
-        canvas.setOnMousePressed(onMousePressed);
-        canvas.setOnMouseDragged(onMouseDragged);
+        canvas.setOnMousePressed(handleMousePressed);
+        canvas.setOnMouseDragged(handleMouseDragged);
         canvas.setOnMouseReleased(event -> {
             draggedDevice = null;
         });
     }
 
     public void drawNetwork(final Canvas canvas) {
-        initPositions();
+        initializeDevicePositions();
         final GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        drawGrid(gc);
+        drawCanvasGrid(gc);
         gc.setStroke(Color.BLACK);
         gc.setLineWidth(3);
         final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
-        drawComponent(gc, selfDevice, imageSize, SelfDevice.class);
+        drawDeviceComponent(gc, selfDevice, deviceImageSize, SelfDevice.class);
         for (final Interface anInterface : selfDevice.getAnInterfaces()) {
-            drawComponent(gc, anInterface, imageSize, Interface.class);
-            drawConnection(gc, anInterface, selfDevice);
+            drawDeviceComponent(gc, anInterface, deviceImageSize, Interface.class);
+            drawDeviceConnection(gc, anInterface, selfDevice);
             if (anInterface.getGateway() == null) continue;
             final Gateway gateway = anInterface.getGateway();
-            drawComponent(gc, gateway, imageSize, Gateway.class);
-            drawConnection(gc, gateway, anInterface);
+            drawDeviceComponent(gc, gateway, deviceImageSize, Gateway.class);
+            drawDeviceConnection(gc, gateway, anInterface);
             for (final Target target : gateway.getDevices()) {
-                drawComponent(gc, target, imageSize, Target.class);
-                drawConnection(gc, gateway, target);
+                drawDeviceComponent(gc, target, deviceImageSize, Target.class);
+                drawDeviceConnection(gc, gateway, target);
             }
         }
-        drawMinimap(gc);
+        drawMiniMap(gc);
     }
 
-    private void drawMinimap(final @NotNull GraphicsContext gc) {
+    private void drawMiniMap(final @NotNull GraphicsContext gc) {
         double width = canvas.getWidth();
         double height = canvas.getHeight();
         double mapSize = Math.min(width, height) * 0.25;
@@ -315,7 +304,7 @@ public class MainController extends DataInjector {
         gc.setStroke(Color.GRAY);
         gc.strokeRect(mapX, mapY, mapSize, mapSize);
 
-        drawGrid(gc, mapX, mapY, mapSize, mapSize, 0.1);
+        drawCanvasGrid(gc, mapX, mapY, mapSize, mapSize, 0.1);
 
         double radarCenterX = mapX + mapSize / 2;
         double radarCenterY = mapY + mapSize / 2;
@@ -425,14 +414,14 @@ public class MainController extends DataInjector {
         gc.setLineWidth(1);
     }
 
-    private void drawConnection(final GraphicsContext gc, final Device startLine, final Device endLine) {
-        if (!startLine.initialized() || !endLine.initialized())
+    private void drawDeviceConnection(final GraphicsContext gc, final Device startDevice, final Device endDevice) {
+        if (!startDevice.initialized() || !endDevice.initialized())
             return;
-        double r = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
-        final double x1 = startLine.getX();
-        final double y1 = startLine.getY();
-        final double x2 = endLine.getX();
-        final double y2 = endLine.getY();
+        double r = Math.sqrt(deviceImageSize * deviceImageSize + deviceImageSize * deviceImageSize) / 2;
+        final double x1 = startDevice.getX();
+        final double y1 = startDevice.getY();
+        final double x2 = endDevice.getX();
+        final double y2 = endDevice.getY();
         final double dx = x2 - x1;
         final double dy = y2 - y1;
         final double length = Math.sqrt(dx * dx + dy * dy);
@@ -448,16 +437,16 @@ public class MainController extends DataInjector {
         gc.strokeLine(newX1, newY1, newX2, newY2);
     }
 
-    private <T> void drawComponent(final GraphicsContext gc, final Device device, final double imageSize, final Class<T> deviceClass) {
+    private <T> void drawDeviceComponent(final GraphicsContext gc, final Device device, final double deviceImageSize, final Class<T> deviceClass) {
         if (!device.initialized())
             return;
-        final double x = device.getX() - imageSize / 2;
-        final double y = device.getY() - imageSize / 2;
-        gc.drawImage(images.get(deviceClass), x, y, imageSize, imageSize);
+        final double x = device.getX() - deviceImageSize / 2;
+        final double y = device.getY() - deviceImageSize / 2;
+        gc.drawImage(images.get(deviceClass), x, y, deviceImageSize, deviceImageSize);
         gc.setFill(Color.BLACK);
         gc.setFont(Font.font(14));
         final double textX = device.getX() - LABEL_WIDTH / 2;
-        final double baseY = y + imageSize + TEXT_OFFSET_Y;
+        final double baseY = y + deviceImageSize + TEXT_OFFSET_Y;
         int line = 0;
         gc.fillText(device.getDeviceName(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         switch (device) {
@@ -479,11 +468,11 @@ public class MainController extends DataInjector {
         }
     }
 
-    private void drawGrid(GraphicsContext gc) {
-        drawGrid(gc, 0, 0, canvas.getWidth(), canvas.getHeight(), 0.1);
+    private void drawCanvasGrid(GraphicsContext gc) {
+        drawCanvasGrid(gc, 0, 0, canvas.getWidth(), canvas.getHeight(), 0.1);
     }
 
-    private void drawGrid(GraphicsContext gc, double x0, double y0, double width, double height, double stepFraction) {
+    private void drawCanvasGrid(GraphicsContext gc, double x0, double y0, double width, double height, double stepFraction) {
         gc.setStroke(Color.LIGHTGRAY);
         gc.setLineWidth(1);
         for (double percentage = stepFraction; percentage <= 1.0; percentage += stepFraction) {
@@ -494,7 +483,7 @@ public class MainController extends DataInjector {
         }
     }
 
-    private void iterateOverDevicesAndExecuteAction(Consumer<Device> action, boolean includeSelfDevice) {
+    private void forEachDevice(Consumer<Device> action, boolean includeSelfDevice) {
         if (includeSelfDevice) {
             action.accept(deviceUiMapperService.getSelfDevice());
         }

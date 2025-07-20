@@ -11,8 +11,13 @@ import java.util.Optional;
 
 /**
  * DataService provides methods for managing network data, including scanning the network,
- * creating targets, and finding gateways. Implementations should handle network discovery
- * and device management.
+ * creating targets, and finding gateways. Implementations should handle network discovery,
+ * device management, and interface/gateway associations.
+ *
+ * <p>
+ * The architecture expects DataService implementations to maintain a representation of the
+ * current device (SelfDevice), its interfaces, and associated gateways and targets.
+ * </p>
  */
 public interface DataService {
 
@@ -29,10 +34,9 @@ public interface DataService {
      * <p>
      * This method throws {@link InvalidInputException} if:
      * <ul>
-     *   <li>Device name is empty or null</li>
+     *   <li>Device name is empty, null, or already exists for the specified gateway</li>
      *   <li>Network interface is empty, null, does not exist, or has no associated gateway</li>
-     *   <li>IP address is empty, null, or not a valid IPv4 address</li>
-     *   <li>A Target with the same IP already exists for the gateway</li>
+     *   <li>IP address is empty, null, not a valid IPv4 address, or already exists for the gateway</li>
      * </ul>
      * </p>
      *
@@ -48,8 +52,8 @@ public interface DataService {
      * Finds the network Interface associated with the given Target device.
      *
      * <p>
-     * This method searches all scanned interfaces for one that contains the specified Target.
-     * It never throws {@link InvalidInputException}; if the Target is not found, an empty Optional is returned.
+     * Searches all scanned interfaces for one that contains the specified Target.
+     * Returns an empty Optional if not found.
      * </p>
      *
      * @param target the Target device to search for
@@ -64,5 +68,15 @@ public interface DataService {
      */
     SelfDevice getSelfDevice();
 
+    /**
+     * Removes the specified device (Target or Gateway) from the managed interfaces/gateways.
+     *
+     * <p>
+     * Implementations should ensure that the device is removed from all relevant collections,
+     * including gateways and interfaces.
+     * </p>
+     *
+     * @param device the device to remove
+     */
     void remove(Device device);
 }
