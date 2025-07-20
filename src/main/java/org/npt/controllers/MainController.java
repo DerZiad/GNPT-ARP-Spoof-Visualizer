@@ -28,9 +28,11 @@ import org.npt.uiservices.FrameService;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @Slf4j
 public class MainController extends DataInjector {
@@ -40,7 +42,6 @@ public class MainController extends DataInjector {
     private Device draggedDevice = null;
     private double dragOffsetX;
     private double dragOffsetY;
-    private boolean draggingRouter = false;
     private final long radarStartTime = System.currentTimeMillis();
     private double radarRadius = 0;
     private static final double RADAR_PERIOD_MS = 4000;
@@ -102,7 +103,7 @@ public class MainController extends DataInjector {
     }
 
     private void runNmapScanAndMapAnimation() {
-        final Consumer<Void> rescan = ignored -> {
+        final Runnable rescan = () -> {
             final Task<Void> backgroundTask = new Task<>() {
 
                 @Override
@@ -131,7 +132,7 @@ public class MainController extends DataInjector {
             public void handle(long now) {
                 long currentTime = System.currentTimeMillis();
                 if (currentTime - lastScanTime[0] >= 5000) {
-                    rescan.accept(null);
+                    rescan.run();
                     lastScanTime[0] = currentTime;
                 }
             }
@@ -188,29 +189,15 @@ public class MainController extends DataInjector {
         final double prevHeight = deviceUiMapperService.getActualHeight();
         final double newWidth = canvas.getWidth();
         final double newHeight = canvas.getHeight();
-        if (newWidth == 0 || newHeight == 0 || prevWidth == 0 || prevHeight == 0)
-            return;
-
-        final Consumer<Device> resizeDevice = (device) -> {
-            // Only resize if position is already set
-            if (device.getX() != null && device.getY() != null) {
-                double xRatio = device.getX() / prevWidth;
-                double yRatio = device.getY() / prevHeight;
-                device.setX(xRatio * newWidth);
-                device.setY(yRatio * newHeight);
-            }
-        };
-
-        resizeDevice.accept(deviceUiMapperService.getSelfDevice());
-        for (final Interface anInterface : deviceUiMapperService.getSelfDevice().getAnInterfaces()) {
-            resizeDevice.accept(anInterface);
-            final Gateway gateway = anInterface.getGateway();
-            if (gateway != null) {
-                resizeDevice.accept(gateway);
-                for (Target target : gateway.getDevices()) {
-                    resizeDevice.accept(target);
+        if (newWidth != 0 && newHeight != 0 && prevWidth != 0 && prevHeight != 0) {
+            iterateOverDevicesAndExecuteAction((device) -> {
+                if (device.initialized()) {
+                    double xRatio = device.getX() / prevWidth;
+                    double yRatio = device.getY() / prevHeight;
+                    device.setX(xRatio * newWidth);
+                    device.setY(yRatio * newHeight);
                 }
-            }
+            }, true);
         }
         deviceUiMapperService.setActualHeight(newHeight);
         deviceUiMapperService.setActualWidth(newWidth);
@@ -229,63 +216,58 @@ public class MainController extends DataInjector {
                 return x >= left && x <= right && y >= top && y <= bottom;
             };
             if (event.getButton() == MouseButton.SECONDARY) {
-                Device selfDevice = deviceUiMapperService.getSelfDevice();
-                if (isInsideImage.test(selfDevice, event)) {
-                    deviceUiMapperService.getContextMenu(selfDevice).show(canvas, event.getScreenX(), event.getScreenY());
-                    return;
-                }
-                for (Device device : deviceUiMapperService.getAllDevices()) {
+                iterateOverDevicesAndExecuteAction(device -> {
                     if (isInsideImage.test(device, event)) {
-                        deviceUiMapperService.getContextMenu(selfDevice).show(canvas, event.getScreenX(), event.getScreenY());
-                        return;
+                        deviceUiMapperService.getContextMenu(device).show(canvas, event.getScreenX(), event.getScreenY());
                     }
-                }
+                }, true);
+                return;
             } else {
-                Device selfDevice = deviceUiMapperService.getSelfDevice();
-                if (isInsideImage.test(selfDevice, event)) {
-                    draggingRouter = true;
-                    dragOffsetX = event.getX() - selfDevice.getX();
-                    dragOffsetY = event.getY() - selfDevice.getY();
-                    return;
-                }
-                for (Device device : deviceUiMapperService.getAllDevices()) {
+                iterateOverDevicesAndExecuteAction(device -> {
                     if (isInsideImage.test(device, event)) {
                         draggedDevice = device;
                         dragOffsetX = event.getX() - device.getX();
                         dragOffsetY = event.getY() - device.getY();
-                        break;
+                        return;
                     }
-                }
+                }, true);
             }
         };
         EventHandler<MouseEvent> onMouseDragged = event -> {
-            final Device movingDevice = draggingRouter ? deviceUiMapperService.getSelfDevice() : draggedDevice;
-            if (movingDevice == null || movingDevice.getX() == null || movingDevice.getY() == null) return;
+            if (draggedDevice == null || !draggedDevice.initialized()) return;
             final double newX = event.getX() - dragOffsetX;
             final double newY = event.getY() - dragOffsetY;
             if (newX < 0 || newX > canvas.getWidth() || newY < 0 || newY > canvas.getHeight()) return;
-            final Device selfDevice = deviceUiMapperService.getSelfDevice();
             double borderRadius = Math.sqrt(imageSize * imageSize + imageSize * imageSize) / 2;
-            boolean tooClose = deviceUiMapperService.getAllDevices().stream()
-                    .filter(other -> other != movingDevice)
-                    .filter(other -> other.getX() != null && other.getY() != null) // Null check for other devices
-                    .anyMatch(other -> {
-                        double dx = newX - other.getX();
-                        double dy = newY - other.getY();
-                        return Math.sqrt(dx * dx + dy * dy) < borderRadius * 2;
-                    });
-            if (!draggingRouter && selfDevice != movingDevice) {
-                if (selfDevice.getX() != null && selfDevice.getY() != null) { // Null check for selfDevice
-                    double dx = newX - selfDevice.getX();
-                    double dy = newY - selfDevice.getY();
-                    if (Math.sqrt(dx * dx + dy * dy) < borderRadius) {
-                        tooClose = true;
+
+            // Check if draggedDevice is too close to any other initialized device (including selfDevice if needed)
+            Predicate<Device> tooClose = other -> {
+                if (other == draggedDevice || !other.initialized()) return false;
+                double dx = newX - other.getX();
+                double dy = newY - other.getY();
+                return Math.sqrt(dx * dx + dy * dy) < borderRadius * 2;
+            };
+
+            // Check if draggedDevice is too close to selfDevice
+            if (!draggedDevice.equals(deviceUiMapperService.getSelfDevice())) {
+                if (tooClose.test(deviceUiMapperService.getSelfDevice()))
+                    return;
+            }
+
+            // Check if draggedDevice is too close to any Interface, Gateway, or Target
+            for (Interface anInterface : deviceUiMapperService.getSelfDevice().getAnInterfaces()) {
+                if (tooClose.test(anInterface)) return;
+                if (anInterface.getGateway() != null) {
+                    Gateway gateway = anInterface.getGateway();
+                    if (tooClose.test(gateway)) return;
+                    for (Target target : gateway.getDevices()) {
+                        if (tooClose.test(target)) return;
                     }
                 }
             }
-            if (tooClose) return;
-            movingDevice.setX(newX);
-            movingDevice.setY(newY);
+
+            draggedDevice.setX(newX);
+            draggedDevice.setY(newY);
             final PauseTransition pause = new PauseTransition(Duration.millis(10));
             pause.setOnFinished(e -> drawNetwork(canvas));
             pause.play();
@@ -294,7 +276,6 @@ public class MainController extends DataInjector {
         canvas.setOnMouseDragged(onMouseDragged);
         canvas.setOnMouseReleased(event -> {
             draggedDevice = null;
-            draggingRouter = false;
         });
     }
 
@@ -513,4 +494,18 @@ public class MainController extends DataInjector {
         }
     }
 
+    private void iterateOverDevicesAndExecuteAction(Consumer<Device> action, boolean includeSelfDevice) {
+        if (includeSelfDevice) {
+            action.accept(deviceUiMapperService.getSelfDevice());
+        }
+        for (Interface anInterface : deviceUiMapperService.getSelfDevice().getAnInterfaces()) {
+            action.accept(anInterface);
+            if (anInterface.getGateway() != null) {
+                action.accept(anInterface.getGateway());
+                for (Target target : anInterface.getGateway().getDevices()) {
+                    action.accept(target);
+                }
+            }
+        }
+    }
 }
