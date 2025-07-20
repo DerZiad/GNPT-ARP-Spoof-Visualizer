@@ -5,7 +5,7 @@ on:
     tags: [ '*' ]
 
 permissions:
-  contents: write # Required for creating releases
+  contents: write
 
 jobs:
   build-and-release:
