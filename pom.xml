@@ -31,8 +31,9 @@
         <common.net.version>3.11.1</common.net.version>
         <pcap4j.version>1.8.2</pcap4j.version>
         <tilesfx.version>11.48</tilesfx.version>
-        <dnsjava.version>3.3.1</dnsjava.version>
+        <dnsjava.version>3.6.3</dnsjava.version>
         <slf4j.version>1.7.32</slf4j.version>
+        <jetbrains.annotations.version>24.0.0</jetbrains.annotations.version>
 
         <!-- Maven Plugins -->
         <maven.assembly.plugin>3.7.1</maven.assembly.plugin>
@@ -177,7 +178,7 @@
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>24.0.0</version>
+            <version>${jetbrains.annotations.version}</version>
         </dependency>
 
         <!-- Lombok -->
