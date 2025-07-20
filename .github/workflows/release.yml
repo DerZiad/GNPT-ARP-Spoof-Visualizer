@@ -4,6 +4,9 @@ on:
   push:
     tags: [ '*' ]
 
+permissions:
+  contents: write # Required for creating releases
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
@@ -20,13 +23,31 @@ jobs:
           cache: 'maven'
 
       - name: Execute Permission Script
-        run: chmod +x release.sh
+        run: chmod +x build.sh
 
       - name: Build Project
-        run: sh release.sh
+        run: sh build.sh
+
+      - name: Generate Release Notes
+        id: release_notes
+        uses: release-drafter/release-drafter@v5
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: gnpt.zip
+          body: ${{ steps.release_notes.outputs.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GNPT_TOKEN }}
+
+# Maintenance Instructions:
+# - Ensure GITHUB_TOKEN is available (default for GitHub Actions).
+# - If using a custom token, add it to repository secrets and update env.
+# - To update artifact names, change the 'files' field.
+# - To customize release notes, edit or add .github/release-drafter.yml.
+# - For troubleshooting, check workflow run logs for permission errors.
