@@ -19,7 +19,7 @@ class SelfDeviceUnitTest {
     }
 
     @Test
-    @DisplayName("addInterface adds a single interface")
+    @DisplayName("addInterface adds a single interface.png")
     void addInterface_addsSingleInterface() {
         SelfDevice self = new SelfDevice("self");
         Interface iface = new Interface("eth0", "192.168.1.2", "255.255.255.0", null);

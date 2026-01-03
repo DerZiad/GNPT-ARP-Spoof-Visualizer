@@ -19,7 +19,7 @@ public class ShutdownException extends Exception {
     @Getter
     public enum ShutdownExceptionErrorCode {
 
-        FAILED_TO_LOAD_PROPERTY_FILE(10);
+        FAILED_TO_LOAD_PROPERTY_FILE(10), UNSATISFIED_REQUIREMENTS(11);
 
         private final Integer code;
 

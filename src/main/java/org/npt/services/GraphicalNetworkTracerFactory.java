@@ -7,9 +7,9 @@ import java.io.InputStream;
 import java.util.HashMap;
 
 /**
- * Factory interface for accessing core services and resources used in graphical network tracing.
+ * Factory interface.png for accessing core services and resources used in graphical network tracing.
  * <p>
- * This interface provides methods to retrieve service instances and known network resources,
+ * This interface.png provides methods to retrieve service instances and known network resources,
  * acting as a centralized access point for dependency injection and service management.
  */
 public interface GraphicalNetworkTracerFactory {
