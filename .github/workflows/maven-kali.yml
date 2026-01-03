@@ -2,13 +2,15 @@ name: maven-kali
 
 on:
   push:
-    branches: [ '*' ]
+    branches:
+      - main
   pull_request:
-    branches: [ '*' ]
+    branches:
+      - main
 
 jobs:
   build:
-    name: Build & Test on Ubuntu
+    name: maven-kali
     runs-on: ubuntu-latest
 
     steps:

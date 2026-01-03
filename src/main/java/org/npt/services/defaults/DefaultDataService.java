@@ -95,21 +95,21 @@ public final class DefaultDataService implements DataService {
             errors.put("Device Name", "Device name cannot be empty.");
         }
 
-        // check if network interface exist and the gateway associated with it is present
+        // check if network interface.png exist and the gateway associated with it is present
         Optional<Interface> interfaceOpt = Optional.empty();
         if (networkInterface == null || networkInterface.trim().isEmpty()) {
-            errors.put("Network Interface", "Network interface cannot be empty.");
+            errors.put("Network Interface", "Network interface.png cannot be empty.");
         } else {
             interfaceOpt = selfDevice.getAnInterfaces()
                     .stream()
                     .filter(anInterface -> anInterface.getDeviceName().equals(networkInterface))
                     .findFirst();
             if (interfaceOpt.isEmpty()) {
-                errors.put("Network Interface", "The specified network interface does not exist.");
+                errors.put("Network Interface", "The specified network interface.png does not exist.");
             }
 
             if (interfaceOpt.isPresent() && interfaceOpt.get().getGateway() == null) {
-                errors.put("Network Interface", "The specified network interface does not have an associated gateway.");
+                errors.put("Network Interface", "The specified network interface.png does not have an associated gateway.");
             }
         }
 
@@ -152,7 +152,7 @@ public final class DefaultDataService implements DataService {
             createdInterface.ifPresent(createdInterfaceObj -> selfDevice.getAnInterfaces().add(createdInterface.get()));
         }
 
-        // Scan for targets on each interface
+        // Scan for targets on each interface.png
         for (final Interface computedInterface : selfDevice.getAnInterfaces()) {
             if (computedInterface.equals("lo") || (networkScanners.containsKey(computedInterface) && networkScanners.get(computedInterface).getFirst().isAlive()))
                 continue;

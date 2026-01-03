@@ -7,7 +7,7 @@ import org.npt.services.defaults.DefaultArpSpoofService;
 import java.util.Optional;
 
 /**
- * Service interface for managing ARP spoofing processes.
+ * Service interface.png for managing ARP spoofing processes.
  * <p>
  * Provides methods to start, stop, retrieve, and clear ARP spoofing operations
  * for specified network targets and gateways.
@@ -31,9 +31,9 @@ public interface ArpSpoofService {
     void stop(DefaultArpSpoofService.ArpSpoofProcess arpSpoofProcess);
 
     /**
-     * Starts an ARP spoofing process using the given interface, target, and gateway.
+     * Starts an ARP spoofing process using the given interface.png, target, and gateway.
      *
-     * @param scanInterface the network interface to use for spoofing
+     * @param scanInterface the network interface.png to use for spoofing
      * @param target        the target device to spoof
      * @param gateway       the gateway device to impersonate
      */

@@ -19,6 +19,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.util.Pair;
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.npt.models.*;
@@ -30,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -106,9 +106,7 @@ public class MainController extends DataInjector {
 
                 @Override
                 protected Void call() throws Exception {
-                    Platform.runLater(() -> {
-                        deviceUiMapperService.rescan();
-                    });
+                    Platform.runLater(() -> deviceUiMapperService.rescan());
                     return null;
                 }
             };
@@ -138,43 +136,6 @@ public class MainController extends DataInjector {
         nmapScanTimer.start();
     }
 
-    private void initializeDevicePositions() {
-        if (canvas.getHeight() == 0 || canvas.getWidth() == 0)
-            return;
-        final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
-        // Only set position if not already set
-        if (!selfDevice.initialized()) {
-            selfDevice.setX(canvas.getWidth() / 2);
-            selfDevice.setY(canvas.getHeight() / 2);
-        }
-
-        final BiConsumer<List<? extends Device>, Pair<Double, Double>> drawCircle = (devices, position) -> {
-            final List<? extends Device> toBeUpdated = devices.stream()
-                    .filter(device -> !device.initialized())
-                    .toList();
-            if (toBeUpdated.isEmpty()) return;
-            final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 5.0;
-            final double centerX = position.getKey();
-            final double centerY = position.getValue();
-            final double angleStep = 2 * Math.PI / toBeUpdated.size();
-            for (int i = 0; i < toBeUpdated.size(); i++) {
-                final double angle = i * angleStep;
-                final double x = centerX + baseRadius * Math.cos(angle);
-                final double y = centerY + baseRadius * Math.sin(angle);
-                final Device device = toBeUpdated.get(i);
-                device.setX(x);
-                device.setY(y);
-            }
-        };
-        drawCircle.accept(selfDevice.getAnInterfaces(), new Pair<>(selfDevice.getX(), selfDevice.getY()));
-        selfDevice.getAnInterfaces().stream()
-                .filter(anInterface -> anInterface.getGateway() != null)
-                .forEach(anInterface -> {
-                    drawCircle.accept(Arrays.asList(anInterface.getGateway()), new Pair<>(anInterface.getX(), anInterface.getY()));
-                    drawCircle.accept(anInterface.getGateway().getDevices(), new Pair<>(anInterface.getGateway().getX(), anInterface.getGateway().getY()));
-                });
-    }
-
     private void resizeDevicePositionsOnCanvasChange() {
         final double prevWidth = deviceUiMapperService.getActualWidth();
         final double prevHeight = deviceUiMapperService.getActualHeight();
@@ -197,7 +158,7 @@ public class MainController extends DataInjector {
     private void setupMouseEvents() {
         final EventHandler<MouseEvent> handleMousePressed = event -> {
             // check and close or context menu if it is open
-            final Collection<ContextMenu> contextMenus = deviceUiMapperService.getContextMenus().values();
+            final Collection<ContextMenu> contextMenus = DeviceUiMapperService.getContextMenus().values();
             contextMenus.forEach(ContextMenu::hide);
             BiPredicate<Device, MouseEvent> isInsideImage = (device, evt) -> {
                 // Null check for device and its coordinates
@@ -215,14 +176,12 @@ public class MainController extends DataInjector {
                         deviceUiMapperService.getContextMenu(device).show(canvas, event.getScreenX(), event.getScreenY());
                     }
                 }, true);
-                return;
             } else {
                 forEachDevice(device -> {
                     if (isInsideImage.test(device, event)) {
                         draggedDevice = device;
                         mouseDragOffsetX = event.getX() - device.getX();
                         mouseDragOffsetY = event.getY() - device.getY();
-                        return;
                     }
                 }, true);
             }
@@ -297,7 +256,8 @@ public class MainController extends DataInjector {
     }
 
     public void drawNetwork(final Canvas canvas) {
-        initializeDevicePositions();
+        final DevicesPositionInitializer devicesPositionInitializer = new DevicesPositionInitializer(canvas, deviceUiMapperService);
+        devicesPositionInitializer.initializeDevices();
         final GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         drawCanvasGrid(gc);
@@ -326,16 +286,15 @@ public class MainController extends DataInjector {
         double mapSize = Math.min(width, height) * 0.25;
         double margin = 10;
         double mapX = width - mapSize - margin;
-        double mapY = margin;
         gc.setFill(Color.rgb(240, 240, 240, 0.85));
-        gc.fillRect(mapX, mapY, mapSize, mapSize);
+        gc.fillRect(mapX, margin, mapSize, mapSize);
         gc.setStroke(Color.GRAY);
-        gc.strokeRect(mapX, mapY, mapSize, mapSize);
+        gc.strokeRect(mapX, margin, mapSize, mapSize);
 
-        drawCanvasGrid(gc, mapX, mapY, mapSize, mapSize, 0.1);
+        drawCanvasGrid(gc, mapX, margin, mapSize, mapSize, 0.1);
 
         double radarCenterX = mapX + mapSize / 2;
-        double radarCenterY = mapY + mapSize / 2;
+        double radarCenterY = margin + mapSize / 2;
         double maxRadarRadius = mapSize / 2;
         double currentRadarRadius = radarRadius * maxRadarRadius;
         if (currentRadarRadius > 0.5) {
@@ -357,23 +316,23 @@ public class MainController extends DataInjector {
         // Only draw if initialized
         if (selfDevice.initialized()) {
             double selfX = mapX + selfDevice.getX() * scaleX;
-            double selfY = mapY + selfDevice.getY() * scaleY;
+            double selfY = margin + selfDevice.getY() * scaleY;
             final List<Interface> interfaces = selfDevice.getAnInterfaces();
             gc.setStroke(Color.BLACK);
             for (Interface anInterface : interfaces) {
                 if (!anInterface.initialized()) continue;
                 double ix = mapX + anInterface.getX() * scaleX;
-                double iy = mapY + anInterface.getY() * scaleY;
+                double iy = margin + anInterface.getY() * scaleY;
                 gc.strokeLine(ix, iy, selfX, selfY);
                 if (anInterface.getGateway() == null || !anInterface.getGateway().initialized()) continue;
                 Gateway gateway = anInterface.getGateway();
                 double gx = mapX + gateway.getX() * scaleX;
-                double gy = mapY + gateway.getY() * scaleY;
+                double gy = margin + gateway.getY() * scaleY;
                 gc.strokeLine(gx, gy, ix, iy);
                 for (Target target : gateway.getDevices()) {
                     if (!target.initialized()) continue;
                     double tx = mapX + target.getX() * scaleX;
-                    double ty = mapY + target.getY() * scaleY;
+                    double ty = margin + target.getY() * scaleY;
                     gc.strokeLine(gx, gy, tx, ty);
                 }
             }
@@ -382,19 +341,19 @@ public class MainController extends DataInjector {
             for (Interface interfaceUI : interfaces) {
                 if (!interfaceUI.initialized()) continue;
                 double ix = mapX + interfaceUI.getX() * scaleX;
-                double iy = mapY + interfaceUI.getY() * scaleY;
+                double iy = margin + interfaceUI.getY() * scaleY;
                 gc.setFill(Color.BLUE);
                 gc.fillOval(ix - 5, iy - 5, 10, 10);
                 if (interfaceUI.getGateway() == null || !interfaceUI.getGateway().initialized()) continue;
                 Gateway gatewayUI = interfaceUI.getGateway();
                 double gx = mapX + gatewayUI.getX() * scaleX;
-                double gy = mapY + gatewayUI.getY() * scaleY;
+                double gy = margin + gatewayUI.getY() * scaleY;
                 gc.setFill(Color.ORANGE);
                 gc.fillOval(gx - 5, gy - 5, 10, 10);
                 for (Target target : gatewayUI.getDevices()) {
                     if (!target.initialized()) continue;
                     double tx = mapX + target.getX() * scaleX;
-                    double ty = mapY + target.getY() * scaleY;
+                    double ty = margin + target.getY() * scaleY;
                     gc.setFill(Color.RED);
                     gc.fillOval(tx - 5, ty - 5, 10, 10);
                 }
@@ -406,14 +365,14 @@ public class MainController extends DataInjector {
             boolean drawn = selfDevice.getAnInterfaces().stream().anyMatch(anInterface -> anInterface.targetAlreadyScanned(target));
             if (!drawn) {
                 double tx = mapX + target.getX() * scaleX;
-                double ty = mapY + target.getY() * scaleY;
+                double ty = margin + target.getY() * scaleY;
                 gc.setFill(Color.RED);
                 gc.fillOval(tx - 5, ty - 5, 10, 10);
             }
         }
         double legendBoxHeight = 4 * 22 + 16;
         double legendBoxX = mapX;
-        double legendBoxY = mapY + mapSize + 8;
+        double legendBoxY = margin + mapSize + 8;
         gc.setFill(Color.rgb(240, 240, 240, 0.92));
         gc.fillRect(legendBoxX, legendBoxY, mapSize, legendBoxHeight);
         gc.setStroke(Color.GRAY);
@@ -478,18 +437,9 @@ public class MainController extends DataInjector {
         int line = 0;
         gc.fillText(device.getDeviceName(), textX, baseY + TEXT_LINE_HEIGHT * line++);
         switch (device) {
-            case Target target -> {
-                gc.fillText(target.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
-            }
-
-            case Interface intf -> {
-                gc.fillText(intf.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
-            }
-
-            case Gateway gateway -> {
-                gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
-            }
-
+            case Target target -> gc.fillText(target.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+            case Interface anInterface -> gc.fillText(anInterface.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
+            case Gateway gateway -> gc.fillText(gateway.getIp(), textX, baseY + TEXT_LINE_HEIGHT * line++);
             default -> {
 
             }
@@ -522,6 +472,72 @@ public class MainController extends DataInjector {
                 for (Target target : anInterface.getGateway().getDevices()) {
                     action.accept(target);
                 }
+            }
+        }
+    }
+
+    @AllArgsConstructor
+    static class DevicesPositionInitializer {
+
+        private Canvas canvas;
+        private DeviceUiMapperService deviceUiMapperService;
+
+        public void initializeDevices() {
+            if (canvas.getHeight() == 0 || canvas.getWidth() == 0)
+                return;
+            final SelfDevice selfDevice = deviceUiMapperService.getSelfDevice();
+            if (!selfDevice.initialized()) {
+                selfDevice.setX(canvas.getWidth() / 2);
+                selfDevice.setY(canvas.getHeight() / 2);
+            }
+            initializeInterfaces(selfDevice.getAnInterfaces(), selfDevice);
+            selfDevice.getAnInterfaces().stream()
+                    .filter(anInterface -> anInterface.getGateway() != null)
+                    .forEach(anInterface -> {
+                        initializeGateway(anInterface.getGateway(), anInterface);
+                        initializeTargets(anInterface.getGateway().getDevices(), anInterface.getGateway());
+                    });
+        }
+
+        private void initializeInterfaces(final List<Interface> interfaces, final SelfDevice selfDevice) {
+            final List<? extends Device> toBeUpdated = interfaces.stream().filter(anInterface -> !anInterface.initialized()).toList();
+            if (toBeUpdated.isEmpty()) return;
+            final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 5.0;
+            final double centerX = selfDevice.getX();
+            final double centerY = selfDevice.getY();
+            final double angleStep = 2 * Math.PI / toBeUpdated.size();
+            for (int i = 0; i < toBeUpdated.size(); i++) {
+                final double angle = i * angleStep;
+                final double x = centerX + baseRadius * Math.cos(angle);
+                final double y = centerY + baseRadius * Math.sin(angle);
+                final Device device = toBeUpdated.get(i);
+                device.setX(x);
+                device.setY(y);
+            }
+        }
+
+        private void initializeGateway(final Gateway gateway, final Interface anInterface) {
+            if (gateway.initialized()) return;
+            double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 5.0;
+            gateway.setX(anInterface.getX() + baseRadius);
+            gateway.setY(anInterface.getY());
+        }
+
+        private void initializeTargets(final List<Target> targets, final Gateway gateway) {
+            if (targets.stream().allMatch(Device::initialized)) return;
+
+            final double baseRadius = Math.min(canvas.getWidth(), canvas.getHeight()) / 5.0;
+            final double centerX = gateway.getX();
+            final double centerY = gateway.getY();
+            final int devicesSizeIncludingInterface = targets.size() + 1;
+            final double angleStep = 2 * Math.PI / devicesSizeIncludingInterface;
+            for (int i = 0; i < targets.size(); i++) {
+                final double angle = (i + 1) * angleStep;
+                final double x = centerX + baseRadius * Math.cos(angle);
+                final double y = centerY + baseRadius * Math.sin(angle);
+                final Target target = targets.get(i);
+                target.setX(x);
+                target.setY(y);
             }
         }
     }

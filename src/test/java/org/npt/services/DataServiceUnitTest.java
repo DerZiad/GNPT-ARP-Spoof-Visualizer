@@ -33,7 +33,7 @@ public class DataServiceUnitTest {
                 .filter(i -> i.getGateway() != null)
                 .findFirst();
 
-        Assumptions.assumeTrue(interfaceWithGateway.isPresent(), "At least one interface with gateway required");
+        Assumptions.assumeTrue(interfaceWithGateway.isPresent(), "At least one interface.png with gateway required");
         testInterface = interfaceWithGateway.get();
         validInterfaceName = testInterface.getDeviceName();
     }
@@ -78,7 +78,7 @@ public class DataServiceUnitTest {
                 .filter(i -> i.getGateway() == null)
                 .findFirst();
 
-        Assumptions.assumeTrue(noGateway.isPresent(), "At least one interface without gateway required");
+        Assumptions.assumeTrue(noGateway.isPresent(), "At least one interface.png without gateway required");
 
         InvalidInputException ex = catchThrowableOfType(() ->
                 dataService.createTarget("TestTarget", noGateway.get().getDeviceName(), TEST_IP_PREFIX + "103"),

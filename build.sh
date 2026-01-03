@@ -14,7 +14,7 @@ cp -r javafx/ gnpt/
 chmod -R 755 gnpt/
 
 echo "Network Packet Tracer has been built and is ready for release."
-echo "!/bin/sh
+echo "#!/usr/bin/zsh
 java --module-path ./javafx/lib --add-modules javafx.controls,javafx.fxml,javafx.swing -jar NetworkPacketTracer.jar
 " > gnpt/run.sh
 
