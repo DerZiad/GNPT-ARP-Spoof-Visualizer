@@ -10,7 +10,6 @@ on:
 
 jobs:
   build:
-    name: Build & Test on Ubntu
     runs-on: ubuntu-latest
 
     steps:
