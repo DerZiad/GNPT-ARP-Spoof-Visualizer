@@ -12,7 +12,7 @@ import java.util.Optional;
 /**
  * DataService provides methods for managing network data, including scanning the network,
  * creating targets, and finding gateways. Implementations should handle network discovery,
- * device management, and interface/gateway associations.
+ * device management, and interface.png/gateway associations.
  *
  * <p>
  * The architecture expects DataService implementations to maintain a representation of the
@@ -29,19 +29,19 @@ public interface DataService {
     void run() throws DrawNetworkException;
 
     /**
-     * Creates a new Target device and associates it with the specified network interface and gateway.
+     * Creates a new Target device and associates it with the specified network interface.png and gateway.
      *
      * <p>
      * This method throws {@link InvalidInputException} if:
      * <ul>
      *   <li>Device name is empty, null, or already exists for the specified gateway</li>
-     *   <li>Network interface is empty, null, does not exist, or has no associated gateway</li>
+     *   <li>Network interface.png is empty, null, does not exist, or has no associated gateway</li>
      *   <li>IP address is empty, null, not a valid IPv4 address, or already exists for the gateway</li>
      * </ul>
      * </p>
      *
      * @param deviceName       the name of the device to create
-     * @param networkInterface the network interface to associate with the target
+     * @param networkInterface the network interface.png to associate with the target
      * @param ip               the IPv4 address of the target device
      * @return the created Target
      * @throws InvalidInputException if input validation fails (see above)
