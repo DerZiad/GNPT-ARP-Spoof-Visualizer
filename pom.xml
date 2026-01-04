@@ -5,16 +5,16 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.npt</groupId>
-    <artifactId>NetworkPacketTracer</artifactId>
+    <artifactId>GraphicalNetworkPacketTracer</artifactId>
     <version>1.0</version>
-    <name>NetworkPacketTracer</name>
+    <name>GraphicalNetworkPacketTracer</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>21</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
         <mainClass>org.npt.Launch</mainClass>
-        <output.jar>NetworkPacketTracer-1.0.jar</output.jar>
+        <output.jar>gnpt-1.0</output.jar>
 
         <!-- JavaFX -->
         <javafx.version>21.0.8-ea+2</javafx.version>
